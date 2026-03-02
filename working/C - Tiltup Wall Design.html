@@ -1,0 +1,3691 @@
+<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tilt-Up Wall OOP Calc (Internal)</title>
+  <style>
+    :root {
+      --bg: #f3f5f8;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #d6dbe3;
+      --primary: #1d4ed8;
+      --primary-weak: #dbeafe;
+      --danger: #b91c1c;
+      --danger-weak: #fee2e2;
+      --ok: #166534;
+      --ok-weak: #dcfce7;
+      --warn: #92400e;
+      --warn-weak: #fef3c7;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+      --radius: 10px;
+      --topbar-h: 56px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      height: var(--topbar-h);
+      background: #0f172a;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      box-shadow: var(--shadow);
+      gap: 8px;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .toolbar-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      border: 1px solid #c9d2df;
+      background: #fff;
+      color: #111827;
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      line-height: 1.2;
+    }
+
+    .btn:hover {
+      background: #f8fafc;
+    }
+
+    .btn.primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: #1e40af;
+    }
+
+    .btn.primary:hover {
+      background: #1e40af;
+    }
+
+    .btn.danger {
+      background: #fff;
+      color: var(--danger);
+      border-color: #fecaca;
+    }
+
+    .btn.sm {
+      padding: 5px 8px;
+      font-size: 11px;
+    }
+
+    #appView {
+      min-height: calc(100vh - var(--topbar-h));
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 380px) 1fr minmax(320px, 380px);
+      gap: 12px;
+      padding: 12px;
+      height: calc(100vh - var(--topbar-h));
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      min-height: 0;
+      overflow: auto;
+    }
+
+    #leftPanel,
+    #rightPanel {
+      padding: 10px;
+    }
+
+    #centerPanel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    details {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    details summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 10px 12px;
+      font-weight: 600;
+      font-size: 13px;
+      background: #f8fafc;
+      border-bottom: 1px solid #eef2f7;
+    }
+
+    details summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .section-body {
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .field {
+      display: grid;
+      gap: 4px;
+    }
+
+    .field.inline {
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 12px;
+      color: #334155;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid #cfd8e3;
+      border-radius: 7px;
+      padding: 6px 8px;
+      font-size: 12px;
+      background: #fff;
+      color: #111827;
+    }
+
+    textarea {
+      min-height: 62px;
+      resize: vertical;
+    }
+
+    .readonly {
+      background: #f8fafc !important;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid #c7d2fe;
+      background: #eef2ff;
+      color: #3730a3;
+      border-radius: 999px;
+      font-size: 11px;
+      padding: 3px 8px;
+      margin-right: 6px;
+      margin-bottom: 4px;
+      white-space: nowrap;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid #edf1f7;
+      padding: 6px 6px;
+      text-align: left;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #f8fafc;
+      font-weight: 600;
+      color: #334155;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .row-hovered {
+      background: #eff6ff !important;
+    }
+
+    .subhead {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .kv-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px 10px;
+      font-size: 12px;
+      background: #f9fbff;
+      border: 1px solid #e7ecf5;
+      padding: 8px;
+      border-radius: 8px;
+    }
+
+    .kv-grid strong {
+      font-weight: 600;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #e5e7eb;
+      background: #f8fafc;
+      padding: 8px;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      border: 1px solid #dbe1ea;
+      border-radius: 8px;
+      padding: 6px 10px;
+      background: #fff;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: var(--primary-weak);
+      color: #1e40af;
+      border-color: #bfdbfe;
+      font-weight: 600;
+    }
+
+    .tab-controls {
+      padding: 8px 10px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 12px;
+      background: #fff;
+    }
+
+    #centerSvgWrap {
+      flex: 1;
+      min-height: 300px;
+      padding: 8px;
+      overflow: auto;
+      background: #fff;
+    }
+
+    #centerSvgWrap svg {
+      width: 100%;
+      height: 100%;
+      min-height: 420px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .status {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      font-weight: 700;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .status.PASS {
+      color: var(--ok);
+      background: var(--ok-weak);
+      border-color: #86efac;
+    }
+
+    .status.FAIL {
+      color: #991b1b;
+      background: #fee2e2;
+      border-color: #fca5a5;
+    }
+
+    .status.HARD_FAIL {
+      color: #7f1d1d;
+      background: #fecaca;
+      border-color: #ef4444;
+    }
+
+    .flags {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 8px;
+      margin-bottom: 10px;
+      max-height: 180px;
+      overflow: auto;
+      background: #fff;
+    }
+
+    .flags h4,
+    .section-title {
+      margin: 0 0 8px 0;
+      font-size: 13px;
+    }
+
+    .flags ul {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 4px;
+      font-size: 12px;
+    }
+
+    .detail-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 8px;
+      margin-top: 10px;
+      background: #fff;
+      font-size: 12px;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .report-toolbar {
+      padding: 10px;
+      background: #0f172a;
+      color: #fff;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    #reportView {
+      display: none;
+      background: #fff;
+      min-height: 100vh;
+    }
+
+    body.show-report #appView {
+      display: none;
+    }
+
+    body.show-report #reportView {
+      display: block;
+    }
+
+    #reportContent {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 16px;
+      color: #111827;
+    }
+
+    .report-section {
+      margin-bottom: 18px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .report-section h2 {
+      margin: 0 0 10px 0;
+      font-size: 17px;
+    }
+
+    .report-section h3 {
+      margin: 12px 0 8px 0;
+      font-size: 14px;
+    }
+
+    .trace-group {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      background: #fff;
+    }
+
+    .trace-group > summary {
+      font-weight: 600;
+      font-size: 12px;
+      padding: 8px 10px;
+      cursor: pointer;
+      background: #f8fafc;
+    }
+
+    .trace-item {
+      border-top: 1px solid #edf1f7;
+      padding: 8px 10px;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .trace-item code {
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      padding: 1px 4px;
+      font-size: 11px;
+    }
+
+    .report-small {
+      font-size: 11px;
+      color: #4b5563;
+    }
+
+    #reportFooter {
+      display: none;
+      font-size: 11px;
+      color: #374151;
+    }
+
+    #modalBackdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.45);
+      z-index: 50;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+    }
+
+    #modalCard {
+      width: min(520px, 100%);
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid #dbe2ec;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+
+    #modalHeader {
+      padding: 10px 12px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e5e7eb;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    #modalBody {
+      padding: 12px;
+      font-size: 13px;
+      line-height: 1.45;
+      color: #1f2937;
+      max-height: 62vh;
+      overflow: auto;
+    }
+
+    #modalButtons {
+      padding: 10px 12px;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      background: #fff;
+    }
+
+    #toast {
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      background: #111827;
+      color: #fff;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      z-index: 55;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: 0.25s ease;
+      pointer-events: none;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 1280px) {
+      .layout {
+        grid-template-columns: minmax(300px, 1fr) minmax(300px, 1fr);
+      }
+
+      #rightPanel {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+
+      #leftPanel,
+      #centerPanel,
+      #rightPanel {
+        min-height: 380px;
+      }
+
+      .toolbar-buttons {
+        max-width: 55vw;
+      }
+
+      .topbar h1 {
+        font-size: 14px;
+      }
+    }
+
+    @page {
+      margin: 14mm;
+    }
+
+    @media print {
+      #appView,
+      .report-toolbar,
+      #modalBackdrop,
+      #toast {
+        display: none !important;
+      }
+
+      #reportView {
+        display: block !important;
+      }
+
+      #reportContent {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .report-section {
+        break-before: page;
+        border: none;
+        border-radius: 0;
+        padding: 0;
+        margin-bottom: 10mm;
+      }
+
+      .report-section:first-child {
+        break-before: auto;
+      }
+
+      .trace-group,
+      .trace-item,
+      table,
+      tr,
+      td,
+      th {
+        break-inside: avoid;
+      }
+
+      details {
+        display: block;
+      }
+
+      details > summary {
+        display: none;
+      }
+
+      #reportFooter {
+        display: block;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        border-top: 1px solid #d1d5db;
+        background: #fff;
+        padding: 4px 8px;
+      }
+
+      #reportFooter .page-num::after {
+        content: counter(page);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="appView">
+    <header class="topbar">
+      <h1>Tilt-Up Wall OOP Calc (Internal)</h1>
+      <div class="toolbar-buttons">
+        <button id="btnNew" class="btn">New</button>
+        <button id="btnImport" class="btn">Import JSON</button>
+        <button id="btnExport" class="btn">Export JSON</button>
+        <button id="btnPrint" class="btn">Print Report</button>
+        <button id="btnExportReport" class="btn">Export Report HTML</button>
+        <button id="btnAbout" class="btn">About</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside id="leftPanel" class="panel">
+        <details open="">
+          <summary>Project Info</summary>
+          <div class="section-body">
+            <div class="field"><label>Project</label><input data-path="meta.project" type="text"></div>
+            <div class="field"><label>Job No</label><input data-path="meta.job" type="text"></div>
+            <div class="field"><label>Calc ID</label><input data-path="meta.calc_id" type="text"></div>
+            <div class="field"><label>Engineer</label><input data-path="meta.engineer" type="text"></div>
+            <div class="field"><label>Checker</label><input data-path="meta.checker" type="text"></div>
+            <div class="field"><label>Revision</label><input data-path="meta.revision" data-type="int" type="number" min="0" step="1"></div>
+            <div class="field"><label>Date</label><input data-path="meta.date" type="text" class="readonly" readonly=""></div>
+            <div class="field"><label>Notes</label><textarea data-path="meta.notes"></textarea></div>
+          </div>
+        </details>
+
+        <details open="">
+          <summary>Codes &amp; Settings</summary>
+          <div class="section-body">
+            <div>
+              <span id="codePackLabel" class="pill"></span>
+              <span id="codeRefLabel" class="pill"></span>
+            </div>
+
+            <div class="field inline">
+              <label>Concrete unit weight γ (k/ft³)</label>
+              <input data-path="settings.gamma_kcf" type="number" step="0.001" min="0">
+            </div>
+            <div class="field inline">
+              <label>Steel modulus Es (ksi)</label>
+              <input data-path="settings.Es_ksi" type="number" step="1" min="1">
+            </div>
+            <div class="field inline">
+              <label>εcu</label>
+              <input data-path="settings.eps_cu" type="number" step="0.0001" min="0.0001">
+            </div>
+            <div class="field inline">
+              <label>Cover override (in)</label>
+              <input data-path="settings.cover_in_override" data-nullable="true" type="number" step="0.1" min="0.5">
+            </div>
+            <div class="field inline">
+              <label>Denominator instability threshold</label>
+              <input data-path="settings.hardfail_denom_threshold" type="number" step="0.01" min="0.01">
+            </div>
+            <div class="hint">Reveal thickness reduces section thickness but <strong>does not add to cover</strong>.</div>
+          </div>
+        </details>
+
+        <details open="">
+          <summary>Geometry</summary>
+          <div class="section-body">
+            <div class="field inline">
+              <label>Panel Width B (ft)</label>
+              <input data-path="panel.B_ft" type="number" step="0.01" min="0">
+            </div>
+            <div class="field inline">
+              <label>Panel Height H (ft)</label>
+              <input data-path="panel.H_ft" type="number" step="0.01" min="0">
+            </div>
+            <div class="field inline">
+              <label>Parapet Height hp (ft)</label>
+              <input data-path="panel.hp_ft" type="number" step="0.01" min="0">
+            </div>
+
+            <div class="field">
+              <label><input id="autoHsupport" data-path="panel.auto_hsupport" type="checkbox"> Auto top support elevation = H − hp</label>
+            </div>
+            <div class="field inline">
+              <label>Top Support Elevation (ft)</label>
+              <input id="inputHsupport" data-path="panel.Hsupport_ft" data-nullable="true" type="number" step="0.01" min="0">
+            </div>
+
+            <div class="field inline">
+              <label>Thickness t (in)</label>
+              <input data-path="panel.t_in" type="number" step="0.01" min="0">
+            </div>
+            <div class="field inline">
+              <label>Reveal thickness tr (in)</label>
+              <input data-path="panel.reveal_in" type="number" step="0.01" min="0">
+            </div>
+            <div class="field inline">
+              <label>Strip thickness override (in)</label>
+              <input data-path="panel.strip_t_in" data-nullable="true" type="number" step="0.01" min="0">
+            </div>
+
+            <div class="field inline">
+              <label>Support condition</label>
+              <select data-path="panel.support">
+                <option value="PINNED_PINNED">Pinned - Pinned</option>
+                <option value="FIXED_PINNED">Fixed base - Pinned top</option>
+                <option value="FIXED_FIXED">Fixed - Fixed</option>
+                <option value="PINNED_FIXED">Pinned base + Propped Cantilever</option>
+              </select>
+            </div>
+
+            <div class="kv-grid">
+              <span>Derived \(t_{eff}\) (in)</span><strong id="derivedTeff">—</strong>
+              <span>Derived \(H_{support}\) (ft)</span><strong id="derivedHsupport">—</strong>
+            </div>
+          </div>
+        </details>
+
+        <details open="">
+          <summary>Openings</summary>
+          <div class="section-body">
+            <div class="subhead">
+              <label><input id="snapOpenings" type="checkbox"> Snap inputs to 1/8 ft</label>
+              <button id="btnAddOpening" class="btn sm">Add Opening</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>x (ft)</th>
+                    <th>y (ft)</th>
+                    <th>w (ft)</th>
+                    <th>h (ft)</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="openingsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </details>
+
+        <details open="">
+          <summary>Materials</summary>
+          <div class="section-body">
+            <div class="field inline">
+              <label>f’c (ksi)</label>
+              <input data-path="mat.fc_ksi" type="number" step="0.1" min="2">
+            </div>
+            <div class="field inline">
+              <label>fy (ksi)</label>
+              <input data-path="mat.fy_ksi" type="number" step="1" min="40">
+            </div>
+            <div class="kv-grid">
+              <span>Ec (ksi)</span><strong id="derivedEc">—</strong>
+            </div>
+          </div>
+        </details>
+
+        <details open="">
+          <summary>Reinforcement</summary>
+          <div class="section-body">
+            <div class="field inline">
+              <label>Vertical bar #</label>
+              <input data-path="rebar.v.bar_no" data-type="int" type="number" step="1" min="3" max="11">
+            </div>
+            <div class="field inline">
+              <label>Vertical spacing (in)</label>
+              <input data-path="rebar.v.s_in" type="number" step="0.5" min="0.5">
+            </div>
+            <div class="field inline">
+              <label>Vertical mats</label>
+              <select data-path="rebar.v.mats">
+                <option value="1">1</option>
+                <option value="2">2</option>
+              </select>
+            </div>
+
+            <div class="kv-grid">
+              <span>Computed cover (in)</span><strong id="derivedCover">—</strong>
+              <span>Vertical steel warning</span><strong id="verticalSteelWarn">—</strong>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #e5e7eb; width: 100%;">
+
+            <div class="field inline">
+              <label>Horizontal mode</label>
+              <select data-path="rebar.h.mode" id="hModeSelect">
+                <option value="AUTO_MIN">AUTO_MIN</option>
+                <option value="USER">USER</option>
+              </select>
+            </div>
+
+            <div id="hUserWrap" class="hidden">
+              <div class="field inline">
+                <label>Horizontal bar #</label>
+                <input data-path="rebar.h.bar_no" data-type="int" type="number" step="1" min="3" max="11">
+              </div>
+              <div class="field inline">
+                <label>Horizontal spacing (in)</label>
+                <input data-path="rebar.h.s_in" type="number" step="0.5" min="0.5">
+              </div>
+            </div>
+
+            <div class="kv-grid">
+              <span>AUTO_MIN proposal</span><strong id="hAutoText">—</strong>
+            </div>
+          </div>
+        </details>
+
+        <details open="">
+          <summary>Loads</summary>
+          <div class="section-body">
+            <div class="field inline">
+              <label>Wall pressure \(p_w\) (ksf)</label>
+              <input data-path="loads.pw_ksf" type="number" step="0.01" min="0">
+            </div>
+            <div class="field inline">
+              <label>Parapet pressure \(p_p\) (ksf)</label>
+              <input data-path="loads.pp_ksf" type="number" step="0.01" min="0">
+            </div>
+
+            <div class="hint">Sign convention: positive eccentricity produces positive moment about strip centroid in wind-positive direction.</div>
+
+            <div class="subhead">
+              <strong style="font-size: 12px;">Top line loads (unfactored)</strong>
+              <button id="btnAddLineLoad" class="btn sm">Add Line</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>plf (lb/ft)</th>
+                    <th>e (in)</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="lineLoadsBody"></tbody>
+              </table>
+            </div>
+
+            <div class="subhead" style="margin-top: 8px;">
+              <strong style="font-size: 12px;">Top point loads (unfactored)</strong>
+              <button id="btnAddPointLoad" class="btn sm">Add Point</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>P (k)</th>
+                    <th>x (ft)</th>
+                    <th>e (in)</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="pointLoadsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </details>
+
+        <details open="">
+          <summary>Load Combinations</summary>
+          <div class="section-body">
+            <div class="field inline">
+              <label>Preset</label>
+              <select data-path="combos.preset" id="comboPreset">
+                <option value="ASCE7_22_WIND_STRENGTH">ASCE7_22_WIND_STRENGTH</option>
+                <option value="ASCE7_22_WIND_SERVICE">ASCE7_22_WIND_SERVICE</option>
+                <option value="LEGACY_SPREADSHEET">LEGACY_SPREADSHEET</option>
+                <option value="CUSTOM">CUSTOM</option>
+              </select>
+            </div>
+
+            <div id="builtinComboWrap">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th>D</th>
+                      <th>L</th>
+                      <th>W_wall</th>
+                      <th>W_parapet</th>
+                      <th>Vert?</th>
+                    </tr>
+                  </thead>
+                  <tbody id="builtinComboBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div id="customComboWrap" class="hidden">
+              <div class="subhead">
+                <strong style="font-size: 12px;">Custom combos</strong>
+                <button id="btnAddCustomCombo" class="btn sm">Add Combo</button>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th>D</th>
+                      <th>L</th>
+                      <th>Ww</th>
+                      <th>Wp</th>
+                      <th>Vert?</th>
+                      <th>On?</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="customComboBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </details>
+      </aside>
+
+      <section id="centerPanel" class="panel">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="geometry">Geometry</button>
+          <button class="tab-btn" data-tab="loads">Loads</button>
+          <button class="tab-btn" data-tab="diagrams">Diagrams</button>
+        </div>
+        <div id="geometryControls" class="tab-controls">
+          <label><input id="toggleTribBands" type="checkbox"> Show tributary bands</label>
+        </div>
+        <div id="loadsControls" class="tab-controls hidden">
+          <span class="hint">Wind arrows and top vertical load markers</span>
+        </div>
+        <div id="diagramControls" class="tab-controls hidden">
+          <label>Combo
+            <select id="diagramComboSelect"></select>
+          </label>
+          <label><input id="diagramShowMagnified" type="checkbox" checked=""> Show first-order vs magnified</label>
+        </div>
+        <div id="centerSvgWrap">
+          <div id="centerSvg"></div>
+        </div>
+      </section>
+
+      <aside id="rightPanel" class="panel">
+        <div id="statusBlock" class="status HARD_FAIL">HARD_FAIL</div>
+
+        <div class="flags">
+          <h4>Flags</h4>
+          <ul id="flagsList"></ul>
+        </div>
+
+        <div>
+          <div class="section-title">Strips / Piers</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Strip</th>
+                  <th>Width (ft)</th>
+                  <th>Uflex</th>
+                  <th>Ushear</th>
+                  <th>Uaxial</th>
+                  <th>L/Δ</th>
+                </tr>
+              </thead>
+              <tbody id="stripsSummaryBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="detail-card" id="stripDetail">
+          Select a strip to view details.
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div id="reportView">
+    <div class="report-toolbar no-print">
+      <button id="btnBackToApp" class="btn">Back to App</button>
+    </div>
+    <div id="reportContent"></div>
+    <div id="reportFooter"></div>
+  </div>
+
+  <input id="importInput" type="file" accept=".json,application/json" class="hidden">
+
+  <div id="modalBackdrop" class="hidden">
+    <div id="modalCard">
+      <div id="modalHeader">Dialog</div>
+      <div id="modalBody"></div>
+      <div id="modalButtons"></div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      // ==================== Constants ====================
+      const CONST = {
+        APP_NAME: 'TiltUp-OOP',
+        APP_VERSION: '0.1.0',
+        BUILD_HASH: 'local',
+        SCHEMA_VERSION: '1.0.0',
+        CODE_PACK_DEFAULT: {
+          aci: 'ACI 318-25',
+          asce: 'ASCE/SEI 7-22',
+          reference: ['ACI 551.2R']
+        },
+        SUPPORTS: ['PINNED_PINNED', 'FIXED_PINNED', 'FIXED_FIXED', 'PINNED_FIXED'],
+        DENOM_THRESHOLD_DEFAULT: 0.05,
+        TOL: 1e-9
+      };
+
+      // ==================== Utils ====================
+      const Utils = {
+        deepClone(obj) {
+          return JSON.parse(JSON.stringify(obj));
+        },
+        deepMerge(base, incoming) {
+          if (Array.isArray(base) && Array.isArray(incoming)) {
+            return incoming.map((x) => Utils.deepClone(x));
+          }
+          if (base && typeof base === 'object' && incoming && typeof incoming === 'object') {
+            const out = Utils.deepClone(base);
+            Object.keys(incoming).forEach((k) => {
+              if (k in out) out[k] = Utils.deepMerge(out[k], incoming[k]);
+              else out[k] = Utils.deepClone(incoming[k]);
+            });
+            return out;
+          }
+          return incoming !== undefined ? Utils.deepClone(incoming) : Utils.deepClone(base);
+        },
+        getByPath(obj, path) {
+          return path.split('.').reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
+        },
+        setByPath(obj, path, value) {
+          const keys = path.split('.');
+          let cur = obj;
+          for (let i = 0; i < keys.length - 1; i++) {
+            if (!(keys[i] in cur)) cur[keys[i]] = {};
+            cur = cur[keys[i]];
+          }
+          cur[keys[keys.length - 1]] = value;
+        },
+        toNum(val, fallback = 0) {
+          const n = Number(val);
+          return Number.isFinite(n) ? n : fallback;
+        },
+        toNumOrNull(val) {
+          if (val === '' || val === null || val === undefined) return null;
+          const n = Number(val);
+          return Number.isFinite(n) ? n : null;
+        },
+        fmt(n, d = 3) {
+          if (n === null || n === undefined || Number.isNaN(n)) return '—';
+          if (!Number.isFinite(n)) return '∞';
+          return Number(n).toFixed(d);
+        },
+        fmtInt(n) {
+          if (!Number.isFinite(Number(n))) return '—';
+          return String(Math.round(Number(n)));
+        },
+        esc(s) {
+          return String(s ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;');
+        },
+        slug(s) {
+          return String(s || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+        },
+        uniqueSorted(arr) {
+          return [...new Set(arr)].sort((a, b) => a - b);
+        },
+        overlap(a1, a2, b1, b2) {
+          return Math.min(a2, b2) - Math.max(a1, b1) > CONST.TOL;
+        },
+        today() {
+          return new Date().toISOString().slice(0, 10);
+        },
+        isoNow() {
+          return new Date().toISOString();
+        },
+        roundDownHalf(v) {
+          return Math.floor(v * 2) / 2;
+        },
+        inferLoadType(name, given) {
+          if (given === 'D' || given === 'L') return given;
+          const n = String(name || '').toUpperCase();
+          if (n.includes('LL') || n.includes('LIVE') || n.includes('L ')) return 'L';
+          return 'D';
+        },
+        download(filename, text, mime = 'text/plain') {
+          const blob = new Blob([text], { type: mime });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        },
+        pushUnique(arr, msg) {
+          if (!arr.includes(msg)) arr.push(msg);
+        },
+        clamp(v, lo, hi) {
+          return Math.max(lo, Math.min(hi, v));
+        }
+      };
+
+      class TraceCollector {
+        constructor() {
+          this.items = [];
+        }
+        add(item) {
+          this.items.push({
+            path: item.path || 'General',
+            name: item.name || '',
+            units: item.units || '',
+            equation: item.equation || '',
+            subs: item.subs || {},
+            result: item.result ?? '',
+            citation_label: item.cite || ''
+          });
+        }
+      }
+
+      // ==================== AppState ====================
+      const AppState = {
+        data: null,
+        dirty: false,
+        codePackLocked: false,
+        analysis: null,
+        selectedStripId: null,
+        selectedComboName: null,
+        currentTab: 'geometry',
+        hoverOpeningId: null,
+        showTribBands: false,
+        showMagnified: true,
+
+        nextCalcId() {
+          let n = 1;
+          try {
+            const k = 'tiltup_calc_counter';
+            const cur = parseInt(localStorage.getItem(k) || '0', 10) || 0;
+            n = cur + 1;
+            localStorage.setItem(k, String(n));
+          } catch (e) {
+            n = Math.floor(Date.now() / 1000) % 10000;
+          }
+          return `WU-${String(n).padStart(4, '0')}`;
+        },
+
+        defaultState() {
+          return {
+            schema_version: CONST.SCHEMA_VERSION,
+            app: { name: CONST.APP_NAME, version: CONST.APP_VERSION, build_hash: CONST.BUILD_HASH },
+            code_pack: Utils.deepClone(CONST.CODE_PACK_DEFAULT),
+            meta: {
+              project: '',
+              job: '',
+              calc_id: this.nextCalcId(),
+              engineer: '',
+              checker: '',
+              revision: 0,
+              date: Utils.today(),
+              notes: ''
+            },
+            settings: {
+              gamma_kcf: 0.150,
+              Es_ksi: 29000,
+              eps_cu: 0.003,
+              cover_in_override: null,
+              hardfail_denom_threshold: CONST.DENOM_THRESHOLD_DEFAULT
+            },
+            panel: {
+              B_ft: null,
+              H_ft: null,
+              Hsupport_ft: null,
+              hp_ft: 0,
+              t_in: null,
+              reveal_in: 0,
+              strip_t_in: null,
+              support: 'PINNED_PINNED',
+              auto_hsupport: true
+            },
+            openings: [],
+            mat: { fc_ksi: 6.0, fy_ksi: 60.0 },
+            rebar: {
+              v: { bar_no: 4, s_in: 12, mats: 2 },
+              h: { mode: 'AUTO_MIN', bar_no: 4, s_in: 18 }
+            },
+            loads: {
+              pw_ksf: 0,
+              pp_ksf: 0,
+              vert: {
+                line: [{ name: 'DL', type: 'D', plf: 0, e_in: 0 }],
+                point: [{ name: 'P1', type: 'D', k: 0, x_ft: 0, e_in: 0 }]
+              }
+            },
+            combos: { preset: 'LEGACY_SPREADSHEET', custom: [] },
+
+            derived: { t_eff_in: 0, Hsupport_ft: 0, strips: [], assignments: {}, topTribByStrip: {}, totalTopTrib: 0 },
+            results: { status: 'HARD_FAIL', flags: [], per_strip: {} },
+            trace_snapshot: { generated_at: null, items: [] }
+          };
+        },
+
+        reset() {
+          this.data = this.defaultState();
+          this.dirty = false;
+          this.codePackLocked = false;
+          this.analysis = null;
+          this.selectedStripId = null;
+          this.selectedComboName = null;
+          this.currentTab = 'geometry';
+          this.hoverOpeningId = null;
+          this.showTribBands = false;
+          this.showMagnified = true;
+        }
+      };
+
+      // ==================== Validators ====================
+      const Validators = {
+        validateBasics(state, hardFails, warns) {
+          const p = state.panel;
+          const B = Utils.toNum(p.B_ft, NaN);
+          const H = Utils.toNum(p.H_ft, NaN);
+          const hp = Utils.toNum(p.hp_ft, NaN);
+          const t = Utils.toNum(p.t_in, NaN);
+          const reveal = Utils.toNum(p.reveal_in, NaN);
+
+          if (!(B > 0)) hardFails.push('Panel Width B (ft) is required and must be > 0.');
+          if (!(H > 0)) hardFails.push('Panel Height H (ft) is required and must be > 0.');
+          if (!(t > 0)) hardFails.push('Thickness t (in) is required and must be > 0.');
+          if (!(hp >= 0) || (Number.isFinite(H) && !(hp < H))) hardFails.push('Parapet height hp must satisfy 0 ≤ hp < H.');
+          if (!(reveal >= 0) || (Number.isFinite(t) && !(reveal < t))) hardFails.push('Reveal thickness must satisfy 0 ≤ reveal < t.');
+
+          if (!CONST.SUPPORTS.includes(String(p.support || ''))) {
+            hardFails.push('Support condition is invalid.');
+          }
+
+          const s = state.settings;
+          if (!(Utils.toNum(s.gamma_kcf, NaN) >= 0.120 && Utils.toNum(s.gamma_kcf, NaN) <= 0.160)) warns.push('Concrete unit weight is outside typical 0.120–0.160 k/ft³.');
+          if (!(Utils.toNum(s.Es_ksi, NaN) > 0)) hardFails.push('Es must be > 0.');
+          if (!(Utils.toNum(s.eps_cu, NaN) > 0)) hardFails.push('εcu must be > 0.');
+          if (s.cover_in_override !== null && s.cover_in_override !== '' && Utils.toNum(s.cover_in_override, NaN) < 0.5) hardFails.push('Cover override, if provided, must be ≥ 0.5 in.');
+
+          if (!(Utils.toNum(state.mat.fc_ksi, NaN) >= 2)) hardFails.push('f’c must be ≥ 2 ksi.');
+          if (!(Utils.toNum(state.mat.fy_ksi, NaN) >= 40)) hardFails.push('fy must be ≥ 40 ksi.');
+
+          const vb = Utils.toNum(state.rebar.v.bar_no, NaN);
+          const vs = Utils.toNum(state.rebar.v.s_in, NaN);
+          const vm = Utils.toNum(state.rebar.v.mats, NaN);
+          if (!(vb >= 3 && vb <= 11)) hardFails.push('Vertical bar # must be between 3 and 11.');
+          if (!(vs > 0)) hardFails.push('Vertical spacing must be > 0.');
+          if (!(vm === 1 || vm === 2)) hardFails.push('Vertical mats must be 1 or 2.');
+
+          if (state.meta.revision === '' || state.meta.revision === null || !Number.isInteger(Number(state.meta.revision)) || Number(state.meta.revision) < 0) {
+            hardFails.push('Revision must be an integer ≥ 0.');
+          }
+          if (!String(state.meta.calc_id || '').trim()) hardFails.push('Calc ID is required.');
+        },
+
+        validateOpenings(state, hardFails) {
+          const B = Utils.toNum(state.panel.B_ft, NaN);
+          const H = Utils.toNum(state.panel.H_ft, NaN);
+          const openings = state.openings || [];
+
+          openings.forEach((o, i) => {
+            const x = Utils.toNum(o.x_ft, NaN);
+            const y = Utils.toNum(o.y_ft, NaN);
+            const w = Utils.toNum(o.w_ft, NaN);
+            const h = Utils.toNum(o.h_ft, NaN);
+            const id = o.id || `O${i + 1}`;
+
+            if (!(w > 0) || !(h > 0)) hardFails.push(`Opening ${id}: w and h must be > 0.`);
+            if (!(x >= 0) || !(y >= 0) || !(x + w <= B + CONST.TOL) || !(y + h <= H + CONST.TOL)) {
+              hardFails.push(`Opening ${id}: must be fully inside panel bounds.`);
+            }
+          });
+
+          for (let i = 0; i < openings.length; i++) {
+            for (let j = i + 1; j < openings.length; j++) {
+              const a = openings[i], b = openings[j];
+              if (
+                Utils.overlap(a.x_ft, a.x_ft + a.w_ft, b.x_ft, b.x_ft + b.w_ft) &&
+                Utils.overlap(a.y_ft, a.y_ft + a.h_ft, b.y_ft, b.y_ft + b.h_ft)
+              ) {
+                hardFails.push(`Openings ${a.id || i + 1} and ${b.id || j + 1} overlap.`);
+              }
+            }
+          }
+        },
+
+        validateLoads(state, hardFails) {
+          if (!(Utils.toNum(state.loads.pw_ksf, NaN) >= 0)) hardFails.push('Wall pressure pw must be ≥ 0.');
+          if (!(Utils.toNum(state.loads.pp_ksf, NaN) >= 0)) hardFails.push('Parapet pressure pp must be ≥ 0.');
+
+          const B = Utils.toNum(state.panel.B_ft, NaN);
+
+          (state.loads.vert.line || []).forEach((l, i) => {
+            if (!(Utils.toNum(l.plf, NaN) >= 0)) hardFails.push(`Line load row ${i + 1}: plf must be ≥ 0.`);
+          });
+
+          (state.loads.vert.point || []).forEach((p, i) => {
+            if (!(Utils.toNum(p.k, NaN) >= 0)) hardFails.push(`Point load row ${i + 1}: P must be ≥ 0.`);
+            const x = Utils.toNum(p.x_ft, NaN);
+            if (Number.isFinite(B) && !(x >= 0 && x <= B)) hardFails.push(`Point load row ${i + 1}: x must be within [0, B].`);
+          });
+        },
+
+        validateCombos(enabledCombos, hardFails) {
+          if (!enabledCombos || enabledCombos.length === 0) {
+            hardFails.push('No enabled load combinations found.');
+            return;
+          }
+          const strength = enabledCombos.filter((c) => c.type === 'Strength');
+          const service = enabledCombos.filter((c) => c.type === 'Service');
+          if (strength.length === 0) hardFails.push('At least one enabled Strength combo is required.');
+          if (service.length === 0) hardFails.push('At least one enabled Service combo is required.');
+
+          const hasStrengthWind = strength.some((c) => Math.abs(c.W_wall) > 0 || Math.abs(c.W_parapet) > 0);
+          const hasServiceWind = service.some((c) => Math.abs(c.W_wall) > 0 || Math.abs(c.W_parapet) > 0);
+          if (!hasStrengthWind) hardFails.push('Strength combos must include at least one lateral wind component.');
+          if (!hasServiceWind) hardFails.push('Service combos must include at least one lateral wind component.');
+        }
+      };
+
+      // ==================== GeometryEngine ====================
+      const GeometryEngine = {
+        deriveBasics(state, hardFails, trace) {
+          const p = state.panel;
+          const B_ft = Utils.toNum(p.B_ft, 0);
+          const H_ft = Utils.toNum(p.H_ft, 0);
+          const hp_ft = Utils.toNum(p.hp_ft, 0);
+          const t_in = Utils.toNum(p.t_in, 0);
+          const reveal_in = Utils.toNum(p.reveal_in, 0);
+
+          let Hsupport_ft;
+          if (p.auto_hsupport || p.Hsupport_ft === null || p.Hsupport_ft === '') {
+            Hsupport_ft = H_ft - hp_ft;
+          } else {
+            Hsupport_ft = Utils.toNum(p.Hsupport_ft, NaN);
+          }
+
+          if (!(Hsupport_ft > 0 && Hsupport_ft <= H_ft)) {
+            hardFails.push('Top Support Elevation must satisfy 0 < Hsupport ≤ H.');
+          }
+
+          const stripOverride = p.strip_t_in === null || p.strip_t_in === '' ? null : Utils.toNum(p.strip_t_in, null);
+          const t_base = stripOverride !== null ? Math.max(t_in, stripOverride) : t_in;
+          const t_eff_in = t_base - reveal_in;
+
+          if (!(t_eff_in > 0)) hardFails.push('Effective thickness t_eff <= 0 (hard fail).');
+
+          trace.add({
+            path: 'Geometry',
+            name: 't_eff',
+            units: 'in',
+            equation: 't_eff = max(t, strip_t_if_set) - reveal',
+            subs: { t_in, strip_t_in: stripOverride, reveal_in },
+            result: t_eff_in,
+            cite: 'Project convention (reveal reduces thickness only)'
+          });
+
+          return { B_ft, H_ft, hp_ft, Hsupport_ft, t_eff_in };
+        },
+
+        generateStrips(panelDerived, openings, hardFails, trace) {
+          const B = panelDerived.B_ft;
+          const breakpoints = [0, B];
+          (openings || []).forEach((o) => {
+            breakpoints.push(Utils.toNum(o.x_ft, 0));
+            breakpoints.push(Utils.toNum(o.x_ft, 0) + Utils.toNum(o.w_ft, 0));
+          });
+
+          const xs = Utils.uniqueSorted(breakpoints);
+          const strips = [];
+
+          for (let i = 0; i < xs.length - 1; i++) {
+            const a = xs[i], b = xs[i + 1];
+            if (b - a <= CONST.TOL) continue;
+
+            const overlapsAnyOpeningBay = (openings || []).some((o) =>
+              Utils.overlap(a, b, o.x_ft, o.x_ft + o.w_ft)
+            );
+
+            if (overlapsAnyOpeningBay) continue;
+
+            strips.push({
+              id: `S${strips.length + 1}`,
+              xL_ft: a,
+              xR_ft: b,
+              width_ft: b - a
+            });
+          }
+
+          if (strips.length === 0) hardFails.push('No solid strips found.');
+          strips.forEach((s) => {
+            if (!(s.width_ft > 0)) hardFails.push(`Strip ${s.id} has width <= 0.`);
+          });
+
+          trace.add({
+            path: 'Geometry / Strip Generation',
+            name: 'strip_count',
+            units: '-',
+            equation: 'Generated from x breakpoints excluding opening bays',
+            subs: { breakpoints: xs.join(', ') },
+            result: strips.length,
+            cite: 'v1 full-height solid strip rule'
+          });
+
+          return strips;
+        },
+
+        assignOpeningsToStrips(strips, openings, hardFails, trace) {
+          const assignments = {};
+          (openings || []).forEach((o) => {
+            const xL = o.x_ft;
+            const xR = o.x_ft + o.w_ft;
+
+            const leftCandidates = strips.filter((s) => s.xR_ft <= xL + CONST.TOL);
+            const rightCandidates = strips.filter((s) => s.xL_ft >= xR - CONST.TOL);
+
+            const left = leftCandidates.sort((a, b) => b.xR_ft - a.xR_ft)[0] || null;
+            const right = rightCandidates.sort((a, b) => a.xL_ft - b.xL_ft)[0] || null;
+
+            if (!left || !right) {
+              hardFails.push(`Opening ${o.id}: cannot assign to two adjacent solid strips for tributary transfer.`);
+              return;
+            }
+
+            assignments[o.id] = {
+              left_strip_id: left.id,
+              right_strip_id: right.id,
+              share_ft: o.w_ft / 2
+            };
+          });
+
+          trace.add({
+            path: 'Geometry / Opening Tributaries',
+            name: 'assignment_count',
+            units: '-',
+            equation: 'Each opening assigned to nearest left and right strips',
+            subs: {},
+            result: Object.keys(assignments).length,
+            cite: 'Project tributary assignment rule'
+          });
+
+          return assignments;
+        },
+
+        tributaryAtY(strip, openings, assignments, y_ft) {
+          let trib = strip.width_ft;
+          (openings || []).forEach((o) => {
+            const a = assignments[o.id];
+            if (!a) return;
+            const active = y_ft >= o.y_ft - CONST.TOL && y_ft <= o.y_ft + o.h_ft + CONST.TOL;
+            if (!active) return;
+            if (a.left_strip_id === strip.id || a.right_strip_id === strip.id) trib += a.share_ft;
+          });
+          return trib;
+        },
+
+        buildTributaryBands(strip, openings, assignments, Hsupport_ft) {
+          const ys = [0, Hsupport_ft];
+          (openings || []).forEach((o) => {
+            const a = assignments[o.id];
+            if (!a) return;
+            if (!(a.left_strip_id === strip.id || a.right_strip_id === strip.id)) return;
+            const y0 = Utils.clamp(o.y_ft, 0, Hsupport_ft);
+            const y1 = Utils.clamp(o.y_ft + o.h_ft, 0, Hsupport_ft);
+            if (y1 - y0 > CONST.TOL) {
+              ys.push(y0, y1);
+            }
+          });
+
+          const breaks_ft = Utils.uniqueSorted(ys);
+          const bands = [];
+          for (let i = 0; i < breaks_ft.length - 1; i++) {
+            const y0 = breaks_ft[i], y1 = breaks_ft[i + 1];
+            if (y1 - y0 <= CONST.TOL) continue;
+            const ymid = (y0 + y1) / 2;
+            const trib_ft = this.tributaryAtY(strip, openings, assignments, ymid);
+            bands.push({ y0_ft: y0, y1_ft: y1, trib_ft });
+          }
+          return { breaks_ft, bands };
+        },
+
+        computeTopTribByStrip(strips, openings, assignments, Hsupport_ft) {
+          const byStrip = {};
+          let total = 0;
+          strips.forEach((s) => {
+            const t = this.tributaryAtY(s, openings, assignments, Hsupport_ft);
+            byStrip[s.id] = t;
+            total += t;
+          });
+          return { byStrip, total };
+        },
+
+        assignPointLoadsToStrips(strips, pointLoads, panelB, hardFails) {
+          const maps = [];
+          (pointLoads || []).forEach((p, idx) => {
+            const x = Utils.toNum(p.x_ft, NaN);
+            if (!(x >= 0 && x <= panelB + CONST.TOL)) {
+              hardFails.push(`Point load ${p.name || idx + 1}: x is outside panel width.`);
+              maps.push({});
+              return;
+            }
+            const hits = strips.filter((s) => x >= s.xL_ft - CONST.TOL && x <= s.xR_ft + CONST.TOL);
+            if (hits.length === 0) {
+              hardFails.push(`Point load ${p.name || idx + 1}: x does not land on a solid strip (hard fail).`);
+              maps.push({});
+              return;
+            }
+            const share = 1 / hits.length;
+            const map = {};
+            hits.forEach((s) => { map[s.id] = share; });
+            maps.push(map);
+          });
+          return maps;
+        }
+      };
+
+      // ==================== LoadCombos ====================
+      const LoadCombos = {
+        presetCombos(preset) {
+          const legacy = [
+            { name: 'LC1', type: 'Strength', D: 1.2, L: 0.5, W_wall: 1.6, W_parapet: 1.6, apply_vertical: true, enabled: true },
+            { name: 'LC2', type: 'Strength', D: 1.2, L: 1.6, W_wall: 0.8, W_parapet: 0.8, apply_vertical: true, enabled: true },
+            { name: 'LC3', type: 'Service', D: 1.0, L: 0.0, W_wall: 0.7, W_parapet: 0.7, apply_vertical: true, enabled: true }
+          ];
+
+          const asceSet = [
+            { name: 'S1', type: 'Strength', D: 1.2, L: 0.5, W_wall: 1.0, W_parapet: 1.0, apply_vertical: true, enabled: true },
+            { name: 'S2', type: 'Strength', D: 0.9, L: 0.0, W_wall: 1.0, W_parapet: 1.0, apply_vertical: true, enabled: true },
+            { name: 'Sv1', type: 'Service', D: 1.0, L: 0.0, W_wall: 0.7, W_parapet: 0.7, apply_vertical: true, enabled: true },
+            { name: 'Sv2', type: 'Service', D: 1.0, L: 1.0, W_wall: 0.7, W_parapet: 0.7, apply_vertical: true, enabled: true }
+          ];
+
+          if (preset === 'ASCE7_22_WIND_STRENGTH') return Utils.deepClone([asceSet[0], asceSet[1], asceSet[2]]);
+          if (preset === 'ASCE7_22_WIND_SERVICE') return Utils.deepClone([asceSet[2], asceSet[3], asceSet[0]]);
+          if (preset === 'LEGACY_SPREADSHEET') return Utils.deepClone(legacy);
+          return [];
+        },
+
+        normalizeCombo(c, idx = 0) {
+          return {
+            name: String(c.name || `C${idx + 1}`),
+            type: c.type === 'Service' ? 'Service' : 'Strength',
+            D: Utils.toNum(c.D, 0),
+            L: Utils.toNum(c.L, 0),
+            W_wall: Utils.toNum(c.W_wall, 0),
+            W_parapet: Utils.toNum(c.W_parapet, Utils.toNum(c.W_wall, 0)),
+            apply_vertical: c.apply_vertical !== false,
+            enabled: c.enabled !== false
+          };
+        },
+
+        build(state) {
+          let all = [];
+          if (state.combos.preset === 'CUSTOM') {
+            all = (state.combos.custom || []).map((c, i) => this.normalizeCombo(c, i));
+          } else {
+            all = this.presetCombos(state.combos.preset).map((c, i) => this.normalizeCombo(c, i));
+          }
+          const enabled = all.filter((c) => c.enabled);
+          return { all, enabled };
+        },
+
+        verticalForStrip(strip, combo, state, derived, trace, path) {
+          const B = Utils.toNum(state.panel.B_ft, 0);
+          const ratio = derived.totalTopTrib > CONST.TOL ? (derived.topTribByStrip[strip.id] || 0) / derived.totalTopTrib : 0;
+          let P_top_k = 0;
+          let M_top_kipin = 0;
+          const items = [];
+
+          if (combo.apply_vertical) {
+            (state.loads.vert.line || []).forEach((l) => {
+              const type = Utils.inferLoadType(l.name, l.type);
+              const fac = type === 'L' ? combo.L : combo.D;
+              const total_k = (Utils.toNum(l.plf, 0) / 1000) * B;
+              const Pk = total_k * ratio * fac;
+              const Mk = Pk * Utils.toNum(l.e_in, 0);
+              P_top_k += Pk;
+              M_top_kipin += Mk;
+              items.push({ name: l.name, type, Pk, Mk });
+            });
+
+            (state.loads.vert.point || []).forEach((p, i) => {
+              const type = Utils.inferLoadType(p.name, p.type);
+              const fac = type === 'L' ? combo.L : combo.D;
+              const shareMap = derived.pointAssignments[i] || {};
+              const share = shareMap[strip.id] || 0;
+              const Pk = Utils.toNum(p.k, 0) * share * fac;
+              const Mk = Pk * Utils.toNum(p.e_in, 0);
+              P_top_k += Pk;
+              M_top_kipin += Mk;
+              items.push({ name: p.name, type, Pk, Mk });
+            });
+          }
+
+          trace.add({
+            path,
+            name: 'Top vertical resultant',
+            units: 'k, kip-in',
+            equation: 'P_top = Σ(factor*assigned loads), M_top = Σ(P*e)',
+            subs: { ratio, apply_vertical: combo.apply_vertical },
+            result: `P_top=${Utils.fmt(P_top_k, 3)} k, M_top=${Utils.fmt(M_top_kipin, 3)} kip-in`,
+            cite: 'Load distribution rule (tributary + point location)'
+          });
+
+          return { P_top_k, M_top_kipin, ratio, items };
+        },
+
+        selfWeightAtY(strip, state, derived, combo, y_ft) {
+          const height_above = Math.max(0, derived.Hsupport_ft - y_ft);
+          const t_ft = derived.t_eff_in / 12;
+          const vol_ft3 = strip.width_ft * t_ft * height_above;
+          const P_unfact = Utils.toNum(state.settings.gamma_kcf, 0.150) * vol_ft3;
+          const Dfac = Utils.toNum(combo.D, 1);
+          return P_unfact * Dfac;
+        }
+      };
+
+      // ==================== BeamSolver ====================
+      const BeamSolver = {
+        zeroMatrix(n, m) {
+          return Array.from({ length: n }, () => Array(m).fill(0));
+        },
+
+        solveLinear(A, b) {
+          const n = A.length;
+          if (n === 0) return [];
+          const M = A.map((row, i) => [...row, b[i]]);
+          for (let i = 0; i < n; i++) {
+            let pivot = i;
+            for (let r = i + 1; r < n; r++) {
+              if (Math.abs(M[r][i]) > Math.abs(M[pivot][i])) pivot = r;
+            }
+            if (Math.abs(M[pivot][i]) < 1e-12) return null;
+            if (pivot !== i) [M[i], M[pivot]] = [M[pivot], M[i]];
+
+            const pv = M[i][i];
+            for (let c = i; c <= n; c++) M[i][c] /= pv;
+
+            for (let r = 0; r < n; r++) {
+              if (r === i) continue;
+              const f = M[r][i];
+              if (Math.abs(f) < 1e-15) continue;
+              for (let c = i; c <= n; c++) M[r][c] -= f * M[i][c];
+            }
+          }
+          return M.map((row) => row[n]);
+        },
+
+        solve(opts) {
+          const yNodes = opts.yNodes_in || [];
+          const nNode = yNodes.length;
+          if (nNode < 2) return null;
+
+          const ndof = 2 * nNode;
+          const K = this.zeroMatrix(ndof, ndof);
+          const F = Array(ndof).fill(0);
+          const elements = [];
+
+          const EI = Math.max(Utils.toNum(opts.EI_kipin2, 0), 1e-9);
+          const wElems = opts.wElems_kipin || Array(nNode - 1).fill(0);
+
+          for (let e = 0; e < nNode - 1; e++) {
+            const i = e;
+            const j = e + 1;
+            const yi = yNodes[i];
+            const yj = yNodes[j];
+            const L = yj - yi;
+            if (!(L > 0)) return null;
+            const c = EI / (L * L * L);
+            const ke = [
+              [12 * c, 6 * L * c, -12 * c, 6 * L * c],
+              [6 * L * c, 4 * L * L * c, -6 * L * c, 2 * L * L * c],
+              [-12 * c, -6 * L * c, 12 * c, -6 * L * c],
+              [6 * L * c, 2 * L * L * c, -6 * L * c, 4 * L * L * c]
+            ];
+
+            const w = Utils.toNum(wElems[e], 0);
+            const fs = (w * L) / 12;
+            const fe = [6 * fs, L * fs, 6 * fs, -L * fs];
+
+            const map = [2 * i, 2 * i + 1, 2 * j, 2 * j + 1];
+            for (let r = 0; r < 4; r++) {
+              F[map[r]] += fe[r];
+              for (let c2 = 0; c2 < 4; c2++) {
+                K[map[r]][map[c2]] += ke[r][c2];
+              }
+            }
+
+            elements.push({ i, j, yi, yj, L, w, ke, fe, map });
+          }
+
+          const nodalMom = opts.nodalMoments_kipin || {};
+          Object.keys(nodalMom).forEach((k) => {
+            const ni = Number(k);
+            if (ni >= 0 && ni < nNode) F[2 * ni + 1] += Utils.toNum(nodalMom[k], 0);
+          });
+
+          const fixed = new Set();
+          (opts.fixedUNodes || []).forEach((ni) => fixed.add(2 * ni));
+          (opts.fixedThetaNodes || []).forEach((ni) => fixed.add(2 * ni + 1));
+
+          const freeDofs = [];
+          for (let d = 0; d < ndof; d++) if (!fixed.has(d)) freeDofs.push(d);
+          const U = Array(ndof).fill(0);
+
+          if (freeDofs.length > 0) {
+            const Kff = freeDofs.map((r) => freeDofs.map((c2) => K[r][c2]));
+            const Ff = freeDofs.map((r) => F[r]); // fixed displacements = 0
+            const Uf = this.solveLinear(Kff, Ff);
+            if (!Uf) return null;
+            freeDofs.forEach((d, i) => { U[d] = Uf[i]; });
+          }
+
+          const R = Array(ndof).fill(0);
+          for (let r = 0; r < ndof; r++) {
+            let s = 0;
+            for (let c2 = 0; c2 < ndof; c2++) s += K[r][c2] * U[c2];
+            R[r] = s - F[r];
+          }
+
+          elements.forEach((el) => {
+            const ue = el.map.map((d) => U[d]);
+            const qe = [0, 0, 0, 0];
+            for (let r = 0; r < 4; r++) {
+              let s = 0;
+              for (let c2 = 0; c2 < 4; c2++) s += el.ke[r][c2] * ue[c2];
+              qe[r] = s - el.fe[r];
+            }
+            el.ue = ue;
+            el.qe = qe; // [Vi, Mi, Vj, Mj]
+          });
+
+          const sol = {
+            yNodes_in: yNodes,
+            U,
+            reactions: R,
+            elements,
+
+            evalAtY: (yIn) => {
+              const y = Utils.clamp(yIn, yNodes[0], yNodes[yNodes.length - 1]);
+              let el = elements[elements.length - 1];
+              for (let k = 0; k < elements.length; k++) {
+                if (y >= elements[k].yi - CONST.TOL && y <= elements[k].yj + CONST.TOL) {
+                  el = elements[k];
+                  break;
+                }
+              }
+
+              const x = Utils.clamp(y - el.yi, 0, el.L);
+              const Vi = el.qe[0];
+              const Mi = el.qe[1];
+              const w = el.w;
+              const V = Vi - w * x;
+              const M = Mi + Vi * x - 0.5 * w * x * x;
+
+              const xi = x / el.L;
+              const N1 = 1 - 3 * xi * xi + 2 * xi * xi * xi;
+              const N2 = el.L * (xi - 2 * xi * xi + xi * xi * xi);
+              const N3 = 3 * xi * xi - 2 * xi * xi * xi;
+              const N4 = el.L * (-xi * xi + xi * xi * xi);
+              const [ui, thi, uj, thj] = el.ue;
+              const u = N1 * ui + N2 * thi + N3 * uj + N4 * thj;
+
+              return { y_in: y, V_k: V, M_kipin: M, u_in: u };
+            }
+          };
+
+          return sol;
+        },
+
+        sample(sol, perEl = 12) {
+          const pts = [];
+          sol.elements.forEach((el, ei) => {
+            for (let i = 0; i <= perEl; i++) {
+              if (ei > 0 && i === 0) continue;
+              const x = (el.L * i) / perEl;
+              const y = el.yi + x;
+              const p = sol.evalAtY(y);
+              pts.push(p);
+            }
+          });
+          return pts;
+        },
+
+        findMaxAbsMoment(sol) {
+          let best = { y_in: 0, M_kipin: 0, abs: -1 };
+          sol.elements.forEach((el) => {
+            const candidates = [0, el.L];
+            if (Math.abs(el.w) > 1e-12) {
+              const xcrit = el.qe[0] / el.w;
+              if (xcrit > 0 && xcrit < el.L) candidates.push(xcrit);
+            }
+            candidates.forEach((x) => {
+              const M = el.qe[1] + el.qe[0] * x - 0.5 * el.w * x * x;
+              const a = Math.abs(M);
+              if (a > best.abs) {
+                best = { y_in: el.yi + x, M_kipin: M, abs: a };
+              }
+            });
+          });
+          return best;
+        },
+
+        maxSupportShear(sol) {
+          const n = sol.yNodes_in.length;
+          const rBase = Math.abs(sol.reactions[0] || 0);
+          const rTop = Math.abs(sol.reactions[2 * (n - 1)] || 0);
+          return Math.max(rBase, rTop);
+        }
+      };
+
+      // ==================== SectionDesign ====================
+      const SectionDesign = {
+        barDiameterIn(barNo) {
+          return Utils.toNum(barNo, 0) / 8;
+        },
+        barAreaIn2(barNo) {
+          const d = this.barDiameterIn(barNo);
+          return (Math.PI / 4) * d * d;
+        },
+        beta1(fc_ksi) {
+          if (fc_ksi <= 4) return 0.85;
+          return Math.max(0.65, 0.85 - 0.05 * (fc_ksi - 4));
+        },
+        minRho(fy_ksi, barNo) {
+          return fy_ksi <= 60 && barNo <= 5 ? 0.0020 : 0.0025;
+        },
+
+        coverIn(state, t_eff_in) {
+          const ov = state.settings.cover_in_override;
+          if (ov !== null && ov !== '' && Number.isFinite(Number(ov))) return Number(ov);
+          const mats = Number(state.rebar.v.mats);
+          const dbar = this.barDiameterIn(state.rebar.v.bar_no);
+          if (mats === 1) return t_eff_in / 2 - dbar / 2;
+          return 1.0;
+        },
+
+        buildSectionBase(strip, state, derived, trace, path) {
+          const b_in = strip.width_ft * 12;
+          const t_eff_in = derived.t_eff_in;
+          const bar_no = Utils.toNum(state.rebar.v.bar_no, 4);
+          const s_in = Utils.toNum(state.rebar.v.s_in, 12);
+          const dbar_in = this.barDiameterIn(bar_no);
+          const Ab_in2 = this.barAreaIn2(bar_no);
+          const cover_in = this.coverIn(state, t_eff_in);
+          const d_in = t_eff_in - cover_in - dbar_in / 2;
+          const As_rebar_in2 = Ab_in2 * (12 / s_in) * strip.width_ft;
+
+          const fc_ksi = Utils.toNum(state.mat.fc_ksi, 6);
+          const fy_ksi = Utils.toNum(state.mat.fy_ksi, 60);
+          const fc_psi = fc_ksi * 1000;
+          const Ec_ksi = 57 * Math.sqrt(fc_psi);
+          const Es_ksi = Utils.toNum(state.settings.Es_ksi, 29000);
+          const eps_cu = Utils.toNum(state.settings.eps_cu, 0.003);
+
+          const Ig_in4 = (b_in * Math.pow(t_eff_in, 3)) / 12;
+          const yt_in = t_eff_in / 2;
+          const fr_psi = 7.5 * Math.sqrt(fc_psi);
+          const Mcr_lb_in = (fr_psi * Ig_in4) / yt_in;
+          const Mcr_kip_ft = Mcr_lb_in / 12000;
+
+          const Ag_in2 = b_in * t_eff_in;
+          const rho_v = As_rebar_in2 / Ag_in2;
+
+          trace.add({
+            path,
+            name: 'Mcr',
+            units: 'kip-ft',
+            equation: 'Mcr = fr*Ig/yt',
+            subs: { fr_psi, Ig_in4, yt_in },
+            result: Mcr_kip_ft,
+            cite: 'ACI 318-25 (modulus of rupture & cracking moment convention)'
+          });
+
+          return {
+            b_in, t_eff_in, bar_no, s_in, dbar_in, Ab_in2, cover_in, d_in,
+            As_rebar_in2, fc_ksi, fy_ksi, fc_psi, Ec_ksi, Es_ksi, eps_cu,
+            Ig_in4, Mcr_kip_ft, Ag_in2, rho_v, strip_width_ft: strip.width_ft
+          };
+        },
+
+        withPu(base, Pu_k, trace, path) {
+          const Pu = Math.max(0, Utils.toNum(Pu_k, 0));
+          const As_axial_in2 = (Pu / base.fy_ksi) * (base.t_eff_in / (2 * Math.max(base.d_in, 1e-6)));
+          const As_total_in2 = base.As_rebar_in2 + As_axial_in2;
+          const beta1 = this.beta1(base.fc_ksi);
+          const a_in = (As_total_in2 * base.fy_ksi) / (0.85 * base.fc_ksi * base.b_in);
+          const c_in = a_in / Math.max(beta1, 1e-6);
+          const Mn_kip_in = As_total_in2 * base.fy_ksi * (base.d_in - a_in / 2);
+          const Mn_kip_ft = Mn_kip_in / 12;
+
+          const eps_t = base.eps_cu * (base.d_in - c_in) / Math.max(c_in, 1e-9);
+          const eps_y = base.fy_ksi / base.Es_ksi;
+          let phi;
+          if (eps_t >= 0.005) phi = 0.90;
+          else if (eps_t <= eps_y) phi = 0.65;
+          else phi = 0.65 + ((eps_t - eps_y) / (0.005 - eps_y)) * 0.25;
+          phi = Utils.clamp(phi, 0.65, 0.90);
+
+          const phiMn_kip_ft = phi * Mn_kip_ft;
+          const n = base.Es_ksi / Math.max(base.Ec_ksi, 1e-6);
+          const Icr_in4 = n * As_total_in2 * Math.pow(base.d_in - c_in, 2) + (base.b_in * Math.pow(c_in, 3)) / 3;
+
+          trace.add({
+            path,
+            name: 'φMn',
+            units: 'kip-ft',
+            equation: 'a, c, εt, φ, Mn, φMn',
+            subs: { Pu_k: Pu, As_total_in2, beta1, a_in, c_in, eps_t, phi },
+            result: phiMn_kip_ft,
+            cite: 'ACI 318-25 strain-based φ'
+          });
+
+          return {
+            ...base,
+            Pu_k: Pu,
+            As_axial_in2,
+            As_total_in2,
+            beta1,
+            a_in,
+            c_in,
+            eps_t,
+            eps_y,
+            phi,
+            Mn_kip_ft,
+            phiMn_kip_ft,
+            Icr_in4
+          };
+        },
+
+        flexureCheck(Mu_kip_ft_abs, secPu, trace, path) {
+          const util = secPu.phiMn_kip_ft > 1e-9 ? Mu_kip_ft_abs / secPu.phiMn_kip_ft : Infinity;
+          trace.add({
+            path,
+            name: 'U_flexure',
+            units: '-',
+            equation: 'U = Mu / φMn',
+            subs: { Mu_kip_ft: Mu_kip_ft_abs, phiMn_kip_ft: secPu.phiMn_kip_ft },
+            result: util,
+            cite: 'Strength utilization'
+          });
+          return { Mu_kip_ft: Mu_kip_ft_abs, phiMn_kip_ft: secPu.phiMn_kip_ft, util };
+        },
+
+        shearCheck(sol, sec, trace, path) {
+          const Vu_k = BeamSolver.maxSupportShear(sol);
+          const Vc_k = (2 * Math.sqrt(sec.fc_psi) * sec.b_in * sec.d_in) / 1000;
+          const phiVc_k = 0.75 * Vc_k;
+          const util = phiVc_k > 1e-9 ? Vu_k / phiVc_k : Infinity;
+
+          trace.add({
+            path,
+            name: 'U_shear',
+            units: '-',
+            equation: 'U = Vu / φVc; Vc = 2*sqrt(fc_psi)*b*d/1000',
+            subs: { Vu_k, Vc_k, phiVc_k },
+            result: util,
+            cite: 'v1 deterministic concrete shear'
+          });
+
+          return { Vu_k, phiVc_k, util };
+        },
+
+        axialCheck(Pu_k, sec, trace, path) {
+          const sigma_ksi = Pu_k / Math.max(sec.Ag_in2, 1e-9);
+          const allow_ksi = 0.20 * sec.fc_ksi;
+          const util = allow_ksi > 1e-9 ? sigma_ksi / allow_ksi : Infinity;
+
+          trace.add({
+            path,
+            name: 'U_axial',
+            units: '-',
+            equation: 'U = (Pu/Ag) / (0.2 f’c)',
+            subs: { Pu_k, Ag_in2: sec.Ag_in2, sigma_ksi, allow_ksi },
+            result: util,
+            cite: 'Project axial stress utilization convention'
+          });
+
+          return { sigma_ksi, allow_ksi, util };
+        },
+
+        horizontalMinimum(state, derived) {
+          const t = derived.t_eff_in > 0 ? derived.t_eff_in : 0;
+          const fy = Utils.toNum(state.mat.fy_ksi, 60);
+          const barNo = Utils.toNum(state.rebar.h.bar_no, 4);
+          const prefBarNo = barNo || 4;
+          const rho = fy <= 60 && prefBarNo <= 5 ? 0.0020 : 0.0025;
+          const As_req_per_ft = rho * t * 12;
+          const Ab = this.barAreaIn2(prefBarNo);
+          const s_theory = As_req_per_ft > 1e-9 ? (12 * Ab) / As_req_per_ft : 18;
+          const s_max = Math.min(18, 3 * t);
+          let s_use = Math.min(s_theory, s_max);
+          s_use = Utils.roundDownHalf(Math.max(0.5, s_use));
+
+          return {
+            rho_h_min: rho,
+            As_req_per_ft,
+            bar_no: prefBarNo,
+            Ab_in2: Ab,
+            s_theory,
+            s_max,
+            s_use,
+            text: `#${prefBarNo} @ ${Utils.fmt(s_use, 1)} in`
+          };
+        }
+      };
+
+      // ==================== SecondOrder ====================
+      const SecondOrder = {
+        computeKb(M1_kip_ft, delta1_in) {
+          const num = Math.abs(M1_kip_ft) * 12;
+          const den = Math.max(Math.abs(delta1_in), 1e-9);
+          return num / den;
+        },
+
+        magnifier(P_k, Kb_k, comboType, threshold = CONST.DENOM_THRESHOLD_DEFAULT) {
+          let denom = 1;
+          if (comboType === 'Strength') denom = 1 - P_k / (0.75 * Math.max(Kb_k, 1e-9));
+          else denom = 1 - P_k / Math.max(Kb_k, 1e-9);
+
+          const ok = denom > threshold;
+          return {
+            ok,
+            denom,
+            delta: ok ? 1 / denom : Infinity
+          };
+        }
+      };
+
+      // ==================== Serviceability ====================
+      const Serviceability = {
+        compute(opts) {
+          const {
+            Ma_kip_ft, Mcr_kip_ft, Mn_kip_ft, yStar_in, Hsupport_in, solveScaled, trace, path, hardFails
+          } = opts;
+
+          if (Math.abs(Ma_kip_ft) < 1e-12) {
+            return { Delta_s_in: 0, L_over_Delta: Infinity, r: 0, Delta_cr_in: 0, Delta_n_in: 0 };
+          }
+
+          if (Math.abs(Mcr_kip_ft) < 1e-12) {
+            hardFails.push(`${path}: Mcr is zero (hard fail).`);
+            return { Delta_s_in: NaN, L_over_Delta: NaN, r: NaN, Delta_cr_in: NaN, Delta_n_in: NaN };
+          }
+
+          const r = Ma_kip_ft / Mcr_kip_ft;
+          const alpha_cr = Mcr_kip_ft / Ma_kip_ft;
+          const alpha_n = Mn_kip_ft / Ma_kip_ft;
+
+          const solCr = solveScaled('Ig', alpha_cr);
+          const solN = solveScaled('Icr', alpha_n);
+          const dcr = Math.abs(solCr?.evalAtY(yStar_in).u_in ?? NaN);
+          const dn = Math.abs(solN?.evalAtY(yStar_in).u_in ?? NaN);
+
+          let Ds;
+          if (r <= 2 / 3) {
+            Ds = r * dcr;
+          } else {
+            const den = Mn_kip_ft - (2 / 3) * Mcr_kip_ft;
+            if (Math.abs(den) < 1e-12) Ds = dn;
+            else Ds = (2 / 3) * dcr + ((Ma_kip_ft - (2 / 3) * Mcr_kip_ft) / den) * (dn - (2 / 3) * dcr);
+          }
+
+          if (!Number.isFinite(Ds) || Ds < 0) Ds = NaN;
+          const L_over_Delta = Number.isFinite(Ds) && Ds > 1e-12 ? Hsupport_in / Ds : Infinity;
+
+          trace.add({
+            path,
+            name: 'Δs',
+            units: 'in',
+            equation: 'Spreadsheet interpolation (generalized FE scaling)',
+            subs: { Ma_kip_ft, Mcr_kip_ft, Mn_kip_ft, r, alpha_cr, alpha_n, Delta_cr_in: dcr, Delta_n_in: dn },
+            result: Ds,
+            cite: 'Legacy-compatible deflection interpolation'
+          });
+
+          return {
+            Delta_s_in: Ds,
+            L_over_Delta,
+            r,
+            Delta_cr_in: dcr,
+            Delta_n_in: dn
+          };
+        }
+      };
+
+      // ==================== SVG Renderer ====================
+      const SvgRender = {
+        panelTransform(B, H, width, height, pad = 40) {
+          const sx = (width - 2 * pad) / Math.max(B, 1e-6);
+          const sy = (height - 2 * pad) / Math.max(H, 1e-6);
+          const s = Math.min(sx, sy);
+          const plotW = B * s;
+          const plotH = H * s;
+          const ox = (width - plotW) / 2;
+          const oy = (height - plotH) / 2;
+          return {
+            x: (xf) => ox + xf * s,
+            y: (yf) => oy + (H - yf) * s,
+            s, ox, oy, plotW, plotH
+          };
+        },
+
+        geometrySvg(state, analysis, opts = {}) {
+          const W = opts.width || 900;
+          const Hsvg = opts.height || 520;
+          const panelB = Utils.toNum(state.panel.B_ft, 0);
+          const panelH = Utils.toNum(state.panel.H_ft, 0);
+
+          if (!(panelB > 0 && panelH > 0)) {
+            return `<svg viewBox="0 0 ${W} ${Hsvg}" preserveAspectRatio="xMidYMid meet">
+              <rect x="0" y="0" width="${W}" height="${Hsvg}" fill="#fff"/>
+              <text x="${W / 2}" y="${Hsvg / 2}" text-anchor="middle" fill="#64748b" font-size="14">Enter geometry to view panel.</text>
+            </svg>`;
+          }
+
+          const tr = this.panelTransform(panelB, panelH, W, Hsvg, 40);
+          const strips = analysis?.derived?.strips || [];
+          const openings = state.openings || [];
+          const assn = analysis?.derived?.assignments || {};
+          const selected = opts.selectedStripId || AppState.selectedStripId;
+          const hoveredOpen = opts.hoverOpeningId || AppState.hoverOpeningId;
+          const showTrib = !!opts.showTribBands;
+          const Hsupport = Utils.toNum(analysis?.derived?.Hsupport_ft, state.panel.Hsupport_ft || 0);
+
+          let stripRects = '';
+          strips.forEach((s) => {
+            const x = tr.x(s.xL_ft);
+            const w = tr.x(s.xR_ft) - tr.x(s.xL_ft);
+            const y = tr.y(panelH);
+            const h = tr.y(0) - tr.y(panelH);
+            const sel = s.id === selected;
+            stripRects += `
+              <rect data-strip="${s.id}" x="${x}" y="${y}" width="${w}" height="${h}"
+                fill="${sel ? '#dbeafe' : 'rgba(224,231,255,0.32)'}"
+                stroke="${sel ? '#1d4ed8' : '#c7d2fe'}" stroke-width="${sel ? 2 : 1}" />
+              <text x="${x + w / 2}" y="${tr.y(0) - 6}" text-anchor="middle" fill="#1f2937" font-size="11">${s.id}</text>
+            `;
+          });
+
+          let openingRects = '';
+          openings.forEach((o) => {
+            const x = tr.x(o.x_ft);
+            const y = tr.y(o.y_ft + o.h_ft);
+            const w = tr.x(o.x_ft + o.w_ft) - tr.x(o.x_ft);
+            const h = tr.y(o.y_ft) - tr.y(o.y_ft + o.h_ft);
+            const isHover = o.id === hoveredOpen;
+            openingRects += `
+              <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fff"
+                stroke="${isHover ? '#ef4444' : '#111827'}" stroke-width="${isHover ? 3 : 1.5}" />
+              <text x="${x + w / 2}" y="${y + h / 2 + 4}" text-anchor="middle" fill="#111827" font-size="11">${Utils.esc(o.id)}</text>
+            `;
+          });
+
+          let tribBands = '';
+          if (showTrib && selected) {
+            openings.forEach((o) => {
+              const a = assn[o.id];
+              if (!a) return;
+              if (a.left_strip_id !== selected && a.right_strip_id !== selected) return;
+              const s = strips.find((ss) => ss.id === selected);
+              if (!s) return;
+              const x = tr.x(s.xL_ft);
+              const w = tr.x(s.xR_ft) - tr.x(s.xL_ft);
+              const y = tr.y(o.y_ft + o.h_ft);
+              const h = tr.y(o.y_ft) - tr.y(o.y_ft + o.h_ft);
+              tribBands += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="rgba(16,185,129,0.15)" stroke="#10b981" stroke-dasharray="4 3" />`;
+            });
+          }
+
+          const xPanel = tr.x(0);
+          const yPanelTop = tr.y(panelH);
+          const panelWpx = tr.x(panelB) - tr.x(0);
+          const panelHpx = tr.y(0) - tr.y(panelH);
+          const ySupport = tr.y(Hsupport);
+          const parapetH = Math.max(0, panelH - Hsupport);
+
+          return `
+            <svg viewBox="0 0 ${W} ${Hsvg}" preserveAspectRatio="xMidYMid meet">
+              <defs>
+                <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                  <line x1="0" y1="0" x2="0" y2="8" stroke="#94a3b8" stroke-width="2"/>
+                </pattern>
+              </defs>
+              <rect x="0" y="0" width="${W}" height="${Hsvg}" fill="#fff"/>
+              <rect x="${xPanel}" y="${yPanelTop}" width="${panelWpx}" height="${panelHpx}" fill="#f8fafc" stroke="#0f172a" stroke-width="2"/>
+              ${parapetH > 0 ? `<rect x="${xPanel}" y="${tr.y(panelH)}" width="${panelWpx}" height="${tr.y(Hsupport) - tr.y(panelH)}" fill="url(#hatch)" opacity="0.45"/>` : ''}
+              <line x1="${xPanel}" y1="${ySupport}" x2="${xPanel + panelWpx}" y2="${ySupport}" stroke="#16a34a" stroke-width="2" />
+              <text x="${xPanel + 4}" y="${ySupport - 6}" fill="#166534" font-size="11">Top support</text>
+
+              ${stripRects}
+              ${tribBands}
+              ${openingRects}
+
+              <text x="${xPanel + panelWpx + 8}" y="${tr.y(panelH) + 12}" fill="#475569" font-size="11">H = ${Utils.fmt(panelH, 2)} ft</text>
+              <text x="${xPanel + panelWpx + 8}" y="${tr.y(0) - 4}" fill="#475569" font-size="11">B = ${Utils.fmt(panelB, 2)} ft</text>
+            </svg>
+          `;
+        },
+
+        loadsSvg(state, analysis, opts = {}) {
+          const W = opts.width || 900;
+          const Hsvg = opts.height || 520;
+          const B = Utils.toNum(state.panel.B_ft, 0);
+          const H = Utils.toNum(state.panel.H_ft, 0);
+
+          if (!(B > 0 && H > 0)) {
+            return `<svg viewBox="0 0 ${W} ${Hsvg}"><text x="${W / 2}" y="${Hsvg / 2}" text-anchor="middle" fill="#64748b" font-size="14">Enter geometry to view loads.</text></svg>`;
+          }
+
+          const tr = this.panelTransform(B, H, W, Hsvg, 40);
+          const Hsupport = Utils.toNum(analysis?.derived?.Hsupport_ft, state.panel.Hsupport_ft || 0);
+
+          const x0 = tr.x(0);
+          const y0 = tr.y(H);
+          const pw = tr.x(B) - tr.x(0);
+          const ph = tr.y(0) - tr.y(H);
+
+          const arrowMarker = `
+            <defs>
+              <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 z" fill="#2563eb"></path>
+              </marker>
+              <marker id="arr2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 z" fill="#7c3aed"></path>
+              </marker>
+              <marker id="arr3" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 z" fill="#059669"></path>
+              </marker>
+            </defs>
+          `;
+
+          let wallArrows = '';
+          const nWx = 8;
+          const nWy = 5;
+          for (let i = 0; i < nWx; i++) {
+            for (let j = 0; j < nWy; j++) {
+              const xx = x0 + ((i + 0.5) / nWx) * pw;
+              const yy = tr.y((j + 0.5) * (Hsupport / nWy));
+              wallArrows += `<line x1="${xx - 24}" y1="${yy}" x2="${xx - 2}" y2="${yy}" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr)"/>`;
+            }
+          }
+
+          let paraArrows = '';
+          if (H > Hsupport + CONST.TOL) {
+            const nPy = 2;
+            for (let i = 0; i < nWx; i++) {
+              for (let j = 0; j < nPy; j++) {
+                const xx = x0 + ((i + 0.5) / nWx) * pw;
+                const yy = tr.y(Hsupport + ((j + 0.5) / nPy) * (H - Hsupport));
+                paraArrows += `<line x1="${xx - 24}" y1="${yy}" x2="${xx - 2}" y2="${yy}" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arr2)"/>`;
+              }
+            }
+          }
+
+          const yTop = tr.y(Hsupport);
+          let lineLoadMarks = '';
+          (state.loads.vert.line || []).forEach((l, i) => {
+            const mag = Utils.toNum(l.plf, 0);
+            if (mag <= 0) return;
+            const c = i % 2 === 0 ? '#059669' : '#0ea5e9';
+            for (let k = 0; k < 9; k++) {
+              const xx = x0 + (k / 8) * pw;
+              lineLoadMarks += `<line x1="${xx}" y1="${yTop - 26}" x2="${xx}" y2="${yTop - 4}" stroke="${c}" stroke-width="1.2" marker-end="url(#arr3)"/>`;
+            }
+            lineLoadMarks += `<text x="${x0 + 8}" y="${yTop - 30 - i * 12}" fill="${c}" font-size="11">${Utils.esc(l.name)}: ${Utils.fmt(mag, 1)} lb/ft, e=${Utils.fmt(l.e_in, 2)} in</text>`;
+          });
+
+          let pointMarks = '';
+          (state.loads.vert.point || []).forEach((p, i) => {
+            const P = Utils.toNum(p.k, 0);
+            if (P <= 0) return;
+            const xx = tr.x(Utils.toNum(p.x_ft, 0));
+            const c = i % 2 === 0 ? '#dc2626' : '#ea580c';
+            pointMarks += `
+              <line x1="${xx}" y1="${yTop - 36}" x2="${xx}" y2="${yTop - 4}" stroke="${c}" stroke-width="1.6" marker-end="url(#arr3)"/>
+              <circle cx="${xx}" cy="${yTop - 38}" r="3" fill="${c}" />
+              <text x="${xx + 5}" y="${yTop - 40}" fill="${c}" font-size="11">${Utils.esc(p.name)}=${Utils.fmt(P,2)}k, e=${Utils.fmt(p.e_in,2)}in</text>
+            `;
+          });
+
+          return `
+            <svg viewBox="0 0 ${W} ${Hsvg}" preserveAspectRatio="xMidYMid meet">
+              ${arrowMarker}
+              <rect x="0" y="0" width="${W}" height="${Hsvg}" fill="#fff"/>
+              <rect x="${x0}" y="${y0}" width="${pw}" height="${ph}" fill="#f8fafc" stroke="#111827" stroke-width="2"/>
+              <line x1="${x0}" y1="${yTop}" x2="${x0 + pw}" y2="${yTop}" stroke="#16a34a" stroke-width="2"/>
+              ${wallArrows}
+              ${paraArrows}
+              ${lineLoadMarks}
+              ${pointMarks}
+              <text x="${x0 + 6}" y="${y0 + 14}" fill="#2563eb" font-size="11">Wall pressure pw=${Utils.fmt(state.loads.pw_ksf,3)} ksf</text>
+              <text x="${x0 + 6}" y="${y0 + 28}" fill="#7c3aed" font-size="11">Parapet pressure pp=${Utils.fmt(state.loads.pp_ksf,3)} ksf</text>
+            </svg>
+          `;
+        },
+
+        diagramsSvg(stripRes, comboName, showBoth, opts = {}) {
+          const W = opts.width || 900;
+          const Hsvg = opts.height || 560;
+          if (!stripRes) return `<svg viewBox="0 0 ${W} ${Hsvg}"><text x="${W / 2}" y="${Hsvg / 2}" text-anchor="middle" fill="#64748b">No strip selected.</text></svg>`;
+          const cRes = stripRes.perCombo?.[comboName];
+          if (!cRes || !cRes.diagram || !cRes.diagram.samples || cRes.diagram.samples.length === 0) {
+            return `<svg viewBox="0 0 ${W} ${Hsvg}"><text x="${W / 2}" y="${Hsvg / 2}" text-anchor="middle" fill="#64748b">No diagram data for selected combo.</text></svg>`;
+          }
+
+          const samples = cRes.diagram.samples;
+          const yMin = samples[0].y_in / 12;
+          const yMax = samples[samples.length - 1].y_in / 12;
+
+          const m1Vals = samples.map((p) => p.M1_kip_ft);
+          const mmVals = samples.map((p) => p.Mmag_kip_ft);
+          const vVals = samples.map((p) => p.V_k);
+
+          const mAbs = Math.max(1e-6, ...m1Vals.map((v) => Math.abs(v)), ...mmVals.map((v) => Math.abs(v)));
+          const vAbs = Math.max(1e-6, ...vVals.map((v) => Math.abs(v)));
+
+          const pad = 54;
+          const plotW = W - pad * 2;
+          const topH = (Hsvg - 3 * pad) / 2;
+          const botH = topH;
+          const xAt = (yft) => pad + ((yft - yMin) / Math.max(yMax - yMin, 1e-9)) * plotW;
+          const yMAt = (m) => pad + topH / 2 - (m / mAbs) * (topH * 0.42);
+          const yVAt = (v) => pad * 2 + topH + botH / 2 - (v / vAbs) * (botH * 0.42);
+
+          const poly = (arr, yFunc) => arr.map((p) => `${xAt(p.y_in / 12)},${yFunc(p)}`).join(' ');
+          const m1Poly = poly(samples.map((p) => ({ y_in: p.y_in, val: p.M1_kip_ft })), (p) => yMAt(p.val));
+          const mmPoly = poly(samples.map((p) => ({ y_in: p.y_in, val: p.Mmag_kip_ft })), (p) => yMAt(p.val));
+          const vPoly = poly(samples.map((p) => ({ y_in: p.y_in, val: p.V_k })), (p) => yVAt(p.val));
+
+          let mGov = { i: 0, v: 0 };
+          let vGov = { i: 0, v: 0 };
+          samples.forEach((p, i) => {
+            const mref = Math.abs(p.Mmag_kip_ft);
+            if (mref > Math.abs(mGov.v)) mGov = { i, v: p.Mmag_kip_ft };
+            if (Math.abs(p.V_k) > Math.abs(vGov.v)) vGov = { i, v: p.V_k };
+          });
+
+          const yStarFt = cRes.yStar_in / 12;
+          const xStar = xAt(yStarFt);
+
+          return `
+            <svg viewBox="0 0 ${W} ${Hsvg}" preserveAspectRatio="xMidYMid meet">
+              <rect x="0" y="0" width="${W}" height="${Hsvg}" fill="#fff"/>
+              <text x="${pad}" y="24" fill="#0f172a" font-size="13" font-weight="600">Strip ${Utils.esc(stripRes.strip.id)} — Combo ${Utils.esc(comboName)} (${cRes.type})</text>
+
+              <!-- Moment plot -->
+              <rect x="${pad}" y="${pad}" width="${plotW}" height="${topH}" fill="#f8fafc" stroke="#cbd5e1"/>
+              <line x1="${pad}" y1="${pad + topH / 2}" x2="${pad + plotW}" y2="${pad + topH / 2}" stroke="#94a3b8" stroke-dasharray="4 3"/>
+              <line x1="${xStar}" y1="${pad}" x2="${xStar}" y2="${pad + topH}" stroke="#f59e0b" stroke-dasharray="4 3"/>
+
+              ${showBoth ? `<polyline points="${m1Poly}" fill="none" stroke="#2563eb" stroke-width="1.8"/>` : ''}
+              <polyline points="${mmPoly}" fill="none" stroke="#d97706" stroke-width="2.2"/>
+
+              <circle cx="${xAt(samples[mGov.i].y_in / 12)}" cy="${yMAt(samples[mGov.i].Mmag_kip_ft)}" r="3.5" fill="#d97706"/>
+              <text x="${xAt(samples[mGov.i].y_in / 12) + 6}" y="${yMAt(samples[mGov.i].Mmag_kip_ft) - 6}" fill="#92400e" font-size="11">|M|max=${Utils.fmt(Math.abs(samples[mGov.i].Mmag_kip_ft),2)} kip-ft</text>
+
+              <text x="${pad + 6}" y="${pad + 14}" fill="#334155" font-size="11">Moment</text>
+              <text x="${xStar + 4}" y="${pad + 14}" fill="#b45309" font-size="11">y*=${Utils.fmt(yStarFt,2)} ft</text>
+
+              <!-- Shear plot -->
+              <rect x="${pad}" y="${pad * 2 + topH}" width="${plotW}" height="${botH}" fill="#f8fafc" stroke="#cbd5e1"/>
+              <line x1="${pad}" y1="${pad * 2 + topH + botH / 2}" x2="${pad + plotW}" y2="${pad * 2 + topH + botH / 2}" stroke="#94a3b8" stroke-dasharray="4 3"/>
+              <line x1="${xStar}" y1="${pad * 2 + topH}" x2="${xStar}" y2="${pad * 2 + topH + botH}" stroke="#f59e0b" stroke-dasharray="4 3"/>
+              <polyline points="${vPoly}" fill="none" stroke="#059669" stroke-width="2.2"/>
+
+              <circle cx="${xAt(samples[vGov.i].y_in / 12)}" cy="${yVAt(samples[vGov.i].V_k)}" r="3.5" fill="#059669"/>
+              <text x="${xAt(samples[vGov.i].y_in / 12) + 6}" y="${yVAt(samples[vGov.i].V_k) - 6}" fill="#065f46" font-size="11">|V|max=${Utils.fmt(Math.abs(samples[vGov.i].V_k),2)} k</text>
+
+              <text x="${pad + 6}" y="${pad * 2 + topH + 14}" fill="#334155" font-size="11">Shear</text>
+
+              <text x="${pad}" y="${Hsvg - 14}" fill="#334155" font-size="11">0 ft</text>
+              <text x="${pad + plotW - 38}" y="${Hsvg - 14}" fill="#334155" font-size="11">${Utils.fmt(yMax,2)} ft</text>
+              <text x="${pad + plotW / 2 - 48}" y="${Hsvg - 14}" fill="#334155" font-size="11">Height coordinate y</text>
+
+              ${showBoth ? '<text x="' + (pad + 200) + '" y="24" fill="#2563eb" font-size="11">Blue: first-order</text>' : ''}
+              <text x="${pad + 340}" y="24" fill="#d97706" font-size="11">Orange: magnified</text>
+            </svg>
+          `;
+        }
+      };
+
+      // ==================== ReportBuilder ====================
+      const ReportBuilder = {
+        build(state, analysis) {
+          const meta = state.meta;
+          const derived = analysis?.derived || {};
+          const strips = derived.strips || [];
+          const perStrip = analysis?.perStrip || {};
+          const combosUsed = analysis?.combosUsed || [];
+          const assignments = derived.assignments || {};
+
+          const openingRows = (state.openings || []).map((o) => `
+            <tr><td>${Utils.esc(o.id)}</td><td>${Utils.fmt(o.x_ft,3)}</td><td>${Utils.fmt(o.y_ft,3)}</td><td>${Utils.fmt(o.w_ft,3)}</td><td>${Utils.fmt(o.h_ft,3)}</td></tr>
+          `).join('') || '<tr><td colspan="5">None</td></tr>';
+
+          const stripRows = strips.map((s) => `
+            <tr>
+              <td>${Utils.esc(s.id)}</td>
+              <td>${Utils.fmt(s.xL_ft,3)}</td>
+              <td>${Utils.fmt(s.xR_ft,3)}</td>
+              <td>${Utils.fmt(s.width_ft,3)}</td>
+              <td>${Utils.fmt(derived.topTribByStrip?.[s.id],3)}</td>
+            </tr>
+          `).join('') || '<tr><td colspan="5">No strips</td></tr>';
+
+          const assnRows = (state.openings || []).map((o) => {
+            const a = assignments[o.id];
+            if (!a) return `<tr><td>${Utils.esc(o.id)}</td><td colspan="3">Not assigned</td></tr>`;
+            return `<tr><td>${Utils.esc(o.id)}</td><td>${Utils.esc(a.left_strip_id)}</td><td>${Utils.esc(a.right_strip_id)}</td><td>${Utils.fmt(a.share_ft,3)}</td></tr>`;
+          }).join('') || '<tr><td colspan="4">None</td></tr>';
+
+          const resultRows = Object.values(perStrip).map((r) => {
+            const g = r.governing;
+            return `
+              <tr>
+                <td>${Utils.esc(r.strip.id)}</td>
+                <td>${Utils.fmt(r.strip.width_ft,3)}</td>
+                <td>${Utils.fmt(g.flex?.util,3)}</td>
+                <td>${Utils.fmt(g.shear?.util,3)}</td>
+                <td>${Utils.fmt(g.axial?.util,3)}</td>
+                <td>${Number.isFinite(g.deflection?.L_over_Delta) ? Utils.fmt(g.deflection?.L_over_Delta,1) : '∞'}</td>
+              </tr>
+            `;
+          }).join('') || '<tr><td colspan="6">No results</td></tr>';
+
+          const traceGroups = {};
+          (analysis?.traceItems || []).forEach((it) => {
+            if (!traceGroups[it.path]) traceGroups[it.path] = [];
+            traceGroups[it.path].push(it);
+          });
+
+          const traceHtml = Object.keys(traceGroups).sort().map((path) => {
+            const id = `trace-${Utils.slug(path)}`;
+            const items = traceGroups[path].map((it) => {
+              const subs = Object.entries(it.subs || {}).map(([k, v]) => `${Utils.esc(k)} = ${Utils.esc(Utils.fmt(v, 6))}`).join('; ');
+              return `
+                <div class="trace-item">
+                  <div><strong>${Utils.esc(it.name)}</strong> ${it.units ? `(${Utils.esc(it.units)})` : ''}</div>
+                  <div>Eqn: <code>${Utils.esc(it.equation || '')}</code></div>
+                  <div>Subs: ${subs || '—'}</div>
+                  <div>Result: <strong>${Utils.esc(Utils.fmt(it.result, 6))}</strong></div>
+                  <div class="report-small">Citation: ${Utils.esc(it.citation_label || '')}</div>
+                </div>
+              `;
+            }).join('');
+            return `
+              <details class="trace-group" id="${id}" open>
+                <summary>${Utils.esc(path)}</summary>
+                ${items}
+              </details>
+            `;
+          }).join('') || '<div class="report-small">No trace items.</div>';
+
+          const top2 = Object.values(perStrip)
+            .sort((a, b) => (b.governing.flex?.util || 0) - (a.governing.flex?.util || 0))
+            .slice(0, 2);
+
+          const diagramBlocks = top2.map((r) => {
+            const combo = r.governing.flex?.combo || Object.keys(r.perCombo || {})[0];
+            return `
+              <h3>Strip ${Utils.esc(r.strip.id)} — Governing combo ${Utils.esc(combo || 'N/A')}</h3>
+              ${SvgRender.diagramsSvg(r, combo, true, { width: 980, height: 540 })}
+            `;
+          }).join('') || '<div class="report-small">No strip diagrams available.</div>';
+
+          const combosRows = combosUsed.map((c) => `
+            <tr>
+              <td>${Utils.esc(c.name)}</td>
+              <td>${Utils.esc(c.type)}</td>
+              <td>${Utils.fmt(c.D,3)}</td>
+              <td>${Utils.fmt(c.L,3)}</td>
+              <td>${Utils.fmt(c.W_wall,3)}</td>
+              <td>${Utils.fmt(c.W_parapet,3)}</td>
+              <td>${c.apply_vertical ? 'Yes' : 'No'}</td>
+            </tr>
+          `).join('') || '<tr><td colspan="7">None</td></tr>';
+
+          return `
+            <section class="report-section">
+              <h2>1) Cover / Metadata</h2>
+              <div class="kv-grid">
+                <span>Project</span><strong>${Utils.esc(meta.project || '')}</strong>
+                <span>Job No</span><strong>${Utils.esc(meta.job || '')}</strong>
+                <span>Calc ID</span><strong>${Utils.esc(meta.calc_id || '')}</strong>
+                <span>Engineer</span><strong>${Utils.esc(meta.engineer || '')}</strong>
+                <span>Checker</span><strong>${Utils.esc(meta.checker || '')}</strong>
+                <span>Revision</span><strong>${Utils.esc(meta.revision)}</strong>
+                <span>Date</span><strong>${Utils.esc(meta.date || '')}</strong>
+                <span>Status</span><strong>${Utils.esc(analysis?.status || 'HARD_FAIL')}</strong>
+              </div>
+              <p class="report-small" style="margin-top:8px;">Code Pack: ${Utils.esc(state.code_pack.aci)} + ${Utils.esc(state.code_pack.asce)} | Reference: ${Utils.esc((state.code_pack.reference || []).join(', '))}</p>
+              <p class="report-small">Generated: ${Utils.esc(Utils.isoNow())}</p>
+            </section>
+
+            <section class="report-section">
+              <h2>2) Inputs Summary</h2>
+              <h3>Geometry + Materials + Reinforcement</h3>
+              <div class="kv-grid">
+                <span>B (ft)</span><strong>${Utils.fmt(state.panel.B_ft,3)}</strong>
+                <span>H (ft)</span><strong>${Utils.fmt(state.panel.H_ft,3)}</strong>
+                <span>Hsupport (ft)</span><strong>${Utils.fmt(derived.Hsupport_ft,3)}</strong>
+                <span>hp (ft)</span><strong>${Utils.fmt(state.panel.hp_ft,3)}</strong>
+                <span>t (in)</span><strong>${Utils.fmt(state.panel.t_in,3)}</strong>
+                <span>reveal (in)</span><strong>${Utils.fmt(state.panel.reveal_in,3)}</strong>
+                <span>t_eff (in)</span><strong>${Utils.fmt(derived.t_eff_in,3)}</strong>
+                <span>Support</span><strong>${Utils.esc(state.panel.support)}</strong>
+                <span>f’c (ksi)</span><strong>${Utils.fmt(state.mat.fc_ksi,3)}</strong>
+                <span>fy (ksi)</span><strong>${Utils.fmt(state.mat.fy_ksi,3)}</strong>
+                <span>Vertical rebar</span><strong>#${Utils.esc(state.rebar.v.bar_no)} @ ${Utils.fmt(state.rebar.v.s_in,2)} in, mats=${Utils.esc(state.rebar.v.mats)}</strong>
+                <span>Horizontal rebar mode</span><strong>${Utils.esc(state.rebar.h.mode)}</strong>
+              </div>
+
+              <h3>Openings</h3>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>ID</th><th>x</th><th>y</th><th>w</th><th>h</th></tr></thead>
+                  <tbody>${openingRows}</tbody>
+                </table>
+              </div>
+
+              <h3>Loads</h3>
+              <div class="kv-grid">
+                <span>pw (ksf)</span><strong>${Utils.fmt(state.loads.pw_ksf,3)}</strong>
+                <span>pp (ksf)</span><strong>${Utils.fmt(state.loads.pp_ksf,3)}</strong>
+              </div>
+
+              <h3>Load combinations used</h3>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Name</th><th>Type</th><th>D</th><th>L</th><th>W_wall</th><th>W_parapet</th><th>Vertical</th></tr></thead>
+                  <tbody>${combosRows}</tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="report-section">
+              <h2>3) Strip Generation Summary</h2>
+              <h3>Strips</h3>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Strip</th><th>xL</th><th>xR</th><th>Width</th><th>Trib@Top</th></tr></thead>
+                  <tbody>${stripRows}</tbody>
+                </table>
+              </div>
+              <h3>Opening tributary assignment</h3>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Opening</th><th>Left strip</th><th>Right strip</th><th>Share (ft)</th></tr></thead>
+                  <tbody>${assnRows}</tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="report-section">
+              <h2>4) Results Summary</h2>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Strip</th><th>Width (ft)</th><th>Uflex</th><th>Ushear</th><th>Uaxial</th><th>L/Δ</th></tr></thead>
+                  <tbody>${resultRows}</tbody>
+                </table>
+              </div>
+              <h3>Flags</h3>
+              <ul>${(analysis?.flags || []).map((f) => `<li>${Utils.esc(f)}</li>`).join('') || '<li>None</li>'}</ul>
+            </section>
+
+            <section class="report-section">
+              <h2>5) Diagrams</h2>
+              <h3>Geometry</h3>
+              ${SvgRender.geometrySvg(state, analysis, { width: 980, height: 460, showTribBands: false })}
+              ${diagramBlocks}
+            </section>
+
+            <section class="report-section">
+              <h2>6) Full Calculation Trace (Appendix)</h2>
+              ${traceHtml}
+            </section>
+          `;
+        },
+
+        standaloneHtml(state, analysis) {
+          const body = this.build(state, analysis);
+          const footer = `${Utils.esc(state.meta.calc_id || '')} | Rev ${Utils.esc(state.meta.revision)} | Page <span class="page-num"></span>`;
+          return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>${Utils.esc(state.meta.calc_id || 'Tilt-Up Report')}</title>
+<style>
+  body{font-family:Segoe UI,Arial,sans-serif;margin:0;color:#111827;background:#fff}
+  #reportContent{max-width:1100px;margin:0 auto;padding:16px}
+  .report-section{margin-bottom:16px;border:1px solid #e5e7eb;border-radius:8px;padding:12px}
+  .report-section h2{margin:0 0 10px 0;font-size:17px}
+  .report-section h3{margin:10px 0 8px 0;font-size:14px}
+  .kv-grid{display:grid;grid-template-columns:1fr auto;gap:6px 10px;font-size:12px;background:#f9fbff;border:1px solid #e7ecf5;padding:8px;border-radius:8px}
+  .table-wrap{overflow-x:auto;border:1px solid #e5e7eb;border-radius:8px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th,td{border-bottom:1px solid #edf1f7;padding:6px}
+  th{background:#f8fafc;text-align:left}
+  .trace-group{border:1px solid #e5e7eb;border-radius:8px;margin-bottom:8px}
+  .trace-group>summary{font-weight:600;font-size:12px;padding:8px 10px;background:#f8fafc}
+  .trace-item{border-top:1px solid #edf1f7;padding:8px 10px;font-size:12px}
+  .trace-item code{background:#f3f4f6;border:1px solid #e5e7eb;border-radius:4px;padding:1px 4px;font-size:11px}
+  .report-small{font-size:11px;color:#4b5563}
+  @page{margin:14mm}
+  @media print{
+    .report-section{break-before:page;border:none;padding:0;margin-bottom:10mm}
+    .report-section:first-child{break-before:auto}
+    details{display:block}
+    details>summary{display:none}
+    #reportFooter{position:fixed;left:0;right:0;bottom:0;border-top:1px solid #d1d5db;padding:4px 8px;background:#fff;font-size:11px}
+    #reportFooter .page-num::after{content:counter(page)}
+  }
+</style>
+</head>
+<body>
+  <div id="reportContent">${body}</div>
+  <div id="reportFooter">${footer}</div>
+</body>
+</html>`;
+        }
+      };
+
+      // ==================== IO ====================
+      const IO = {
+        exportJSON() {
+          const s = AppState.data;
+          const filename = `${(s.meta.calc_id || 'calc').replace(/[^\w-]+/g, '_')}_rev${s.meta.revision || 0}.json`;
+          Utils.download(filename, JSON.stringify(s, null, 2), 'application/json');
+          UI.toast('JSON exported');
+          AppState.dirty = false;
+        },
+
+        async importFromFile(file) {
+          const text = await file.text();
+          const raw = JSON.parse(text);
+          const merged = Utils.deepMerge(AppState.defaultState(), raw);
+
+          if (!merged.meta) merged.meta = {};
+          if (!merged.meta.calc_id) merged.meta.calc_id = AppState.nextCalcId();
+          if (!merged.meta.date) merged.meta.date = Utils.today();
+          if (!merged.settings.hardfail_denom_threshold) merged.settings.hardfail_denom_threshold = CONST.DENOM_THRESHOLD_DEFAULT;
+          if (merged.panel.auto_hsupport === undefined) merged.panel.auto_hsupport = false;
+
+          let mismatch = false;
+          if (raw.code_pack) {
+            const d = CONST.CODE_PACK_DEFAULT;
+            if (raw.code_pack.aci !== d.aci || raw.code_pack.asce !== d.asce) mismatch = true;
+          }
+
+          return { state: merged, mismatch };
+        },
+
+        exportReportHtml() {
+          const html = ReportBuilder.standaloneHtml(AppState.data, AppState.analysis || runAll());
+          const fn = `${(AppState.data.meta.calc_id || 'report').replace(/[^\w-]+/g, '_')}_report.html`;
+          Utils.download(fn, html, 'text/html');
+          UI.toast('Report HTML exported');
+        }
+      };
+
+      // ==================== Core Solver Helpers ====================
+      function solveMainSpan(strip, combo, state, derived, tribBands, I_in4, Mtop_kipin, scale = 1) {
+        const yNodes_in = tribBands.breaks_ft.map((ft) => ft * 12);
+        if (yNodes_in.length < 2) return null;
+
+        const wElems_kipin = tribBands.bands.map((b) => {
+          const w_kipft = combo.W_wall * Utils.toNum(state.loads.pw_ksf, 0) * b.trib_ft;
+          return (w_kipft / 12) * scale;
+        });
+
+        const Ec_ksi = 57 * Math.sqrt(Utils.toNum(state.mat.fc_ksi, 6) * 1000);
+        const EI_kipin2 = Ec_ksi * Math.max(I_in4, 1e-6);
+
+        const n = yNodes_in.length;
+        const fixedUNodes = [0, n - 1];
+        const fixedThetaNodes = [];
+        const support = state.panel.support;
+
+        if (support === 'FIXED_PINNED' || support === 'FIXED_FIXED') fixedThetaNodes.push(0);
+        if (support === 'PINNED_FIXED' || support === 'FIXED_FIXED') fixedThetaNodes.push(n - 1);
+
+        const nodalMoments_kipin = {};
+        nodalMoments_kipin[n - 1] = (Mtop_kipin || 0) * scale;
+
+        return BeamSolver.solve({
+          yNodes_in,
+          wElems_kipin,
+          EI_kipin2,
+          fixedUNodes,
+          fixedThetaNodes,
+          nodalMoments_kipin
+        });
+      }
+
+      function computeParapetActions(strip, combo, state, derived, secBase, mainDemandAbs_kipft, trace, path) {
+        const hp_ft = Utils.toNum(state.panel.hp_ft, 0);
+        const pp_ksf = Utils.toNum(state.loads.pp_ksf, 0);
+        if (!(hp_ft > 0) || !(pp_ksf > 0) || !(Math.abs(combo.W_parapet) > 0)) {
+          return { Mbase_kip_ft: 0, exceedsMain: false, addText: '' };
+        }
+
+        const tribTop = derived.topTribByStrip[strip.id] || strip.width_ft;
+        const Lp_in = hp_ft * 12;
+        const w_kipin = (combo.W_parapet * pp_ksf * tribTop) / 12;
+
+        const Ec_ksi = 57 * Math.sqrt(Utils.toNum(state.mat.fc_ksi, 6) * 1000);
+        const EI = Ec_ksi * Math.max(secBase.Ig_in4, 1e-6);
+
+        const sol = BeamSolver.solve({
+          yNodes_in: [0, Lp_in],
+          wElems_kipin: [w_kipin],
+          EI_kipin2: EI,
+          fixedUNodes: [0, 1],   // u=0 at base and top prop
+          fixedThetaNodes: [0],  // base fixed rotation; top rotation free
+          nodalMoments_kipin: {}
+        });
+
+        if (!sol || !sol.elements[0]) {
+          return { Mbase_kip_ft: 0, exceedsMain: false, addText: '' };
+        }
+
+        const Mbase_kip_ft = Math.abs(sol.elements[0].qe[1] / 12);
+        const exceedsMain = combo.type === 'Strength' && Mbase_kip_ft > mainDemandAbs_kipft;
+        let addText = '';
+
+        if (exceedsMain) {
+          const fy = secBase.fy_ksi;
+          const phi = 0.90;
+          const jd = 0.9 * secBase.d_in;
+          const As_req = (Mbase_kip_ft * 12) / Math.max(phi * fy * jd, 1e-9);
+          const As_add = Math.max(0, As_req - secBase.As_rebar_in2);
+
+          if (As_add <= 1e-6) {
+            addText = 'Existing vertical steel appears adequate for parapet zone.';
+          } else {
+            const s_raw = (12 * secBase.Ab_in2 * strip.width_ft) / As_add;
+            const s_use = Math.max(3, Utils.roundDownHalf(Math.min(18, s_raw)));
+            addText = `Add #${secBase.bar_no} @ ${Utils.fmt(s_use, 1)} in (parapet zone)`;
+          }
+        }
+
+        trace.add({
+          path,
+          name: 'Mpar_base',
+          units: 'kip-ft',
+          equation: 'Parapet propped-cantilever base moment',
+          subs: { hp_ft, w_kipin, tribTop },
+          result: Mbase_kip_ft,
+          cite: 'Parapet modeled as fixed base + pinned prop'
+        });
+
+        return { Mbase_kip_ft, exceedsMain, addText };
+      }
+
+      function pickGoverningWithinStrip(perCombo) {
+        const gov = {
+          flex: { combo: null, util: 0, Mu_kip_ft: 0, phiMn_kip_ft: 0 },
+          shear: { combo: null, util: 0, Vu_k: 0, phiVc_k: 0 },
+          axial: { combo: null, util: 0, sigma_ksi: 0, allow_ksi: 0, Pu_k: 0 },
+          deflection: { combo: null, Delta_s_in: 0, L_over_Delta: Infinity },
+          parapetNeed: false,
+          parapetCombo: null,
+          stripFail: false
+        };
+
+        Object.entries(perCombo).forEach(([name, c]) => {
+          if (c.type === 'Strength') {
+            if (c.flex && c.flex.util > gov.flex.util) gov.flex = { combo: name, ...c.flex };
+            if (c.shear && c.shear.util > gov.shear.util) gov.shear = { combo: name, ...c.shear };
+            if (c.axial && c.axial.util > gov.axial.util) gov.axial = { combo: name, ...c.axial, Pu_k: c.P_k };
+            if (c.parapet?.exceedsMain) {
+              gov.parapetNeed = true;
+              gov.parapetCombo = name;
+            }
+          } else if (c.type === 'Service' && c.defl) {
+            if ((c.defl.Delta_s_in || 0) > (gov.deflection.Delta_s_in || 0)) {
+              gov.deflection = { combo: name, ...c.defl };
+            }
+          }
+        });
+
+        gov.stripFail = (gov.flex.util > 1.0) || (gov.shear.util > 1.0) || (gov.axial.util > 1.0);
+        return gov;
+      }
+
+      function analyzeStrip(strip, ctx) {
+        const { state, derived, combos, hardFails, warnings, trace } = ctx;
+
+        const stripPath = `Strip ${strip.id}`;
+        const secBase = SectionDesign.buildSectionBase(strip, state, derived, trace, `${stripPath} / Section Base`);
+
+        const rhoMin = SectionDesign.minRho(secBase.fy_ksi, secBase.bar_no);
+        if (secBase.rho_v < rhoMin) {
+          Utils.pushUnique(warnings, `${strip.id}: Vertical steel ratio (${Utils.fmt(secBase.rho_v, 4)}) is below typical minimum (${Utils.fmt(rhoMin, 4)}).`);
+        }
+
+        const tribBands = GeometryEngine.buildTributaryBands(strip, state.openings, derived.assignments, derived.Hsupport_ft);
+        const perCombo = {};
+
+        combos.enabled.forEach((combo) => {
+          const cPath = `${stripPath} / Combo ${combo.name}`;
+          const vert = LoadCombos.verticalForStrip(strip, combo, state, derived, trace, cPath);
+
+          let yStar_in = (derived.Hsupport_ft * 12) / 2;
+          let P_k = vert.P_top_k + LoadCombos.selfWeightAtY(strip, state, derived, combo, yStar_in / 12);
+          let secPu = SectionDesign.withPu(secBase, P_k, trace, `${cPath} / Section`);
+
+          let sol = solveMainSpan(strip, combo, state, derived, tribBands, secPu.Icr_in4, vert.M_top_kipin, 1);
+          if (!sol) {
+            hardFails.push(`${cPath}: Beam solver failure.`);
+            return;
+          }
+
+          for (let i = 0; i < 2; i++) {
+            const maxM = BeamSolver.findMaxAbsMoment(sol);
+            yStar_in = maxM.y_in;
+            P_k = vert.P_top_k + LoadCombos.selfWeightAtY(strip, state, derived, combo, yStar_in / 12);
+            secPu = SectionDesign.withPu(secBase, P_k, trace, `${cPath} / Section`);
+            sol = solveMainSpan(strip, combo, state, derived, tribBands, secPu.Icr_in4, vert.M_top_kipin, 1);
+            if (!sol) break;
+          }
+
+          if (!sol) {
+            hardFails.push(`${cPath}: Beam solver failure after section update.`);
+            return;
+          }
+
+          const maxM = BeamSolver.findMaxAbsMoment(sol);
+          yStar_in = maxM.y_in;
+
+          const ev = sol.evalAtY(yStar_in);
+          const M1_kip_ft = ev.M_kipin / 12;
+          const Kb_k = SecondOrder.computeKb(M1_kip_ft, ev.u_in);
+          const mag = SecondOrder.magnifier(
+            P_k,
+            Kb_k,
+            combo.type,
+            Utils.toNum(state.settings.hardfail_denom_threshold, CONST.DENOM_THRESHOLD_DEFAULT)
+          );
+
+          if (!mag.ok) {
+            hardFails.push(`${cPath}: Alternative Method denominator instability (denominator=${Utils.fmt(mag.denom, 4)}).`);
+          }
+
+          const Mmag_kip_ft = M1_kip_ft * mag.delta;
+
+          trace.add({
+            path: `${cPath} / SecondOrder`,
+            name: 'Magnifier',
+            units: '-',
+            equation: combo.type === 'Strength'
+              ? 'δu = 1 / (1 - Pu/(0.75Kb))'
+              : 'δs = 1 / (1 - Ps/Kb)',
+            subs: { P_k, Kb_k, denom: mag.denom },
+            result: mag.delta,
+            cite: 'Alternative Method moment magnifier form'
+          });
+
+          const samples = BeamSolver.sample(sol, 14).map((p) => ({
+            y_in: p.y_in,
+            M1_kip_ft: p.M_kipin / 12,
+            Mmag_kip_ft: (p.M_kipin / 12) * mag.delta,
+            V_k: p.V_k,
+            u_in: p.u_in
+          }));
+
+          const parapet = computeParapetActions(
+            strip,
+            combo,
+            state,
+            derived,
+            secBase,
+            Math.abs(Mmag_kip_ft),
+            trace,
+            `${cPath} / Parapet`
+          );
+
+          let flex = null, shear = null, axial = null, defl = null;
+
+          if (combo.type === 'Strength') {
+            flex = SectionDesign.flexureCheck(Math.abs(Mmag_kip_ft), secPu, trace, `${cPath} / Flexure`);
+            shear = SectionDesign.shearCheck(sol, secBase, trace, `${cPath} / Shear`);
+            axial = SectionDesign.axialCheck(P_k, secBase, trace, `${cPath} / Axial`);
+          } else {
+            const solveScaled = (whichI, alpha) => {
+              const Iuse = whichI === 'Ig' ? secBase.Ig_in4 : secPu.Icr_in4;
+              return solveMainSpan(strip, combo, state, derived, tribBands, Iuse, vert.M_top_kipin, alpha);
+            };
+
+            defl = Serviceability.compute({
+              Ma_kip_ft: Math.abs(Mmag_kip_ft),
+              Mcr_kip_ft: secBase.Mcr_kip_ft,
+              Mn_kip_ft: secPu.Mn_kip_ft,
+              yStar_in,
+              Hsupport_in: derived.Hsupport_ft * 12,
+              solveScaled,
+              trace,
+              path: `${cPath} / Deflection`,
+              hardFails
+            });
+          }
+
+          perCombo[combo.name] = {
+            type: combo.type,
+            combo,
+            yStar_in,
+            P_k,
+            P_top_k: vert.P_top_k,
+            P_sw_k: P_k - vert.P_top_k,
+            M1_kip_ft,
+            Kb_k,
+            denom: mag.denom,
+            magnifier: mag.delta,
+            Mmag_kip_ft,
+            flex, shear, axial, defl,
+            parapet,
+            diagram: { samples, yStar_in }
+          };
+        });
+
+        const governing = pickGoverningWithinStrip(perCombo);
+
+        return {
+          strip,
+          section: secBase,
+          tribBands,
+          perCombo,
+          governing
+        };
+      }
+
+      // ==================== Main Calculation Run ====================
+      function runAll() {
+        const state = AppState.data;
+        state.meta.date = state.meta.date || Utils.today();
+
+        const trace = new TraceCollector();
+        const hardFails = [];
+        const warnings = [];
+
+        Validators.validateBasics(state, hardFails, warnings);
+        Validators.validateLoads(state, hardFails);
+        Validators.validateOpenings(state, hardFails);
+
+        const basic = GeometryEngine.deriveBasics(state, hardFails, trace);
+
+        let strips = [];
+        let assignments = {};
+        let topTribByStrip = {};
+        let totalTopTrib = 0;
+        let pointAssignments = [];
+        const combos = LoadCombos.build(state);
+        Validators.validateCombos(combos.enabled, hardFails);
+
+        if (hardFails.length === 0) {
+          strips = GeometryEngine.generateStrips(basic, state.openings, hardFails, trace);
+        }
+
+        if (hardFails.length === 0) {
+          assignments = GeometryEngine.assignOpeningsToStrips(strips, state.openings, hardFails, trace);
+        }
+
+        if (hardFails.length === 0) {
+          const top = GeometryEngine.computeTopTribByStrip(strips, state.openings, assignments, basic.Hsupport_ft);
+          topTribByStrip = top.byStrip;
+          totalTopTrib = top.total;
+          pointAssignments = GeometryEngine.assignPointLoadsToStrips(strips, state.loads.vert.point, basic.B_ft, hardFails);
+        }
+
+        const derived = {
+          ...basic,
+          strips,
+          assignments,
+          topTribByStrip,
+          totalTopTrib,
+          pointAssignments
+        };
+
+        const perStrip = {};
+        if (hardFails.length === 0) {
+          strips.forEach((strip) => {
+            const res = analyzeStrip(strip, { state, derived, combos, hardFails, warnings, trace });
+            perStrip[strip.id] = res;
+          });
+        }
+
+        const designFails = [];
+        const infoFlags = [];
+        if (hardFails.length === 0) {
+          Object.values(perStrip).forEach((sr) => {
+            if (!sr || !sr.governing) return;
+            const g = sr.governing;
+            if (g.flex.util > 1) designFails.push(`${sr.strip.id}: Flexure utilization ${Utils.fmt(g.flex.util, 3)} > 1.0 (combo ${g.flex.combo}).`);
+            if (g.shear.util > 1) designFails.push(`${sr.strip.id}: Shear utilization ${Utils.fmt(g.shear.util, 3)} > 1.0 (combo ${g.shear.combo}).`);
+            if (g.axial.util > 1) designFails.push(`${sr.strip.id}: Axial utilization ${Utils.fmt(g.axial.util, 3)} > 1.0 (combo ${g.axial.combo}).`);
+            if (g.parapetNeed) infoFlags.push(`${sr.strip.id}: ADD REINF. FOR PARAPET (combo ${g.parapetCombo}).`);
+          });
+        }
+
+        const status = hardFails.length > 0 ? 'HARD_FAIL' : (designFails.length > 0 ? 'FAIL' : 'PASS');
+        const flags = [...hardFails, ...designFails, ...infoFlags, ...warnings];
+
+        state.derived = {
+          t_eff_in: basic.t_eff_in || 0,
+          Hsupport_ft: basic.Hsupport_ft || 0,
+          strips,
+          assignments,
+          topTribByStrip,
+          totalTopTrib
+        };
+
+        state.results = {
+          status,
+          flags,
+          per_strip: perStrip
+        };
+
+        state.trace_snapshot = {
+          generated_at: Utils.isoNow(),
+          items: trace.items
+        };
+
+        AppState.analysis = {
+          status,
+          hardFails,
+          warnings,
+          flags,
+          derived,
+          perStrip,
+          combosUsed: combos.enabled,
+          traceItems: trace.items
+        };
+
+        return AppState.analysis;
+      }
+
+      // ==================== UI ====================
+      const UI = {
+        init() {
+          AppState.reset();
+          this.bindEvents();
+          this.renderAll();
+        },
+
+        bindEvents() {
+          document.getElementById('btnNew').addEventListener('click', () => {
+            const doReset = () => {
+              AppState.reset();
+              this.renderAll();
+            };
+            if (AppState.dirty) {
+              this.confirm('Discard unsaved changes and start a new calculation?', doReset);
+            } else doReset();
+          });
+
+          document.getElementById('btnImport').addEventListener('click', () => {
+            document.getElementById('importInput').click();
+          });
+
+          document.getElementById('importInput').addEventListener('change', async (e) => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            try {
+              const imp = await IO.importFromFile(f);
+              AppState.data = imp.state;
+              AppState.analysis = null;
+              AppState.dirty = false;
+              AppState.codePackLocked = true;
+              this.renderAll();
+              if (imp.mismatch) {
+                this.alert('Code pack mismatch', 'Imported JSON code pack differs from default app code pack. Loaded values are locked to imported labels.');
+              }
+              this.toast('JSON imported');
+            } catch (err) {
+              this.alert('Import failed', Utils.esc(err.message || String(err)));
+            } finally {
+              e.target.value = '';
+            }
+          });
+
+          document.getElementById('btnExport').addEventListener('click', () => IO.exportJSON());
+
+          document.getElementById('btnExportReport').addEventListener('click', () => {
+            runAll();
+            this.renderReport();
+            IO.exportReportHtml();
+          });
+
+          document.getElementById('btnPrint').addEventListener('click', () => {
+            runAll();
+            this.renderComputedOnly();
+            this.showReport();
+            document.querySelectorAll('#reportContent details.trace-group').forEach((d) => { d.open = true; });
+
+            const after = () => {
+              window.removeEventListener('afterprint', after);
+              this.showApp();
+            };
+            window.addEventListener('afterprint', after);
+
+            setTimeout(() => window.print(), 50);
+          });
+
+          document.getElementById('btnAbout').addEventListener('click', () => {
+            this.alert('About', `
+              <div><strong>${CONST.APP_NAME}</strong> v${CONST.APP_VERSION} (${CONST.BUILD_HASH})</div>
+              <div style="margin-top:8px;">Code Pack: ${Utils.esc(AppState.data.code_pack.aci)} + ${Utils.esc(AppState.data.code_pack.asce)}</div>
+              <div>Reference: ${Utils.esc((AppState.data.code_pack.reference || []).join(', '))}</div>
+              <div style="margin-top:8px;">Internal engineering tool. Verify results by independent check before issue.</div>
+            `);
+          });
+
+          document.getElementById('btnBackToApp').addEventListener('click', () => this.showApp());
+
+          // left panel generic input binding
+          const left = document.getElementById('leftPanel');
+          const updateFromInput = (target) => {
+            if (!target || !target.dataset) return false;
+            const path = target.dataset.path;
+            if (!path) return false;
+
+            let val;
+            if (target.type === 'checkbox') val = target.checked;
+            else if (target.type === 'number') {
+              if (target.value === '') val = target.dataset.nullable ? null : 0;
+              else {
+                val = Number(target.value);
+                if (target.dataset.type === 'int') val = Math.round(val);
+              }
+            } else if (target.tagName === 'SELECT') {
+              val = target.value;
+              if (target.dataset.type === 'int') val = Number(val);
+            } else val = target.value;
+
+            Utils.setByPath(AppState.data, path, val);
+
+            if (path === 'panel.auto_hsupport') {
+              document.getElementById('inputHsupport').disabled = !!val;
+            }
+
+            if (path === 'combos.preset' || path === 'rebar.h.mode') {
+              this.renderDynamicTables();
+            }
+
+            AppState.dirty = true;
+            this.renderComputedOnly();
+            return true;
+          };
+
+          left.addEventListener('input', (e) => {
+            if (updateFromInput(e.target)) return;
+            this.handleTableInput(e.target);
+          });
+
+          left.addEventListener('change', (e) => {
+            if (updateFromInput(e.target)) return;
+            this.handleTableInput(e.target);
+          });
+
+          // row hover for openings -> geometry highlight
+          document.getElementById('openingsBody').addEventListener('mouseover', (e) => {
+            const tr = e.target.closest('tr[data-opening-id]');
+            if (!tr) return;
+            AppState.hoverOpeningId = tr.dataset.openingId;
+            if (AppState.currentTab === 'geometry') this.renderCenter();
+          });
+          document.getElementById('openingsBody').addEventListener('mouseout', () => {
+            AppState.hoverOpeningId = null;
+            if (AppState.currentTab === 'geometry') this.renderCenter();
+          });
+
+          // table button events
+          document.getElementById('btnAddOpening').addEventListener('click', () => {
+            const n = AppState.data.openings.length + 1;
+            AppState.data.openings.push({ id: `O${n}`, x_ft: 0, y_ft: 0, w_ft: 1, h_ft: 1 });
+            AppState.dirty = true;
+            this.renderAll();
+          });
+
+          document.getElementById('btnAddLineLoad').addEventListener('click', () => {
+            AppState.data.loads.vert.line.push({ name: `L${AppState.data.loads.vert.line.length + 1}`, type: 'D', plf: 0, e_in: 0 });
+            AppState.dirty = true;
+            this.renderAll();
+          });
+
+          document.getElementById('btnAddPointLoad').addEventListener('click', () => {
+            AppState.data.loads.vert.point.push({ name: `P${AppState.data.loads.vert.point.length + 1}`, type: 'D', k: 0, x_ft: 0, e_in: 0 });
+            AppState.dirty = true;
+            this.renderAll();
+          });
+
+          document.getElementById('btnAddCustomCombo').addEventListener('click', () => {
+            AppState.data.combos.custom.push({ name: `C${AppState.data.combos.custom.length + 1}`, type: 'Strength', D: 1.2, L: 0.5, W_wall: 1.0, W_parapet: 1.0, apply_vertical: true, enabled: true });
+            AppState.dirty = true;
+            this.renderAll();
+          });
+
+          // tab controls
+          document.querySelectorAll('.tab-btn').forEach((b) => b.addEventListener('click', () => {
+            AppState.currentTab = b.dataset.tab;
+            this.renderCenter();
+          }));
+
+          document.getElementById('toggleTribBands').addEventListener('change', (e) => {
+            AppState.showTribBands = e.target.checked;
+            this.renderCenter();
+          });
+
+          document.getElementById('diagramComboSelect').addEventListener('change', (e) => {
+            AppState.selectedComboName = e.target.value;
+            this.renderCenter();
+          });
+
+          document.getElementById('diagramShowMagnified').addEventListener('change', (e) => {
+            AppState.showMagnified = e.target.checked;
+            this.renderCenter();
+          });
+
+          // clickable strips in center SVG
+          document.getElementById('centerSvg').addEventListener('click', (e) => {
+            const el = e.target.closest('[data-strip]');
+            if (!el) return;
+            AppState.selectedStripId = el.dataset.strip;
+            this.renderResultsPanel();
+            this.renderCenter();
+          });
+
+          // strip table selection
+          document.getElementById('stripsSummaryBody').addEventListener('click', (e) => {
+            const tr = e.target.closest('tr[data-strip]');
+            if (!tr) return;
+            AppState.selectedStripId = tr.dataset.strip;
+            this.renderResultsPanel();
+            this.renderCenter();
+          });
+        },
+
+        handleTableInput(target) {
+          if (!target) return;
+          const table = target.dataset.table;
+          if (!table) {
+            const btn = target.closest('button[data-action]');
+            if (!btn) return;
+            this.handleActionButton(btn);
+            return;
+          }
+
+          const tr = target.closest('tr');
+          if (!tr) return;
+          const idx = Number(tr.dataset.idx);
+          const key = target.dataset.key;
+          if (!Number.isFinite(idx) || !key) return;
+
+          let arr = null;
+          if (table === 'openings') arr = AppState.data.openings;
+          if (table === 'line') arr = AppState.data.loads.vert.line;
+          if (table === 'point') arr = AppState.data.loads.vert.point;
+          if (table === 'customCombo') arr = AppState.data.combos.custom;
+          if (!arr || !arr[idx]) return;
+
+          let v;
+          if (target.type === 'checkbox') v = target.checked;
+          else if (target.type === 'number') {
+            if (target.value === '') v = target.dataset.nullable ? null : 0;
+            else v = Number(target.value);
+          } else v = target.value;
+
+          arr[idx][key] = v;
+
+          // optional snapping for openings
+          if (table === 'openings' && document.getElementById('snapOpenings').checked && ['x_ft', 'y_ft', 'w_ft', 'h_ft'].includes(key)) {
+            arr[idx][key] = Math.round((Number(arr[idx][key]) || 0) * 8) / 8;
+          }
+
+          AppState.dirty = true;
+          this.renderComputedOnly();
+        },
+
+        handleActionButton(btn) {
+          const act = btn.dataset.action;
+          const idx = Number(btn.dataset.idx);
+          if (act === 'remove-opening') AppState.data.openings.splice(idx, 1);
+          if (act === 'remove-line') AppState.data.loads.vert.line.splice(idx, 1);
+          if (act === 'remove-point') AppState.data.loads.vert.point.splice(idx, 1);
+          if (act === 'remove-custom') AppState.data.combos.custom.splice(idx, 1);
+
+          // renumber opening IDs
+          AppState.data.openings.forEach((o, i) => { o.id = `O${i + 1}`; });
+
+          AppState.dirty = true;
+          this.renderAll();
+        },
+
+        renderAll() {
+          this.renderStaticInputs();
+          this.renderDynamicTables();
+          this.renderComputedOnly();
+        },
+
+        renderStaticInputs() {
+          const s = AppState.data;
+          document.querySelectorAll('[data-path]').forEach((el) => {
+            const p = el.dataset.path;
+            if (!p) return;
+            const v = Utils.getByPath(s, p);
+
+            if (el.type === 'checkbox') el.checked = !!v;
+            else if (el.tagName === 'SELECT') el.value = String(v ?? '');
+            else if (el.type === 'number') el.value = v === null || v === undefined ? '' : String(v);
+            else el.value = v ?? '';
+          });
+
+          document.getElementById('inputHsupport').disabled = !!s.panel.auto_hsupport;
+          document.getElementById('hUserWrap').classList.toggle('hidden', s.rebar.h.mode !== 'USER');
+          document.getElementById('customComboWrap').classList.toggle('hidden', s.combos.preset !== 'CUSTOM');
+          document.getElementById('builtinComboWrap').classList.toggle('hidden', s.combos.preset === 'CUSTOM');
+
+          const cp = s.code_pack;
+          document.getElementById('codePackLabel').textContent = `Code Pack: ${cp.aci} + ${cp.asce}`;
+          document.getElementById('codeRefLabel').textContent = `Reference: ${(cp.reference || []).join(', ')}`;
+        },
+
+        renderDynamicTables() {
+          const oBody = document.getElementById('openingsBody');
+          oBody.innerHTML = (AppState.data.openings || []).map((o, i) => `
+            <tr data-idx="${i}" data-opening-id="${Utils.esc(o.id)}">
+              <td class="mono">${Utils.esc(o.id)}</td>
+              <td><input data-table="openings" data-key="x_ft" type="number" step="0.125" value="${Utils.esc(o.x_ft ?? 0)}"></td>
+              <td><input data-table="openings" data-key="y_ft" type="number" step="0.125" value="${Utils.esc(o.y_ft ?? 0)}"></td>
+              <td><input data-table="openings" data-key="w_ft" type="number" step="0.125" value="${Utils.esc(o.w_ft ?? 1)}"></td>
+              <td><input data-table="openings" data-key="h_ft" type="number" step="0.125" value="${Utils.esc(o.h_ft ?? 1)}"></td>
+              <td><button data-action="remove-opening" data-idx="${i}" class="btn sm danger">✕</button></td>
+            </tr>
+          `).join('');
+
+          const lBody = document.getElementById('lineLoadsBody');
+          lBody.innerHTML = (AppState.data.loads.vert.line || []).map((l, i) => `
+            <tr data-idx="${i}">
+              <td><input data-table="line" data-key="name" type="text" value="${Utils.esc(l.name ?? '')}"></td>
+              <td>
+                <select data-table="line" data-key="type">
+                  <option value="D" ${Utils.inferLoadType(l.name, l.type) === 'D' ? 'selected' : ''}>D</option>
+                  <option value="L" ${Utils.inferLoadType(l.name, l.type) === 'L' ? 'selected' : ''}>L</option>
+                </select>
+              </td>
+              <td><input data-table="line" data-key="plf" type="number" step="1" min="0" value="${Utils.esc(l.plf ?? 0)}"></td>
+              <td><input data-table="line" data-key="e_in" type="number" step="0.1" value="${Utils.esc(l.e_in ?? 0)}"></td>
+              <td><button data-action="remove-line" data-idx="${i}" class="btn sm danger">✕</button></td>
+            </tr>
+          `).join('');
+
+          const pBody = document.getElementById('pointLoadsBody');
+          pBody.innerHTML = (AppState.data.loads.vert.point || []).map((p, i) => `
+            <tr data-idx="${i}">
+              <td><input data-table="point" data-key="name" type="text" value="${Utils.esc(p.name ?? '')}"></td>
+              <td>
+                <select data-table="point" data-key="type">
+                  <option value="D" ${Utils.inferLoadType(p.name, p.type) === 'D' ? 'selected' : ''}>D</option>
+                  <option value="L" ${Utils.inferLoadType(p.name, p.type) === 'L' ? 'selected' : ''}>L</option>
+                </select>
+              </td>
+              <td><input data-table="point" data-key="k" type="number" step="0.1" min="0" value="${Utils.esc(p.k ?? 0)}"></td>
+              <td><input data-table="point" data-key="x_ft" type="number" step="0.01" min="0" value="${Utils.esc(p.x_ft ?? 0)}"></td>
+              <td><input data-table="point" data-key="e_in" type="number" step="0.1" value="${Utils.esc(p.e_in ?? 0)}"></td>
+              <td><button data-action="remove-point" data-idx="${i}" class="btn sm danger">✕</button></td>
+            </tr>
+          `).join('');
+
+          const cBody = document.getElementById('customComboBody');
+          cBody.innerHTML = (AppState.data.combos.custom || []).map((c, i) => `
+            <tr data-idx="${i}">
+              <td><input data-table="customCombo" data-key="name" type="text" value="${Utils.esc(c.name ?? '')}"></td>
+              <td>
+                <select data-table="customCombo" data-key="type">
+                  <option value="Strength" ${c.type === 'Service' ? '' : 'selected'}>Strength</option>
+                  <option value="Service" ${c.type === 'Service' ? 'selected' : ''}>Service</option>
+                </select>
+              </td>
+              <td><input data-table="customCombo" data-key="D" type="number" step="0.1" value="${Utils.esc(c.D ?? 0)}"></td>
+              <td><input data-table="customCombo" data-key="L" type="number" step="0.1" value="${Utils.esc(c.L ?? 0)}"></td>
+              <td><input data-table="customCombo" data-key="W_wall" type="number" step="0.1" value="${Utils.esc(c.W_wall ?? 0)}"></td>
+              <td><input data-table="customCombo" data-key="W_parapet" type="number" step="0.1" value="${Utils.esc(c.W_parapet ?? 0)}"></td>
+              <td><input data-table="customCombo" data-key="apply_vertical" type="checkbox" ${c.apply_vertical !== false ? 'checked' : ''}></td>
+              <td><input data-table="customCombo" data-key="enabled" type="checkbox" ${c.enabled !== false ? 'checked' : ''}></td>
+              <td><button data-action="remove-custom" data-idx="${i}" class="btn sm danger">✕</button></td>
+            </tr>
+          `).join('');
+
+          const builtBody = document.getElementById('builtinComboBody');
+          const built = AppState.data.combos.preset === 'CUSTOM' ? [] : LoadCombos.presetCombos(AppState.data.combos.preset);
+          builtBody.innerHTML = built.map((c) => `
+            <tr>
+              <td>${Utils.esc(c.name)}</td>
+              <td>${Utils.esc(c.type)}</td>
+              <td>${Utils.fmt(c.D,2)}</td>
+              <td>${Utils.fmt(c.L,2)}</td>
+              <td>${Utils.fmt(c.W_wall,2)}</td>
+              <td>${Utils.fmt(c.W_parapet,2)}</td>
+              <td>${c.apply_vertical ? 'Yes' : 'No'}</td>
+            </tr>
+          `).join('');
+        },
+
+        renderComputedOnly() {
+          const analysis = runAll();
+          this.renderDerivedDisplays(analysis);
+          this.renderResultsPanel();
+          this.renderCenter();
+          this.renderReport();
+        },
+
+        renderDerivedDisplays(analysis) {
+          const d = analysis.derived || {};
+          document.getElementById('derivedTeff').textContent = Utils.fmt(d.t_eff_in, 3);
+          document.getElementById('derivedHsupport').textContent = Utils.fmt(d.Hsupport_ft, 3);
+          const Ec = 57 * Math.sqrt(Utils.toNum(AppState.data.mat.fc_ksi, 6) * 1000);
+          document.getElementById('derivedEc').textContent = Utils.fmt(Ec, 1);
+
+          const cov = SectionDesign.coverIn(AppState.data, d.t_eff_in || 0);
+          document.getElementById('derivedCover').textContent = Utils.fmt(cov, 3);
+
+          const hmin = SectionDesign.horizontalMinimum(AppState.data, d);
+          document.getElementById('hAutoText').textContent = hmin.text;
+
+          const rhoV = (SectionDesign.barAreaIn2(AppState.data.rebar.v.bar_no) * (12 / Math.max(AppState.data.rebar.v.s_in, 1e-9))) / Math.max(d.t_eff_in, 1e-9) / 12 * 12;
+          const rhoMin = SectionDesign.minRho(AppState.data.mat.fy_ksi, AppState.data.rebar.v.bar_no);
+          document.getElementById('verticalSteelWarn').textContent = rhoV < rhoMin ? `Below typical min (${Utils.fmt(rhoV,4)} < ${Utils.fmt(rhoMin,4)})` : 'OK';
+        },
+
+        renderResultsPanel() {
+          const a = AppState.analysis;
+          const status = a.status || 'HARD_FAIL';
+          const sb = document.getElementById('statusBlock');
+          sb.className = `status ${status}`;
+          sb.textContent = status;
+
+          const flagsList = document.getElementById('flagsList');
+          flagsList.innerHTML = (a.flags || []).map((f) => `<li>${Utils.esc(f)}</li>`).join('') || '<li>None</li>';
+
+          const tbody = document.getElementById('stripsSummaryBody');
+          const strips = Object.values(a.perStrip || {});
+          if (!AppState.selectedStripId && strips[0]) AppState.selectedStripId = strips[0].strip.id;
+          if (AppState.selectedStripId && !strips.find((s) => s.strip.id === AppState.selectedStripId)) {
+            AppState.selectedStripId = strips[0]?.strip.id || null;
+          }
+
+          tbody.innerHTML = strips.map((s) => {
+            const g = s.governing;
+            const sel = s.strip.id === AppState.selectedStripId;
+            return `
+              <tr data-strip="${Utils.esc(s.strip.id)}" style="${sel ? 'background:#eff6ff;' : ''}">
+                <td>${Utils.esc(s.strip.id)}</td>
+                <td>${Utils.fmt(s.strip.width_ft,3)}</td>
+                <td>${Utils.fmt(g.flex?.util,3)}</td>
+                <td>${Utils.fmt(g.shear?.util,3)}</td>
+                <td>${Utils.fmt(g.axial?.util,3)}</td>
+                <td>${Number.isFinite(g.deflection?.L_over_Delta) ? Utils.fmt(g.deflection.L_over_Delta,1) : '∞'}</td>
+              </tr>
+            `;
+          }).join('') || '<tr><td colspan="6">No strips</td></tr>';
+
+          const detail = document.getElementById('stripDetail');
+          const sr = strips.find((s) => s.strip.id === AppState.selectedStripId);
+          if (!sr) {
+            detail.innerHTML = 'Select a strip to view details.';
+            document.getElementById('diagramComboSelect').innerHTML = '';
+            return;
+          }
+
+          const g = sr.governing;
+          const govFlexPath = g.flex?.combo ? `Strip ${sr.strip.id} / Combo ${g.flex.combo} / Flexure` : '';
+
+          detail.innerHTML = `
+            <div><strong>Strip ${Utils.esc(sr.strip.id)}</strong> (width ${Utils.fmt(sr.strip.width_ft,3)} ft)</div>
+            <div class="kv-grid" style="margin-top:8px;">
+              <span>Gov Flexure combo</span><strong>${Utils.esc(g.flex?.combo || '—')}</strong>
+              <span>Mu / φMn</span><strong>${Utils.fmt(g.flex?.Mu_kip_ft,3)} / ${Utils.fmt(g.flex?.phiMn_kip_ft,3)} kip-ft</strong>
+
+              <span>Gov Shear combo</span><strong>${Utils.esc(g.shear?.combo || '—')}</strong>
+              <span>Vu / φVc</span><strong>${Utils.fmt(g.shear?.Vu_k,3)} / ${Utils.fmt(g.shear?.phiVc_k,3)} k</strong>
+
+              <span>Gov Axial combo</span><strong>${Utils.esc(g.axial?.combo || '—')}</strong>
+              <span>Pu/Ag</span><strong>${Utils.fmt(g.axial?.sigma_ksi,4)} ksi</strong>
+
+              <span>Gov Deflection combo</span><strong>${Utils.esc(g.deflection?.combo || '—')}</strong>
+              <span>Δs &amp; L/Δ</span><strong>${Utils.fmt(g.deflection?.Delta_s_in,4)} in, ${Number.isFinite(g.deflection?.L_over_Delta) ? Utils.fmt(g.deflection?.L_over_Delta,1) : '∞'}</strong>
+            </div>
+            <div style="margin-top:8px;">
+              <button id="btnOpenTrace" class="btn sm">Open Trace</button>
+              ${g.parapetNeed ? `<span class="pill" style="background:#fef3c7;border-color:#fcd34d;color:#92400e;">ADD REINF. FOR PARAPET (${Utils.esc(g.parapetCombo)})</span>` : ''}
+            </div>
+          `;
+
+          const openBtn = document.getElementById('btnOpenTrace');
+          if (openBtn) {
+            openBtn.addEventListener('click', () => {
+              if (!govFlexPath) return;
+              this.showReport(`trace-${Utils.slug(govFlexPath)}`);
+            });
+          }
+
+          // update diagram combo list
+          const comboSelect = document.getElementById('diagramComboSelect');
+          const names = Object.keys(sr.perCombo || {});
+          if (!AppState.selectedComboName || !names.includes(AppState.selectedComboName)) AppState.selectedComboName = names[0] || '';
+          comboSelect.innerHTML = names.map((n) => `<option value="${Utils.esc(n)}" ${n === AppState.selectedComboName ? 'selected' : ''}>${Utils.esc(n)}</option>`).join('');
+        },
+
+        renderCenter() {
+          document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === AppState.currentTab));
+          document.getElementById('geometryControls').classList.toggle('hidden', AppState.currentTab !== 'geometry');
+          document.getElementById('loadsControls').classList.toggle('hidden', AppState.currentTab !== 'loads');
+          document.getElementById('diagramControls').classList.toggle('hidden', AppState.currentTab !== 'diagrams');
+
+          const center = document.getElementById('centerSvg');
+          const a = AppState.analysis;
+
+          if (AppState.currentTab === 'geometry') {
+            center.innerHTML = SvgRender.geometrySvg(AppState.data, a, {
+              width: 980,
+              height: 540,
+              selectedStripId: AppState.selectedStripId,
+              hoverOpeningId: AppState.hoverOpeningId,
+              showTribBands: AppState.showTribBands
+            });
+          } else if (AppState.currentTab === 'loads') {
+            center.innerHTML = SvgRender.loadsSvg(AppState.data, a, { width: 980, height: 540 });
+          } else {
+            const sr = a.perStrip?.[AppState.selectedStripId] || null;
+            center.innerHTML = SvgRender.diagramsSvg(sr, AppState.selectedComboName, AppState.showMagnified, { width: 980, height: 560 });
+          }
+        },
+
+        renderReport() {
+          const content = ReportBuilder.build(AppState.data, AppState.analysis);
+          document.getElementById('reportContent').innerHTML = content;
+          document.getElementById('reportFooter').innerHTML =
+            `${Utils.esc(AppState.data.meta.calc_id || '')} | Rev ${Utils.esc(AppState.data.meta.revision || 0)} | Page <span class="page-num"></span>`;
+        },
+
+        showReport(scrollId = null) {
+          document.body.classList.add('show-report');
+          if (scrollId) {
+            setTimeout(() => {
+              const el = document.getElementById(scrollId);
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 60);
+          }
+        },
+
+        showApp() {
+          document.body.classList.remove('show-report');
+        },
+
+        alert(title, html) {
+          this.modal(title, html, [{ label: 'Close', primary: true, onClick: () => this.closeModal() }]);
+        },
+
+        confirm(msg, onYes) {
+          this.modal('Confirm', `<div>${Utils.esc(msg)}</div>`, [
+            { label: 'Cancel', onClick: () => this.closeModal() },
+            { label: 'Yes', primary: true, onClick: () => { this.closeModal(); onYes?.(); } }
+          ]);
+        },
+
+        modal(title, bodyHtml, buttons) {
+          document.getElementById('modalHeader').textContent = title;
+          document.getElementById('modalBody').innerHTML = bodyHtml;
+          const mb = document.getElementById('modalButtons');
+          mb.innerHTML = '';
+          (buttons || []).forEach((b) => {
+            const btn = document.createElement('button');
+            btn.className = `btn ${b.primary ? 'primary' : ''}`;
+            btn.textContent = b.label || 'OK';
+            btn.addEventListener('click', () => b.onClick?.());
+            mb.appendChild(btn);
+          });
+          document.getElementById('modalBackdrop').classList.remove('hidden');
+        },
+
+        closeModal() {
+          document.getElementById('modalBackdrop').classList.add('hidden');
+        },
+
+        toast(msg) {
+          const t = document.getElementById('toast');
+          t.textContent = msg;
+          t.classList.add('show');
+          setTimeout(() => t.classList.remove('show'), 1800);
+        }
+      };
+
+      // expose remove actions via delegation
+      document.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-action]');
+        if (!btn) return;
+        UI.handleActionButton(btn);
+      });
+
+      document.addEventListener('DOMContentLoaded', () => UI.init());
+    })();
+  </script>
+
+
+</body></html>
