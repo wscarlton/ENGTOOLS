@@ -770,8 +770,8 @@
             </div>
 
             <div class="kv-grid">
-              <span>Derived \(t_{eff}\) (in)</span><strong id="derivedTeff">—</strong>
-              <span>Derived \(H_{support}\) (ft)</span><strong id="derivedHsupport">—</strong>
+              <span>Derived t_eff (in)</span><strong id="derivedTeff">—</strong>
+              <span>Derived H_support (ft)</span><strong id="derivedHsupport">—</strong>
             </div>
           </div>
         </details>
@@ -893,7 +893,7 @@
                   <tr>
                     <th>Name</th>
                     <th>Type</th>
-                    <th>plf (lb/ft)</th>
+                    <th>w (plf)</th>
                     <th>e (in)</th>
                     <th></th>
                   </tr>
@@ -912,7 +912,7 @@
                   <tr>
                     <th>Name</th>
                     <th>Type</th>
-                    <th>P (k)</th>
+                    <th>P (kips)</th>
                     <th>x (ft)</th>
                     <th>e (in)</th>
                     <th></th>
@@ -1424,7 +1424,7 @@
           }
 
           const stripOverride = p.strip_t_in === null || p.strip_t_in === '' ? null : Utils.toNum(p.strip_t_in, null);
-          const t_base = stripOverride !== null ? Math.max(t_in, stripOverride) : t_in;
+          const t_base = stripOverride !== null ? stripOverride : t_in;
           const t_eff_in = t_base - reveal_in;
 
           if (!(t_eff_in > 0)) hardFails.push('Effective thickness t_eff <= 0 (hard fail).');
@@ -1433,7 +1433,7 @@
             path: 'Geometry',
             name: 't_eff',
             units: 'in',
-            equation: 't_eff = max(t, strip_t_if_set) - reveal',
+            equation: 't_eff = (strip_t_if_set ?? t) - reveal',
             subs: { t_in, strip_t_in: stripOverride, reveal_in },
             result: t_eff_in,
             cite: 'Project convention (reveal reduces thickness only)'
@@ -1583,16 +1583,21 @@
               maps.push({});
               return;
             }
-            const hits = strips.filter((s) => x >= s.xL_ft - CONST.TOL && x <= s.xR_ft + CONST.TOL);
-            if (hits.length === 0) {
+            let hit = null;
+            for (let i = 0; i < strips.length; i++) {
+              const s = strips[i];
+              const isLast = i === strips.length - 1;
+              if (x >= s.xL_ft - CONST.TOL && (x < s.xR_ft - CONST.TOL || (isLast && x <= s.xR_ft + CONST.TOL))) {
+                hit = s;
+                break;
+              }
+            }
+            if (!hit) {
               hardFails.push(`Point load ${p.name || idx + 1}: x does not land on a solid strip (hard fail).`);
               maps.push({});
               return;
             }
-            const share = 1 / hits.length;
-            const map = {};
-            hits.forEach((s) => { map[s.id] = share; });
-            maps.push(map);
+            maps.push({ [hit.id]: 1 });
           });
           return maps;
         }
@@ -1614,8 +1619,8 @@
             { name: 'Sv2', type: 'Service', D: 1.0, L: 1.0, W_wall: 0.7, W_parapet: 0.7, apply_vertical: true, enabled: true }
           ];
 
-          if (preset === 'ASCE7_22_WIND_STRENGTH') return Utils.deepClone([asceSet[0], asceSet[1], asceSet[2]]);
-          if (preset === 'ASCE7_22_WIND_SERVICE') return Utils.deepClone([asceSet[2], asceSet[3], asceSet[0]]);
+          if (preset === 'ASCE7_22_WIND_STRENGTH') return Utils.deepClone([asceSet[0], asceSet[1]]);
+          if (preset === 'ASCE7_22_WIND_SERVICE') return Utils.deepClone([asceSet[2], asceSet[3]]);
           if (preset === 'LEGACY_SPREADSHEET') return Utils.deepClone(legacy);
           return [];
         },
@@ -1773,6 +1778,12 @@
             elements.push({ i, j, yi, yj, L, w, ke, fe, map });
           }
 
+          const nodalForces = opts.nodalForces_k || {};
+          Object.keys(nodalForces).forEach((k) => {
+            const ni = Number(k);
+            if (ni >= 0 && ni < nNode) F[2 * ni] += Utils.toNum(nodalForces[k], 0);
+          });
+
           const nodalMom = opts.nodalMoments_kipin || {};
           Object.keys(nodalMom).forEach((k) => {
             const ni = Number(k);
@@ -1928,7 +1939,8 @@
           const Ab_in2 = this.barAreaIn2(bar_no);
           const cover_in = this.coverIn(state, t_eff_in);
           const d_in = t_eff_in - cover_in - dbar_in / 2;
-          const As_rebar_in2 = Ab_in2 * (12 / s_in) * strip.width_ft;
+          const mats = Number(state.rebar.v.mats || 1);
+          const As_rebar_in2 = Ab_in2 * (12 / s_in) * strip.width_ft * mats;
 
           const fc_ksi = Utils.toNum(state.mat.fc_ksi, 6);
           const fy_ksi = Utils.toNum(state.mat.fy_ksi, 60);
@@ -1958,7 +1970,7 @@
 
           return {
             b_in, t_eff_in, bar_no, s_in, dbar_in, Ab_in2, cover_in, d_in,
-            As_rebar_in2, fc_ksi, fy_ksi, fc_psi, Ec_ksi, Es_ksi, eps_cu,
+            As_rebar_in2, mats, fc_ksi, fy_ksi, fc_psi, Ec_ksi, Es_ksi, eps_cu,
             Ig_in4, Mcr_kip_ft, Ag_in2, rho_v, strip_width_ft: strip.width_ft
           };
         },
@@ -2012,18 +2024,19 @@
           };
         },
 
-        flexureCheck(Mu_kip_ft_abs, secPu, trace, path) {
-          const util = secPu.phiMn_kip_ft > 1e-9 ? Mu_kip_ft_abs / secPu.phiMn_kip_ft : Infinity;
+        flexureCheck(Mu_kip_ft_abs, Mcr_kip_ft_abs, secPu, trace, path) {
+          const MuUse_kip_ft = Math.max(Math.abs(Mu_kip_ft_abs), Math.abs(Mcr_kip_ft_abs));
+          const util = secPu.phiMn_kip_ft > 1e-9 ? MuUse_kip_ft / secPu.phiMn_kip_ft : Infinity;
           trace.add({
             path,
             name: 'U_flexure',
             units: '-',
-            equation: 'U = Mu / φMn',
-            subs: { Mu_kip_ft: Mu_kip_ft_abs, phiMn_kip_ft: secPu.phiMn_kip_ft },
+            equation: 'U = max(Mcr, |Mu|) / φMn',
+            subs: { Mu_kip_ft: Mu_kip_ft_abs, Mcr_kip_ft: Mcr_kip_ft_abs, MuUse_kip_ft, phiMn_kip_ft: secPu.phiMn_kip_ft },
             result: util,
             cite: 'Strength utilization'
           });
-          return { Mu_kip_ft: Mu_kip_ft_abs, phiMn_kip_ft: secPu.phiMn_kip_ft, util };
+          return { Mu_kip_ft: Mu_kip_ft_abs, Mcr_kip_ft: Mcr_kip_ft_abs, MuUse_kip_ft, phiMn_kip_ft: secPu.phiMn_kip_ft, util };
         },
 
         shearCheck(sol, sec, trace, path) {
@@ -2046,21 +2059,21 @@
         },
 
         axialCheck(Pu_k, sec, trace, path) {
-          const sigma_ksi = Pu_k / Math.max(sec.Ag_in2, 1e-9);
-          const allow_ksi = 0.20 * sec.fc_ksi;
-          const util = allow_ksi > 1e-9 ? sigma_ksi / allow_ksi : Infinity;
+          const sigma_psi = (Pu_k * 1000) / Math.max(sec.Ag_in2, 1e-9);
+          const allow_psi = 0.06 * sec.fc_psi;
+          const util = allow_psi > 1e-9 ? sigma_psi / allow_psi : Infinity;
 
           trace.add({
             path,
             name: 'U_axial',
             units: '-',
-            equation: 'U = (Pu/Ag) / (0.2 f’c)',
-            subs: { Pu_k, Ag_in2: sec.Ag_in2, sigma_ksi, allow_ksi },
+            equation: 'U = sigma/allow; sigma=(Pu*1000)/Ag; allow=0.06*fc_psi',
+            subs: { Pu_k, Ag_in2: sec.Ag_in2, sigma_psi, allow_psi },
             result: util,
             cite: 'Project axial stress utilization convention'
           });
 
-          return { sigma_ksi, allow_ksi, util };
+          return { sigma_psi, allow_psi, util };
         },
 
         horizontalMinimum(state, derived) {
@@ -2514,16 +2527,18 @@
             traceGroups[it.path].push(it);
           });
 
+          const formatAny = (v) => (typeof v === 'number' && Number.isFinite(v) ? Utils.fmt(v, 6) : Utils.esc(String(v ?? '')));
+
           const traceHtml = Object.keys(traceGroups).sort().map((path) => {
             const id = `trace-${Utils.slug(path)}`;
             const items = traceGroups[path].map((it) => {
-              const subs = Object.entries(it.subs || {}).map(([k, v]) => `${Utils.esc(k)} = ${Utils.esc(Utils.fmt(v, 6))}`).join('; ');
+              const subs = Object.entries(it.subs || {}).map(([k, v]) => `${Utils.esc(k)} = ${formatAny(v)}`).join('; ');
               return `
                 <div class="trace-item">
                   <div><strong>${Utils.esc(it.name)}</strong> ${it.units ? `(${Utils.esc(it.units)})` : ''}</div>
                   <div>Eqn: <code>${Utils.esc(it.equation || '')}</code></div>
                   <div>Subs: ${subs || '—'}</div>
-                  <div>Result: <strong>${Utils.esc(Utils.fmt(it.result, 6))}</strong></div>
+                  <div>Result: <strong>${formatAny(it.result)}</strong></div>
                   <div class="report-small">Citation: ${Utils.esc(it.citation_label || '')}</div>
                 </div>
               `;
@@ -2745,7 +2760,7 @@
       };
 
       // ==================== Core Solver Helpers ====================
-      function solveMainSpan(strip, combo, state, derived, tribBands, I_in4, Mtop_kipin, scale = 1) {
+      function solveMainSpan(strip, combo, state, derived, tribBands, I_in4, topNodal = { V_k: 0, M_kipin: 0 }, scale = 1) {
         const yNodes_in = tribBands.breaks_ft.map((ft) => ft * 12);
         if (yNodes_in.length < 2) return null;
 
@@ -2765,8 +2780,11 @@
         if (support === 'FIXED_PINNED' || support === 'FIXED_FIXED') fixedThetaNodes.push(0);
         if (support === 'PINNED_FIXED' || support === 'FIXED_FIXED') fixedThetaNodes.push(n - 1);
 
+        const nodalForces_k = {};
+        nodalForces_k[n - 1] = Utils.toNum(topNodal?.V_k, 0) * scale;
+
         const nodalMoments_kipin = {};
-        nodalMoments_kipin[n - 1] = (Mtop_kipin || 0) * scale;
+        nodalMoments_kipin[n - 1] = Utils.toNum(topNodal?.M_kipin, 0) * scale;
 
         return BeamSolver.solve({
           yNodes_in,
@@ -2774,6 +2792,7 @@
           EI_kipin2,
           fixedUNodes,
           fixedThetaNodes,
+          nodalForces_k,
           nodalMoments_kipin
         });
       }
@@ -2782,7 +2801,7 @@
         const hp_ft = Utils.toNum(state.panel.hp_ft, 0);
         const pp_ksf = Utils.toNum(state.loads.pp_ksf, 0);
         if (!(hp_ft > 0) || !(pp_ksf > 0) || !(Math.abs(combo.W_parapet) > 0)) {
-          return { Mbase_kip_ft: 0, exceedsMain: false, addText: '' };
+          return { Vbase_k: 0, Mbase_kipin: 0, Mbase_kip_ft: 0, exceedsMain: false, addText: '' };
         }
 
         const tribTop = derived.topTribByStrip[strip.id] || strip.width_ft;
@@ -2802,10 +2821,12 @@
         });
 
         if (!sol || !sol.elements[0]) {
-          return { Mbase_kip_ft: 0, exceedsMain: false, addText: '' };
+          return { Vbase_k: 0, Mbase_kipin: 0, Mbase_kip_ft: 0, exceedsMain: false, addText: '' };
         }
 
-        const Mbase_kip_ft = Math.abs(sol.elements[0].qe[1] / 12);
+        const Vbase_k = sol.elements[0].qe[0];
+        const Mbase_kipin = sol.elements[0].qe[1];
+        const Mbase_kip_ft = Math.abs(Mbase_kipin / 12);
         const exceedsMain = combo.type === 'Strength' && Mbase_kip_ft > mainDemandAbs_kipft;
         let addText = '';
 
@@ -2830,19 +2851,19 @@
           name: 'Mpar_base',
           units: 'kip-ft',
           equation: 'Parapet propped-cantilever base moment',
-          subs: { hp_ft, w_kipin, tribTop },
+          subs: { hp_ft, w_kipin, tribTop, Vbase_k, Mbase_kipin },
           result: Mbase_kip_ft,
           cite: 'Parapet modeled as fixed base + pinned prop'
         });
 
-        return { Mbase_kip_ft, exceedsMain, addText };
+        return { Vbase_k, Mbase_kipin, Mbase_kip_ft, exceedsMain, addText };
       }
 
       function pickGoverningWithinStrip(perCombo) {
         const gov = {
           flex: { combo: null, util: 0, Mu_kip_ft: 0, phiMn_kip_ft: 0 },
           shear: { combo: null, util: 0, Vu_k: 0, phiVc_k: 0 },
-          axial: { combo: null, util: 0, sigma_ksi: 0, allow_ksi: 0, Pu_k: 0 },
+          axial: { combo: null, util: 0, sigma_psi: 0, allow_psi: 0, Pu_k: 0 },
           deflection: { combo: null, Delta_s_in: 0, L_over_Delta: Infinity },
           parapetNeed: false,
           parapetCombo: null,
@@ -2886,14 +2907,37 @@
         combos.enabled.forEach((combo) => {
           const cPath = `${stripPath} / Combo ${combo.name}`;
           const vert = LoadCombos.verticalForStrip(strip, combo, state, derived, trace, cPath);
+          const parapetForSolve = computeParapetActions(
+            strip,
+            combo,
+            state,
+            derived,
+            secBase,
+            0,
+            trace,
+            `${cPath} / Parapet Applied`
+          );
+          const topNodal = {
+            V_k: Utils.toNum(parapetForSolve.Vbase_k, 0),
+            M_kipin: Utils.toNum(vert.M_top_kipin, 0) + Utils.toNum(parapetForSolve.Mbase_kipin, 0)
+          };
 
           let yStar_in = (derived.Hsupport_ft * 12) / 2;
           let P_k = vert.P_top_k + LoadCombos.selfWeightAtY(strip, state, derived, combo, yStar_in / 12);
           let secPu = SectionDesign.withPu(secBase, P_k, trace, `${cPath} / Section`);
 
-          let sol = solveMainSpan(strip, combo, state, derived, tribBands, secPu.Icr_in4, vert.M_top_kipin, 1);
+          let sol = solveMainSpan(strip, combo, state, derived, tribBands, secPu.Icr_in4, topNodal, 1);
           if (!sol) {
-            hardFails.push(`${cPath}: Beam solver failure.`);
+            hardFails.push(`${cPath}: Beam solver failure (strip=${strip.id}, combo=${combo.name}, support=${state.panel.support}, nodes=${tribBands.breaks_ft.length}, I=${Utils.fmt(secPu.Icr_in4, 3)} in^4).`);
+            trace.add({
+              path: `${cPath} / Diagnostics`,
+              name: 'solver_failure',
+              units: '-',
+              equation: 'Main span solver returned null',
+              subs: { strip_id: strip.id, combo: combo.name, support: state.panel.support, node_count: tribBands.breaks_ft.length, I_in4: secPu.Icr_in4 },
+              result: 'Beam solver failure',
+              cite: 'Numerical stability diagnostic'
+            });
             return;
           }
 
@@ -2902,12 +2946,21 @@
             yStar_in = maxM.y_in;
             P_k = vert.P_top_k + LoadCombos.selfWeightAtY(strip, state, derived, combo, yStar_in / 12);
             secPu = SectionDesign.withPu(secBase, P_k, trace, `${cPath} / Section`);
-            sol = solveMainSpan(strip, combo, state, derived, tribBands, secPu.Icr_in4, vert.M_top_kipin, 1);
+            sol = solveMainSpan(strip, combo, state, derived, tribBands, secPu.Icr_in4, topNodal, 1);
             if (!sol) break;
           }
 
           if (!sol) {
-            hardFails.push(`${cPath}: Beam solver failure after section update.`);
+            hardFails.push(`${cPath}: Beam solver failure after section update (strip=${strip.id}, combo=${combo.name}, support=${state.panel.support}, nodes=${tribBands.breaks_ft.length}, I=${Utils.fmt(secPu.Icr_in4, 3)} in^4).`);
+            trace.add({
+              path: `${cPath} / Diagnostics`,
+              name: 'solver_failure_after_update',
+              units: '-',
+              equation: 'Main span solver failed after section update',
+              subs: { strip_id: strip.id, combo: combo.name, support: state.panel.support, node_count: tribBands.breaks_ft.length, I_in4: secPu.Icr_in4 },
+              result: 'Beam solver failure after section update',
+              cite: 'Numerical stability diagnostic'
+            });
             return;
           }
 
@@ -2964,13 +3017,13 @@
           let flex = null, shear = null, axial = null, defl = null;
 
           if (combo.type === 'Strength') {
-            flex = SectionDesign.flexureCheck(Math.abs(Mmag_kip_ft), secPu, trace, `${cPath} / Flexure`);
+            flex = SectionDesign.flexureCheck(Math.abs(Mmag_kip_ft), secBase.Mcr_kip_ft, secPu, trace, `${cPath} / Flexure`);
             shear = SectionDesign.shearCheck(sol, secBase, trace, `${cPath} / Shear`);
             axial = SectionDesign.axialCheck(P_k, secBase, trace, `${cPath} / Axial`);
           } else {
             const solveScaled = (whichI, alpha) => {
               const Iuse = whichI === 'Ig' ? secBase.Ig_in4 : secPu.Icr_in4;
-              return solveMainSpan(strip, combo, state, derived, tribBands, Iuse, vert.M_top_kipin, alpha);
+              return solveMainSpan(strip, combo, state, derived, tribBands, Iuse, topNodal, alpha);
             };
 
             defl = Serviceability.compute({
@@ -3508,7 +3561,10 @@
           const hmin = SectionDesign.horizontalMinimum(AppState.data, d);
           document.getElementById('hAutoText').textContent = hmin.text;
 
-          const rhoV = (SectionDesign.barAreaIn2(AppState.data.rebar.v.bar_no) * (12 / Math.max(AppState.data.rebar.v.s_in, 1e-9))) / Math.max(d.t_eff_in, 1e-9) / 12 * 12;
+          const mats = Number(AppState.data.rebar.v.mats || 1);
+          const AsPerFt_in2 = SectionDesign.barAreaIn2(AppState.data.rebar.v.bar_no) * (12 / Math.max(AppState.data.rebar.v.s_in, 1e-9)) * mats;
+          const AgPerFt_in2 = 12 * Math.max(d.t_eff_in, 1e-9);
+          const rhoV = AsPerFt_in2 / AgPerFt_in2;
           const rhoMin = SectionDesign.minRho(AppState.data.mat.fy_ksi, AppState.data.rebar.v.bar_no);
           document.getElementById('verticalSteelWarn').textContent = rhoV < rhoMin ? `Below typical min (${Utils.fmt(rhoV,4)} < ${Utils.fmt(rhoMin,4)})` : 'OK';
         },
@@ -3566,7 +3622,7 @@
               <span>Vu / φVc</span><strong>${Utils.fmt(g.shear?.Vu_k,3)} / ${Utils.fmt(g.shear?.phiVc_k,3)} k</strong>
 
               <span>Gov Axial combo</span><strong>${Utils.esc(g.axial?.combo || '—')}</strong>
-              <span>Pu/Ag</span><strong>${Utils.fmt(g.axial?.sigma_ksi,4)} ksi</strong>
+              <span>Pu/Ag</span><strong>${Utils.fmt(g.axial?.sigma_psi,1)} psi</strong>
 
               <span>Gov Deflection combo</span><strong>${Utils.esc(g.deflection?.combo || '—')}</strong>
               <span>Δs &amp; L/Δ</span><strong>${Utils.fmt(g.deflection?.Delta_s_in,4)} in, ${Number.isFinite(g.deflection?.L_over_Delta) ? Utils.fmt(g.deflection?.L_over_Delta,1) : '∞'}</strong>
