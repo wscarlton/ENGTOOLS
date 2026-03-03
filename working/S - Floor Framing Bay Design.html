@@ -285,10 +285,6 @@
               <label title="Unreduced nominal live load.">LL (psf)</label>
               <input id="loadLL" type="number" step="0.01" />
             </div>
-            <div class="field inline" style="align-self:end">
-              <input id="loadLLReducible" type="checkbox" />
-              <label title="If checked, selected live-load reduction mode is applied.">LL is reducible</label>
-            </div>
             <div class="field">
               <label title="Superimposed dead load.">SDL (psf)</label>
               <input id="loadSDL" type="number" step="0.01" />
@@ -388,7 +384,7 @@
           <div class="hr"></div>
 
           <h4>Deck</h4>
-          <div class="grid2">
+          <div class="grid2" id="deckGeometryGrid">
             <div class="field"><label>Deck height hd (in)</label><input id="deckHd" type="number" step="0.01" /></div>
             <div class="field"><label>Deck weight (psf)</label><input id="deckWt" type="number" step="0.01" /></div>
             <div class="field"><label>Rib width wr (in)</label><input id="deckRibW" type="number" step="0.01" /></div>
@@ -581,6 +577,7 @@
         <section class="card tab-panel" data-panel="results">
           <h3>Adequate Beam/Girder Combinations</h3>
           <div class="small" id="resultsMeta">No analysis run yet.</div>
+          <div class="small muted-box" id="diagnosticsInfo" style="margin-top:.35rem">Worker candidate errors: 0</div>
           <div class="table-scroll" style="margin-top:.4rem">
             <table id="resultsTable">
               <thead>
@@ -660,7 +657,7 @@
      * @typedef {Object} InputModel
      * @property {{design_method:string,optimize_by:'cost'|'weight'}} basis
      * @property {{Lb_ft:number,Lg_ft:number,spacing_ft:number,nBeamLines_override:number|null,share_half_beams:boolean,share_half_girders:boolean}} geometry
-     * @property {{SWadd_psf:number,LL_psf:number,LL_reducible:boolean,LL_reduction_mode:'none'|'asce'|'asce_cap20',SDL_psf:number,CLL_psf:number}} loads
+     * @property {{SWadd_psf:number,LL_psf:number,LL_reduction_mode:'none'|'asce'|'asce_cap20',SDL_psf:number,CLL_psf:number}} loads
      * @property {{enabled:boolean,apply_mode:'composite_only'|'all',swadd_pct:number}} construction_stage
      * @property {{
      *   shored:boolean,shore_spacing_ft:number|null,deck_profile:'None'|'2VLI'|'3VLI',deck_gage:number,deck_span_condition:1|2|3,deck_table_density:'LWC'|'NWC',self_weight_override_psf:number|null,
@@ -805,7 +802,8 @@
       selectedSolutionId: null,
       uploadedShapes: [],
       shapeDatasetLabel: "DEMO W-shapes subset",
-      shapeFileName: null
+      shapeFileName: null,
+      diagnostics: { candidateErrors: 0, firstError: null }
     };
 
     const $ = (id) => document.getElementById(id);
@@ -844,7 +842,6 @@
         loads: {
           SWadd_psf: 0.5,
           LL_psf: 50,
-          LL_reducible: true,
           LL_reduction_mode: "asce",
           SDL_psf: 20,
           CLL_psf: 20
@@ -975,8 +972,8 @@
       return out;
     }
 
-    function llReduction(LL, reducible, mode, KLL, AT) {
-      if (!reducible || mode === "none") return { LL_used_psf: LL, factor: 1, reduction_pct: 0 };
+    function llReduction(LL, mode, KLL, AT) {
+      if (mode === "none") return { LL_used_psf: LL, factor: 1, reduction_pct: 0 };
       const at = Math.max(1, AT);
       let f = 0.25 + 15 / Math.sqrt(Math.max(1, KLL * at));
       const minF = at >= 400 ? 0.40 : 0.50;
@@ -1134,6 +1131,7 @@
       if (p !== "None" && db) {
         $("deckHd").value = db.deckDepth_in;
       }
+      $("deckGeometryGrid").style.display = p === "None" ? "grid" : "none";
       $("shoreSpacingBox").style.display = $("slabShored").checked ? "block" : "none";
       if (!$("shoreSpacing").value) $("shoreSpacing").value = fmt(computeLayout(inp.geometry).spacing_ft, 3);
     }
@@ -1206,7 +1204,6 @@
 
       $("loadSWadd").value = inputs.loads.SWadd_psf;
       $("loadLL").value = inputs.loads.LL_psf;
-      $("loadLLReducible").checked = !!inputs.loads.LL_reducible;
       $("loadLLReductionMode").value = inputs.loads.LL_reduction_mode || "asce";
       $("loadSDL").value = inputs.loads.SDL_psf;
       $("loadCLL").value = inputs.loads.CLL_psf;
@@ -1311,7 +1308,6 @@
         loads: {
           SWadd_psf: parseNum($("loadSWadd").value, 0.5),
           LL_psf: parseNum($("loadLL").value, 50),
-          LL_reducible: !!$("loadLLReducible").checked,
           LL_reduction_mode: ["none","asce","asce_cap20"].includes($("loadLLReductionMode").value) ? $("loadLLReductionMode").value : "asce",
           SDL_psf: parseNum($("loadSDL").value, 20),
           CLL_psf: parseNum($("loadCLL").value, 20)
@@ -1552,8 +1548,8 @@
       const lay = computeLayout(inp.geometry);
       const AT_beam = lay.spacing_ft * inp.geometry.Lb_ft;
       const AT_girder = inp.geometry.Lb_ft * inp.geometry.Lg_ft;
-      const beam = llReduction(inp.loads.LL_psf, inp.loads.LL_reducible, inp.loads.LL_reduction_mode, 2, AT_beam);
-      const girder = llReduction(inp.loads.LL_psf, inp.loads.LL_reducible, inp.loads.LL_reduction_mode, 1, AT_girder);
+      const beam = llReduction(inp.loads.LL_psf, inp.loads.LL_reduction_mode, 2, AT_beam);
+      const girder = llReduction(inp.loads.LL_psf, inp.loads.LL_reduction_mode, 1, AT_girder);
       const mode = inp.loads.LL_reduction_mode || "asce";
       const modeLbl = mode === "none" ? "None" : (mode === "asce_cap20" ? "ASCE 7-22 (20% cap)" : "ASCE 7-22");
       $("llReductionInfo").innerHTML = `
@@ -1569,6 +1565,11 @@
         $("runProgress").max = max;
         $("runProgress").value = Math.min(progress, max);
       }
+    }
+
+    function updateDiagnostics(info = {}) {
+      state.diagnostics = { candidateErrors: info.candidateErrors || 0, firstError: info.firstCandidateError || null };
+      $("diagnosticsInfo").innerHTML = `Worker candidate errors: ${state.diagnostics.candidateErrors}${state.diagnostics.firstError ? `<br/>First: ${safeStr(state.diagnostics.firstError)}` : ""}`;
     }
 
     function setRunningUI(running) {
@@ -1594,6 +1595,7 @@
       if (errs.length) return;
 
       setTab("results");
+      updateDiagnostics({ candidateErrors: 0, firstCandidateError: null });
       state.inputs = deepClone(inputs);
       state.results = [];
       state.selectedSolutionId = null;
@@ -1617,12 +1619,14 @@
         } else if (m.cmd === "progress") {
           setRunStatus(`Running... processed ${m.processed}/${m.total}, passing ${m.found}`, m.processed, m.total);
           $("resultsMeta").textContent = `Running... processed ${m.processed}/${m.total}, passing ${m.found}`;
+          updateDiagnostics(m);
         } else if (m.cmd === "candidate") {
           insertCandidate(m.candidate);
           setRunStatus(`Running... processed ${m.processed}/${m.total}, passing ${m.found}`, m.processed, m.total);
           $("resultsMeta").textContent = `Running... processed ${m.processed}/${m.total}, passing ${m.found}`;
         } else if (m.cmd === "done") {
           setRunningUI(false);
+          updateDiagnostics(m);
           state.results = Array.isArray(m.results) ? m.results : [];
           sortResults();
           state.selectedSolutionId = state.results[0]?.solution_id ?? null;
@@ -1907,8 +1911,7 @@
         ["Load Basis", "ASCE 7-22 (LL reduction per tool settings)"],
         ["Optimize By", safeStr(inputs.basis.optimize_by)],
         ["LL Reduction Mode", safeStr(inputs.loads.LL_reduction_mode || "asce")],
-        ["LL Reducible Flag", yesNo(inputs.loads.LL_reducible)],
-        ["Shapes Dataset", safeStr(shapeSrc.dataset_label || "—")],
+                ["Shapes Dataset", safeStr(shapeSrc.dataset_label || "—")],
         ["Shapes File", safeStr(shapeSrc.file_name || "—")]
       ];
 
@@ -2659,7 +2662,7 @@
       });
 
       const watchIds = [
-        "geoLb","geoLg","geoSpacing","geoNBeamOverride","loadSWadd","loadLL","loadLLReducible","loadLLReductionMode","loadSDL","loadCLL",
+        "geoLb","geoLg","geoSpacing","geoNBeamOverride","loadSWadd","loadLL","loadLLReductionMode","loadSDL","loadCLL",
         "concTop","concFc","concUw","deckProfile","deckGage","deckSpanCond","deckTableDensity","slabShored","shoreSpacing","deckHd","deckWt","deckRibW","deckRibS","slabSelfWeightOverride",
         "camberModel","constrEnable","constrApplyMode","constrSWaddPct"
       ];
@@ -2707,6 +2710,7 @@
         return Number.isFinite(n) ? n : d;
       };
       const r = (v, d = 6) => Number(v.toFixed(d));
+      const parseNum = toNum;
 
       function computeLayout(geometry) {
         const Lg = Math.max(0.01, toNum(geometry.Lg_ft, 1));
@@ -2739,8 +2743,8 @@
         };
       }
 
-      function llReduction(LL, reducible, mode, KLL, AT) {
-        if (!reducible || mode === "none") return { LL_used_psf: LL, factor: 1, reduction_pct: 0 };
+      function llReduction(LL, mode, KLL, AT) {
+        if (mode === "none") return { LL_used_psf: LL, factor: 1, reduction_pct: 0 };
         const at = Math.max(1, AT);
         let f = 0.25 + 15 / Math.sqrt(Math.max(1, KLL * at));
         const minF = at >= 400 ? 0.4 : 0.5;
@@ -3683,13 +3687,14 @@
         const layout = computeLayout(inputs.geometry);
         const AT_beam = layout.spacing_ft * inputs.geometry.Lb_ft;
         const AT_girder = inputs.geometry.Lb_ft * inputs.geometry.Lg_ft;
-        const llBeamInfo = llReduction(inputs.loads.LL_psf, inputs.loads.LL_reducible, inputs.loads.LL_reduction_mode, 2, AT_beam);
-        const llGirderInfo = llReduction(inputs.loads.LL_psf, inputs.loads.LL_reducible, inputs.loads.LL_reduction_mode, 1, AT_girder);
+        const llBeamInfo = llReduction(inputs.loads.LL_psf, inputs.loads.LL_reduction_mode, 2, AT_beam);
+        const llGirderInfo = llReduction(inputs.loads.LL_psf, inputs.loads.LL_reduction_mode, 1, AT_girder);
 
         const total = beamShapes.length * girderShapes.length;
         self.postMessage({ cmd: "started", total, beamCount: beamShapes.length, girderCount: girderShapes.length });
 
-        let processed = 0, found = 0;
+        let processed = 0, found = 0, candidateErrors = 0;
+        let firstCandidateError = null;
         const top = [];
 
         for (let gi = 0; gi < girderShapes.length; gi++) {
@@ -3705,17 +3710,18 @@
                 self.postMessage({ cmd:"candidate", candidate: sol, processed, total, found });
               }
             } catch (e) {
-              // ignore single-candidate failure
+              candidateErrors++;
+              if (!firstCandidateError) firstCandidateError = e?.message || String(e);
             }
 
             if (processed % 10 === 0) {
-              self.postMessage({ cmd: "progress", processed, total, found });
+              self.postMessage({ cmd: "progress", processed, total, found, candidateErrors, firstCandidateError });
             }
           }
         }
 
         top.sort((a,b) => metric(a, optimizeBy) - metric(b, optimizeBy));
-        self.postMessage({ cmd: "done", results: top, processed, total, found });
+        self.postMessage({ cmd: "done", results: top, processed, total, found, candidateErrors, firstCandidateError });
       }
 
       self.onmessage = (ev) => {
