@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Floor Framing (AISC 360-22) — MVP</title>
+  <style>
+    :root { --bg:#f3f5f7; --panel:#fff; --line:#d7dde5; --text:#1e293b; --accent:#1d4ed8; --muted:#64748b; }
+    * { box-sizing: border-box; }
+    body { margin:0; font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial; color:var(--text); background:var(--bg); }
+    header { display:flex; align-items:center; gap:12px; padding:10px 14px; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:10; }
+    h1 { font-size:18px; margin:0; }
+    .tabs { display:flex; gap:6px; flex-wrap:wrap; }
+    .tab-btn { border:1px solid var(--line); background:#fff; border-radius:6px; padding:6px 10px; cursor:pointer; }
+    .tab-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+    button { cursor:pointer; }
+    .grow { flex:1; }
+    .primary { border:0; background:var(--accent); color:#fff; border-radius:7px; padding:8px 12px; }
+    .layout { display:grid; grid-template-columns:320px 1fr 360px; gap:10px; padding:10px; }
+    .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px; }
+    .field { display:grid; grid-template-columns:1fr 110px; gap:6px; align-items:center; margin-bottom:6px; }
+    .field input, .field select { width:100%; padding:5px 6px; border:1px solid var(--line); border-radius:6px; }
+    .field label small { color:var(--muted); }
+    .section-title { font-weight:700; margin:8px 0; }
+    .small { color:var(--muted); font-size:12px; }
+    .main-tabs .tab { display:none; }
+    .main-tabs .tab.active { display:block; }
+    .results-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .results-table th,.results-table td { border:1px solid var(--line); padding:4px; text-align:left; }
+    .results-wrap { overflow:auto; max-height:340px; }
+    .status { font-size:12px; color:var(--muted); }
+    .actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+    .svg-box { border:1px solid var(--line); border-radius:8px; background:#fff; padding:6px; }
+    details { margin-top:8px; }
+    footer { padding:10px; text-align:center; font-size:12px; color:#334155; }
+    .print-report { display:none; }
+    @media (max-width: 1200px) { .layout { grid-template-columns:1fr; } }
+    @media print {
+      body { background:#fff; }
+      header,.layout,footer { display:none !important; }
+      .print-report { display:block; }
+      .print-page { page-break-before:always; padding:14px; }
+      .print-page:first-child { page-break-before:auto; }
+      table { width:100%; border-collapse:collapse; }
+      th,td { border:1px solid #333; padding:4px; font-size:12px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Floor Framing (AISC 360-22) — MVP</h1>
+    <div class="tabs" id="tabs"></div>
+    <div class="grow"></div>
+    <button class="primary" id="runBtn">Run Analysis</button>
+    <button id="stopBtn">Stop</button>
+    <button id="saveBtn">Save JSON</button>
+    <input id="loadFile" type="file" accept=".json" style="display:none" />
+    <button id="loadBtn">Load JSON</button>
+  </header>
+
+  <div class="layout">
+    <section class="panel">
+      <div class="section-title">Global + Geometry</div>
+      <div class="field"><label>Design method</label><input value="AISC 360-22 LRFD" disabled /></div>
+      <div class="field"><label>Live load reduction</label><select id="basis_live"><option value="1">On</option><option value="0">Off</option></select></div>
+      <div class="field"><label>Optimize by</label><select id="basis_opt"><option value="cost">Relative Cost</option><option value="weight">Weight</option></select></div>
+      <div class="field"><label>Units</label><input value="US Customary" disabled /></div>
+      <div class="field"><label>Bay Length Lb (ft)</label><input id="g_Lb" type="number" step="0.1" /></div>
+      <div class="field"><label>Bay Width Lg (ft)</label><input id="g_Lg" type="number" step="0.1" /></div>
+      <div class="field"><label>Beam spacing s (ft)</label><input id="g_s" type="number" step="0.1" /></div>
+      <div class="field"><label># interior beam lines override</label><input id="g_n" type="number" step="1" placeholder="auto" /></div>
+      <div class="field"><label>Interior bay sharing (½ girders)</label><select id="g_half"><option value="0">Off</option><option value="1">On</option></select></div>
+      <div class="svg-box"><svg id="planSvg" width="100%" viewBox="0 0 300 180"></svg></div>
+      <details><summary>Assumptions</summary><div class="small">Interior one-way composite floor bay. Beams and girders simply supported. Beam loads from tributary widths; girder loads from beam end reactions. Conceptual/schematic tool; verify independently.</div></details>
+      <details><summary>Dev panel</summary><button id="devCheck">Run Reference Case Sanity Check</button><pre id="devOut" class="small"></pre></details>
+    </section>
+
+    <section class="panel main-tabs">
+      <div id="tab-loads" class="tab active">
+        <div class="section-title">Loads</div>
+        <div class="field"><label>DL add-on (psf)</label><input id="l_dl" type="number" step="0.1" /></div>
+        <div class="field"><label>LL (psf)</label><input id="l_ll" type="number" step="0.1" /></div>
+        <div class="field"><label>LL is reducible</label><select id="l_llr"><option value="1">Yes</option><option value="0">No</option></select></div>
+        <div class="field"><label>SDL (psf)</label><input id="l_sdl" type="number" step="0.1" /></div>
+        <div class="field"><label>CLL (psf)</label><input id="l_cll" type="number" step="0.1" /></div>
+        <div class="small" id="llInfo"></div>
+      </div>
+      <div id="tab-slab" class="tab">
+        <div class="section-title">Floor Slab</div>
+        <div class="field"><label>Slab type</label><input value="Metal Deck with Concrete Topping" disabled/></div>
+        <div class="field"><label>Shored construction</label><select id="s_sh"><option value="0">No</option><option value="1">Yes</option></select></div>
+        <div class="field"><label>Deck height hd (in)</label><input id="s_hd" type="number" step="0.1" /></div>
+        <div class="field"><label>Deck weight (psf)</label><input id="s_dw" type="number" step="0.1" /></div>
+        <div class="field"><label>Rib width wr (in)</label><input id="s_wr" type="number" step="0.1" /></div>
+        <div class="field"><label>Rib spacing sr (in)</label><input id="s_sr" type="number" step="0.1" /></div>
+        <div class="field"><label>Topping t_top (in)</label><input id="s_tt" type="number" step="0.1" /></div>
+        <div class="field"><label>f'c (ksi)</label><input id="s_fc" type="number" step="0.1" /></div>
+        <div class="field"><label>Concrete unit wt (pcf)</label><input id="s_uw" type="number" step="1" /></div>
+        <div class="field"><label>Stud dia (in)</label><input id="st_d" type="number" step="0.01" /></div>
+        <div class="field"><label>Stud height (in)</label><input id="st_h" type="number" step="0.1" /></div>
+        <div class="field"><label>Stud Fu (ksi)</label><input id="st_fu" type="number" step="1" /></div>
+        <div class="field"><label>Min composite %</label><input id="st_min" type="number" step="1" /></div>
+        <div class="field"><label>Max composite %</label><input id="st_max" type="number" step="1" /></div>
+      </div>
+      <div id="tab-member" class="tab">
+        <div class="section-title">Member Criteria</div>
+        <div class="field"><label>Steel Fy (ksi)</label><input id="m_fy" type="number" step="1" /></div>
+        <div class="field"><label>Beam composite allowed</label><select id="m_bc"><option value="1">Yes</option><option value="0">No</option></select></div>
+        <div class="field"><label>Girder composite allowed</label><select id="m_gc"><option value="1">Yes</option><option value="0">No</option></select></div>
+        <div class="field"><label>Shapes source</label><select id="m_src"><option value="demo">Built-in DEMO</option><option value="upload">Upload CSV</option></select></div>
+        <input id="shapeFile" type="file" accept=".csv" />
+        <div class="small" id="shapeInfo">Using built-in demo shapes.</div>
+      </div>
+      <div id="tab-defl" class="tab">
+        <div class="section-title">Deflection + Camber</div>
+        <div class="field"><label>Inertia method</label><select id="d_im"><option value="I_TRANS">Use Transformed I</option><option value="I_EFF">Use Effective I</option></select></div>
+        <div class="small">Deflection limits (Δmax in, ratio L/x)</div>
+        <div id="deflGrid"></div>
+        <div class="field"><label>Camber allowed beams</label><select id="c_ab"><option value="1">Yes</option><option value="0">No</option></select></div>
+        <div class="field"><label>Camber allowed girders</label><select id="c_ag"><option value="1">Yes</option><option value="0">No</option></select></div>
+        <div class="field"><label>Min camber (in)</label><input id="c_min" type="number" step="0.25" /></div>
+        <div class="field"><label>Max camber (in)</label><input id="c_max" type="number" step="0.25" /></div>
+        <div class="field"><label>Increment (in)</label><input id="c_inc" type="number" step="0.25" /></div>
+        <div class="field"><label>Min member length to camber (ft)</label><input id="c_len" type="number" step="0.1" /></div>
+        <div class="field"><label>Camber % of dead load</label><input id="c_pct" type="number" step="1" /></div>
+        <div class="field"><label>Disallow noncompact web camber</label><select id="c_dis"><option value="1">Yes</option><option value="0">No</option></select></div>
+      </div>
+      <div id="tab-cost" class="tab">
+        <div class="section-title">Cost</div>
+        <div class="field"><label>Steel ($/lb)</label><input id="co_s" type="number" step="0.01" /></div>
+        <div class="field"><label>Stud ($/stud)</label><input id="co_st" type="number" step="0.1" /></div>
+        <div class="field"><label>Camber cost model</label><select id="co_m"><option value="ranges">Ranges</option><option value="flat">Flat</option></select></div>
+        <div id="costRanges"></div>
+      </div>
+      <div id="tab-results" class="tab">
+        <div class="section-title">Results</div>
+        <div class="results-wrap"><table class="results-table" id="resultsTbl"><thead><tr><th>#</th><th>Beam</th><th>Girder</th><th>Cost $/sf</th><th>Weight psf</th><th>Gov util</th></tr></thead><tbody></tbody></table></div>
+        <div class="small">Vibration checks (DG11) coming later.</div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="section-title">Selection Preview</div>
+      <div class="svg-box"><svg id="selSvg" width="100%" viewBox="0 0 320 180"></svg></div>
+      <pre id="selSummary" class="small"></pre>
+      <details><summary>Calc Trace</summary><pre id="trace" class="small"></pre></details>
+      <div class="actions">
+        <button id="beamRpt">View Beam Report</button>
+        <button id="girderRpt">View Girder Report</button>
+        <button id="printRpt">Print Report Pack</button>
+        <button id="expJson">Export JSON</button>
+        <button id="expCsv">Export CSV</button>
+      </div>
+      <div class="status" id="status">Idle</div>
+    </aside>
+  </div>
+
+  <div class="print-report" id="printArea"></div>
+  <footer>Conceptual/schematic tool. Not for final design. Verify results independently.</footer>
+
+<script>
+const DEMO_SHAPES=[
+{name:'W16X26',d:15.7,bf:6.5,tf:0.345,tw:0.23,A:7.65,W:26,Ix:301,Sx:38.3,Zx:42.2,ry:1.62},
+{name:'W18X35',d:18.2,bf:6.0,tf:0.425,tw:0.30,A:10.3,W:35,Ix:510,Sx:56.0,Zx:62.0,ry:1.57},
+{name:'W21X44',d:20.7,bf:6.5,tf:0.50,tw:0.35,A:12.9,W:44,Ix:843,Sx:81.4,Zx:91.2,ry:1.60},
+{name:'W24X55',d:23.6,bf:7.0,tf:0.56,tw:0.395,A:16.2,W:55,Ix:1350,Sx:114,Zx:128,ry:1.64},
+{name:'W24X62',d:24.2,bf:8.0,tf:0.59,tw:0.43,A:18.2,W:62,Ix:1550,Sx:128,Zx:145,ry:1.85},
+{name:'W27X84',d:26.7,bf:10.0,tf:0.67,tw:0.46,A:24.7,W:84,Ix:2760,Sx:207,Zx:233,ry:2.11},
+{name:'W30X99',d:29.7,bf:10.5,tf:0.72,tw:0.52,A:29.1,W:99,Ix:4310,Sx:290,Zx:326,ry:2.30}
+];
+let SHAPES=[...DEMO_SHAPES], worker=null, runData=null, selectedIdx=0;
+
+const deflCases=['DL','LL','SDL','LL_SDL','TOTAL'];
+function mkLimits(){ return deflCases.reduce((a,c)=> (a[c]={delta_max_in:3,ratio_L_over:c==='LL'||c==='SDL'?360:240},a),{}); }
+const defaults={basis:{design_method:'AISC_360_22_LRFD',live_load_reduction:true,optimize_by:'cost'},geometry:{Lb_ft:40,Lg_ft:30,spacing_ft:15,nBeamLines_override:null,interior_half_girders:false},loads:{DL_add_psf:0.5,LL_psf:50,LL_reducible:true,SDL_psf:20,CLL_psf:20},slab:{shored:false,deck:{hd_in:2,deck_weight_psf:2.5,rib_width_in:6,rib_spacing_in:12},concrete:{topping_in:3.25,fc_ksi:3.5,unit_weight_pcf:110},studs:{dia_in:0.75,height_in:4,Fu_ksi:60,min_comp_pct:25,max_comp_pct:100}},member_criteria:{Fy_ksi:50,beam:{composite_allowed:true,camber_allowed:true,shape_filters:{}},girder:{composite_allowed:true,camber_allowed:true,shape_filters:{}},shapes_source:{mode:'demo',file_name:null,dataset_label:'Demo W-shapes'}},deflection:{inertia_method:'I_TRANS',limits:mkLimits()},camber:{min_in:0.75,max_in:3,inc_in:0.25,min_length_ft:23,pct_of_dead:0.75,disallow_noncompact_web:true},stud_spacing_limits:{edge_dist_in:1,end_dist_in:2,long_min_parallel_in:4,long_min_perp_in:4,long_max_parallel_in:24,long_max_perp_in:24,trans_min_parallel_in:4,trans_min_perp_in:4},cost:{steel_per_lb:1.2,stud_per_each:3.5,camber_model:'ranges',ranges:[{max_in:1,cost_per_member:120},{max_in:2,cost_per_member:180},{max_in:null,cost_per_member:260}]}};
+
+function byId(id){return document.getElementById(id)}
+function setForm(m){
+  byId('basis_live').value=m.basis.live_load_reduction?1:0; byId('basis_opt').value=m.basis.optimize_by;
+  byId('g_Lb').value=m.geometry.Lb_ft; byId('g_Lg').value=m.geometry.Lg_ft; byId('g_s').value=m.geometry.spacing_ft; byId('g_n').value=m.geometry.nBeamLines_override??''; byId('g_half').value=m.geometry.interior_half_girders?1:0;
+  byId('l_dl').value=m.loads.DL_add_psf; byId('l_ll').value=m.loads.LL_psf; byId('l_llr').value=m.loads.LL_reducible?1:0; byId('l_sdl').value=m.loads.SDL_psf; byId('l_cll').value=m.loads.CLL_psf;
+  byId('s_sh').value=m.slab.shored?1:0; byId('s_hd').value=m.slab.deck.hd_in; byId('s_dw').value=m.slab.deck.deck_weight_psf; byId('s_wr').value=m.slab.deck.rib_width_in; byId('s_sr').value=m.slab.deck.rib_spacing_in;
+  byId('s_tt').value=m.slab.concrete.topping_in; byId('s_fc').value=m.slab.concrete.fc_ksi; byId('s_uw').value=m.slab.concrete.unit_weight_pcf;
+  byId('st_d').value=m.slab.studs.dia_in; byId('st_h').value=m.slab.studs.height_in; byId('st_fu').value=m.slab.studs.Fu_ksi; byId('st_min').value=m.slab.studs.min_comp_pct; byId('st_max').value=m.slab.studs.max_comp_pct;
+  byId('m_fy').value=m.member_criteria.Fy_ksi; byId('m_bc').value=m.member_criteria.beam.composite_allowed?1:0; byId('m_gc').value=m.member_criteria.girder.composite_allowed?1:0;
+  byId('d_im').value=m.deflection.inertia_method;
+  byId('c_ab').value=m.member_criteria.beam.camber_allowed?1:0; byId('c_ag').value=m.member_criteria.girder.camber_allowed?1:0; byId('c_min').value=m.camber.min_in; byId('c_max').value=m.camber.max_in; byId('c_inc').value=m.camber.inc_in; byId('c_len').value=m.camber.min_length_ft; byId('c_pct').value=Math.round(m.camber.pct_of_dead*100); byId('c_dis').value=m.camber.disallow_noncompact_web?1:0;
+  byId('co_s').value=m.cost.steel_per_lb; byId('co_st').value=m.cost.stud_per_each; byId('co_m').value=m.cost.camber_model;
+}
+function getNum(id){ return Number(byId(id).value||0); }
+function getForm(){
+  const m=JSON.parse(JSON.stringify(defaults));
+  m.run_meta={tool_version:'0.1.0',timestamp:new Date().toISOString()};
+  m.basis.live_load_reduction=byId('basis_live').value==='1'; m.basis.optimize_by=byId('basis_opt').value;
+  m.geometry.Lb_ft=getNum('g_Lb'); m.geometry.Lg_ft=getNum('g_Lg'); m.geometry.spacing_ft=getNum('g_s'); m.geometry.nBeamLines_override=byId('g_n').value?Number(byId('g_n').value):null; m.geometry.interior_half_girders=byId('g_half').value==='1';
+  Object.assign(m.loads,{DL_add_psf:getNum('l_dl'),LL_psf:getNum('l_ll'),LL_reducible:byId('l_llr').value==='1',SDL_psf:getNum('l_sdl'),CLL_psf:getNum('l_cll')});
+  m.slab.shored=byId('s_sh').value==='1'; Object.assign(m.slab.deck,{hd_in:getNum('s_hd'),deck_weight_psf:getNum('s_dw'),rib_width_in:getNum('s_wr'),rib_spacing_in:getNum('s_sr')});
+  Object.assign(m.slab.concrete,{topping_in:getNum('s_tt'),fc_ksi:getNum('s_fc'),unit_weight_pcf:getNum('s_uw')});
+  Object.assign(m.slab.studs,{dia_in:getNum('st_d'),height_in:getNum('st_h'),Fu_ksi:getNum('st_fu'),min_comp_pct:getNum('st_min'),max_comp_pct:getNum('st_max')});
+  m.member_criteria.Fy_ksi=getNum('m_fy'); m.member_criteria.beam.composite_allowed=byId('m_bc').value==='1'; m.member_criteria.girder.composite_allowed=byId('m_gc').value==='1';
+  m.deflection.inertia_method=byId('d_im').value;
+  for(const c of deflCases){ m.deflection.limits[c]={delta_max_in:getNum(`lim_${c}_d`)||null,ratio_L_over:getNum(`lim_${c}_r`)||null}; }
+  m.member_criteria.beam.camber_allowed=byId('c_ab').value==='1'; m.member_criteria.girder.camber_allowed=byId('c_ag').value==='1';
+  Object.assign(m.camber,{min_in:getNum('c_min'),max_in:getNum('c_max'),inc_in:getNum('c_inc'),min_length_ft:getNum('c_len'),pct_of_dead:getNum('c_pct')/100,disallow_noncompact_web:byId('c_dis').value==='1'});
+  Object.assign(m.cost,{steel_per_lb:getNum('co_s'),stud_per_each:getNum('co_st'),camber_model:byId('co_m').value});
+  m.cost.ranges=[1,2,3].map(i=>({max_in:i<3?getNum(`cr_m${i}`):null,cost_per_member:getNum(`cr_c${i}`)}));
+  m.member_criteria.shapes_source={mode:byId('m_src').value,file_name:null,dataset_label:byId('m_src').value==='demo'?'Demo W-shapes':'Uploaded CSV'};
+  return m;
+}
+
+function initUi(){
+  const tabs=[['loads','Loads'],['slab','Floor Slab'],['member','Member Criteria'],['defl','Deflection+Camber'],['cost','Cost'],['results','Results']];
+  tabs.forEach(([id,l],i)=>{ const b=document.createElement('button'); b.className='tab-btn'+(i===0?' active':''); b.textContent=l; b.onclick=()=>{document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); document.querySelectorAll('.main-tabs .tab').forEach(x=>x.classList.remove('active')); byId('tab-'+id).classList.add('active');}; byId('tabs').appendChild(b);});
+  const dg=byId('deflGrid'); deflCases.forEach(c=>{ const r=document.createElement('div'); r.className='field'; r.innerHTML=`<label>${c} Δmax / L</label><div style="display:flex;gap:4px"><input id="lim_${c}_d" type="number" step="0.1"><input id="lim_${c}_r" type="number" step="1"></div>`; dg.appendChild(r); });
+  const cr=byId('costRanges'); cr.innerHTML=[1,2,3].map(i=>`<div class="field"><label>Range ${i} ${i<3?'max camber (in)':'cost beyond range2'} </label><div style="display:flex;gap:4px">${i<3?`<input id="cr_m${i}" type="number" step="0.25">`:''}<input id="cr_c${i}" type="number" step="1"></div></div>`).join('');
+  setForm(defaults); byId('cr_m1').value=1; byId('cr_c1').value=120; byId('cr_m2').value=2; byId('cr_c2').value=180; byId('cr_c3').value=260;
+  deflCases.forEach(c=>{byId(`lim_${c}_d`).value=defaults.deflection.limits[c].delta_max_in;byId(`lim_${c}_r`).value=defaults.deflection.limits[c].ratio_L_over;});
+  ['g_Lb','g_Lg','g_s','g_n'].forEach(id=>byId(id).addEventListener('input',drawPlan)); drawPlan();
+}
+function drawPlan(){
+  const Lb=getNum('g_Lb')||40,Lg=getNum('g_Lg')||30,s=getNum('g_s')||15,nOv=byId('g_n').value?Number(byId('g_n').value):null;
+  const nSpaces=nOv? nOv+1:Math.max(2,Math.round(Lg/s)); const nLines=Math.max(1,nSpaces-1); const space=Lg/nSpaces;
+  const svg=byId('planSvg'); let lines=''; for(let i=1;i<=nLines;i++){const x=20+(260*(i*space/Lg)); lines+=`<line x1="${x}" y1="20" x2="${x}" y2="160" stroke="#2563eb" stroke-width="2"/>`;}
+  svg.innerHTML=`<rect x="20" y="20" width="260" height="140" fill="none" stroke="#111"/><text x="22" y="14">Lb=${Lb} ft</text><text x="230" y="175">Lg=${Lg} ft</text>${lines}`;
+}
+
+function createWorker(){
+  const workerCode=`
+  self.onmessage=e=>{const d=e.data;if(d.type==='run'){run(d.model,d.shapes)}if(d.type==='stop'){self.stop=true;}};
+  const E=29000; const phiB=.9, phiV=1;
+  const combos=[{name:'1.4D',f:{DL:1.4,SDL:0,LL:0}},{name:'1.2D+1.6L+0.5SDL',f:{DL:1.2,LL:1.6,SDL:0.5}},{name:'1.2D+1.6L',f:{DL:1.2,LL:1.6,SDL:0}}];
+  function llReduce(LL,At,on){ if(!on) return {LL_used:LL,pct:0}; const r=Math.max(0.5,Math.min(1,0.25+15/Math.sqrt(Math.max(At,1)))); return {LL_used:LL*r,pct:(1-r)*100}; }
+  function betaWeb(sh){ return (sh.d-2*sh.tf)/sh.tw; }
+  function isNonCompactWeb(sh,Fy){ return betaWeb(sh)>3.76*Math.sqrt(29000/Fy); }
+  function phiMnNonComp(sh,Fy){ return phiB*(Math.min(sh.Zx*Fy,1.6*sh.Sx*Fy))/12; }
+  function phiVn(sh,Fy){ const Aw=(sh.d-2*sh.tf)*sh.tw; return phiV*0.6*Fy*Aw; }
+  function deflUniform(wkft,Lft,I){ const w=wkft/12; const L=Lft*12; return 5*w*Math.pow(L,4)/(384*E*I); }
+  function serviceUtil(defl,Lft,lim){ const a=lim.delta_max_in?defl/lim.delta_max_in:0; const b=lim.ratio_L_over?defl/(Lft*12/lim.ratio_L_over):0; return Math.max(a,b); }
+  function qnStud(inp){ const As=Math.PI*Math.pow(inp.slab.studs.dia_in,2)/4; return 0.5*As*inp.slab.studs.Fu_ksi; }
+  function camberCost(inp,c){ if(c<=0)return 0; if(inp.cost.camber_model==='flat') return inp.cost.ranges[0].cost_per_member; for(const r of inp.cost.ranges){ if(r.max_in==null||c<=r.max_in)return r.cost_per_member;} return inp.cost.ranges[inp.cost.ranges.length-1].cost_per_member; }
+  function pointMomentMax(L,pts){ let maxM=0; for(let x=0;x<=L;x+=L/120){ let RA=pts.reduce((a,p)=>a+p.P*(L-p.x)/L,0); let M=RA*x; for(const p of pts){ if(x>p.x) M-=p.P*(x-p.x);} maxM=Math.max(maxM,M);} return maxM; }
+  function pointDeflApprox(L,pts,I){ let max=0; for(let x=0;x<=L;x+=L/120){ let y=0; for(const p of pts){ const a=p.x,b=L-a,P=p.P; if(x<=a) y+=P*b*x*(L*L-b*b-x*x)/(6*L*E*I*12); else y+=P*a*(L-x)*(L*L-a*a-(L-x)*(L-x))/(6*L*E*I*12);} max=Math.max(max,y);} return max; }
+  function run(inp,shapes){ self.stop=false; const g=inp.geometry; const nSpaces=inp.geometry.nBeamLines_override?inp.geometry.nBeamLines_override+1:Math.max(2,Math.round(g.Lg_ft/g.spacing_ft)); const nBeamLines=Math.max(1,nSpaces-1); const tBeam=g.Lg_ft/nSpaces;
+    const selfw=inp.slab.deck.deck_weight_psf + inp.slab.concrete.topping_in/12*inp.slab.concrete.unit_weight_pcf; const DLt=selfw+inp.loads.DL_add_psf;
+    const AtBeam=tBeam*g.Lb_ft, AtGirder=g.Lg_ft*g.Lb_ft;
+    const llb=llReduce(inp.loads.LL_psf,AtBeam,inp.basis.live_load_reduction&&inp.loads.LL_reducible), llg=llReduce(inp.loads.LL_psf,AtGirder,inp.basis.live_load_reduction&&inp.loads.LL_reducible);
+    const beamShapes=shapes, girderShapes=shapes; const keep=[]; let iter=0;
+    for(const gs of girderShapes){ for(const bs of beamShapes){ if(self.stop){self.postMessage({type:'done',cancelled:true,results:keep}); return;}
+      iter++; const wb={DL:DLt*tBeam/1000 + bs.W/1000,SDL:inp.loads.SDL_psf*tBeam/1000,LL:llb.LL_used*tBeam/1000};
+      const camB=[]; camB.push(0); if(inp.member_criteria.beam.camber_allowed&&g.Lb_ft>=inp.camber.min_length_ft){ for(let c=inp.camber.min_in;c<=inp.camber.max_in+1e-9;c+=inp.camber.inc_in) camB.push(+c.toFixed(3)); }
+      let bestBeam=null;
+      for(const cb of camB){ if(inp.camber.disallow_noncompact_web&&cb>0&&isNonCompactWeb(bs,inp.member_criteria.Fy_ksi)) continue;
+        const I=bs.Ix; const del={DL:deflUniform(wb.DL,g.Lb_ft,I),LL:deflUniform(wb.LL,g.Lb_ft,I),SDL:deflUniform(wb.SDL,g.Lb_ft,I)}; const tot=del.DL+del.LL+del.SDL-inp.camber.pct_of_dead*del.DL*(cb>0?1:0);
+        const utils={DL:serviceUtil(del.DL,g.Lb_ft,inp.deflection.limits.DL),LL:serviceUtil(del.LL,g.Lb_ft,inp.deflection.limits.LL),SDL:serviceUtil(del.SDL,g.Lb_ft,inp.deflection.limits.SDL),LL_SDL:serviceUtil(del.LL+del.SDL,g.Lb_ft,inp.deflection.limits.LL_SDL),TOTAL:serviceUtil(tot,g.Lb_ft,inp.deflection.limits.TOTAL)};
+        const Mu=Math.max(...combos.map(c=>(c.f.DL*wb.DL+c.f.SDL*wb.SDL+c.f.LL*wb.LL)*g.Lb_ft*g.Lb_ft/8)); const Vu=Math.max(...combos.map(c=>(c.f.DL*wb.DL+c.f.SDL*wb.SDL+c.f.LL*wb.LL)*g.Lb_ft/2));
+        const Mn=phiMnNonComp(bs,inp.member_criteria.Fy_ksi), Vn=phiVn(bs,inp.member_criteria.Fy_ksi);
+        const utilM=Mu/Mn, utilV=Vu/Vn, utilD=Math.max(...Object.values(utils)); if(utilM>1||utilV>1||utilD>1) continue;
+        const qn=qnStud(inp), need=inp.slab.studs.min_comp_pct/100*bs.A*inp.member_criteria.Fy_ksi; const nstud=Math.max(0,Math.ceil(need/Math.max(qn,0.01))); const b={shape:bs,camber:cb,Mu,Vu,Mn,Vn,utilM,utilV,utilD,studs:nstud,live_pct:llb.pct,defl:del,tot};
+        if(!bestBeam || (inp.basis.optimize_by==='cost'? b.studs<bestBeam.studs : b.utilD<bestBeam.utilD)) bestBeam=b;
+      }
+      if(!bestBeam) continue;
+      const x=[]; for(let i=1;i<=nBeamLines;i++) x.push(i*(g.Lg_ft/nSpaces));
+      const Pg={DL:(wb.DL*g.Lb_ft/2)*nBeamLines + gs.W/1000*g.Lg_ft, SDL:(wb.SDL*g.Lb_ft/2)*nBeamLines, LL:(wb.LL*g.Lb_ft/2)*nBeamLines};
+      const ptsDL=x.map(xi=>({P:wb.DL*g.Lb_ft/2,x:xi})), ptsSDL=x.map(xi=>({P:wb.SDL*g.Lb_ft/2,x:xi})), ptsLL=x.map(xi=>({P:wb.LL*g.Lb_ft/2,x:xi}));
+      const camG=[0]; if(inp.member_criteria.girder.camber_allowed&&g.Lg_ft>=inp.camber.min_length_ft){ for(let c=inp.camber.min_in;c<=inp.camber.max_in+1e-9;c+=inp.camber.inc_in) camG.push(+c.toFixed(3)); }
+      let best=null;
+      for(const cg of camG){ if(inp.camber.disallow_noncompact_web&&cg>0&&isNonCompactWeb(gs,inp.member_criteria.Fy_ksi)) continue;
+        const Mu=Math.max(...combos.map(c=>pointMomentMax(g.Lg_ft,[...ptsDL.map(p=>({P:p.P*c.f.DL,x:p.x})),...ptsSDL.map(p=>({P:p.P*c.f.SDL,x:p.x})),...ptsLL.map(p=>({P:p.P*c.f.LL,x:p.x}))])));
+        const Vu=(Pg.DL*1.2+Pg.SDL*0.5+Pg.LL*1.6)/2; const Mn=phiMnNonComp(gs,inp.member_criteria.Fy_ksi), Vn=phiVn(gs,inp.member_criteria.Fy_ksi);
+        const dDL=pointDeflApprox(g.Lg_ft,ptsDL,gs.Ix), dLL=pointDeflApprox(g.Lg_ft,ptsLL,gs.Ix), dSDL=pointDeflApprox(g.Lg_ft,ptsSDL,gs.Ix), dTot=dDL+dLL+dSDL-inp.camber.pct_of_dead*dDL*(cg>0?1:0);
+        const ud=Math.max(serviceUtil(dDL,g.Lg_ft,inp.deflection.limits.DL),serviceUtil(dLL,g.Lg_ft,inp.deflection.limits.LL),serviceUtil(dSDL,g.Lg_ft,inp.deflection.limits.SDL),serviceUtil(dLL+dSDL,g.Lg_ft,inp.deflection.limits.LL_SDL),serviceUtil(dTot,g.Lg_ft,inp.deflection.limits.TOTAL));
+        const um=Mu/Mn, uv=Vu/Vn; if(um>1||uv>1||ud>1) continue;
+        const qn=qnStud(inp), need=inp.slab.studs.min_comp_pct/100*gs.A*inp.member_criteria.Fy_ksi; const nstud=Math.max(0,Math.ceil(need/Math.max(qn,0.01))); const cand={cg,Mu,Vu,Mn,Vn,um,uv,ud,studs:nstud,dDL,dLL,dSDL,dTot};
+        if(!best|| (inp.basis.optimize_by==='cost' ? cand.studs<best.studs : cand.ud<best.ud)) best=cand;
+      }
+      if(!best) continue;
+      const area=g.Lb_ft*g.Lg_ft; const girdMult=inp.geometry.interior_half_girders?1:2;
+      const beamW=bs.W*g.Lb_ft*nBeamLines, girW=gs.W*g.Lg_ft*girdMult, weight=(beamW+girW)/area;
+      const membersCam=(bestBeam.camber>0?nBeamLines:0)+(best.cg>0?girdMult:0); const camCost=(camberCost(inp,bestBeam.camber)*(bestBeam.camber>0?nBeamLines:0)+camberCost(inp,best.cg)*(best.cg>0?girdMult:0));
+      const steel=(beamW+girW)*inp.cost.steel_per_lb, studs=(bestBeam.studs*nBeamLines+best.studs*girdMult)*inp.cost.stud_per_each, cost=(steel+studs+camCost)/area;
+      const sol={panel:{beam_shape:bs.name,girder_shape:gs.name,weight_psf:weight,cost_per_sf:cost,pass:true,governing:{strength_util_max:Math.max(bestBeam.utilM,bestBeam.utilV,best.um,best.uv),deflection_util_max:Math.max(bestBeam.utilD,best.ud),controlling_case_str:'max util'}},beam:{member_type:'beam',shape:bs,length_ft:g.Lb_ft,camber:{used_in:bestBeam.camber,cost_usd:camberCost(inp,bestBeam.camber)},composite:{enabled:inp.member_criteria.beam.composite_allowed,percent_composite:inp.slab.studs.min_comp_pct,I_eff_in4:bs.Ix*1.15,I_trans_in4:bs.Ix*1.1,studs:{rows_1:bestBeam.studs,rows_2:0,stud_count_total:bestBeam.studs,Qn_k:qnStud(inp),sumQn_k:bestBeam.studs*qnStud(inp),limits_used:inp.stud_spacing_limits}},loads:{influence_area_ft2:AtBeam,live_load_reduction_pct:llb.pct,cases:[{name:'env',Mu_kft:bestBeam.Mu,Vu_k:bestBeam.Vu,defl_in:bestBeam.tot}]},strength:{phiMn_kft:bestBeam.Mn,phiVn_k:bestBeam.Vn,combos:[]},deflection:{cases:[{name:'TOTAL',defl_in:bestBeam.tot,util:bestBeam.utilD}]},notes:['Composite routines are simplified for MVP.']},girder:{member_type:'girder',shape:gs,length_ft:g.Lg_ft,camber:{used_in:best.cg,cost_usd:camberCost(inp,best.cg)},composite:{enabled:inp.member_criteria.girder.composite_allowed,percent_composite:inp.slab.studs.min_comp_pct,I_eff_in4:gs.Ix*1.15,I_trans_in4:gs.Ix*1.1,studs:{rows_1:best.studs,rows_2:0,stud_count_total:best.studs,Qn_k:qnStud(inp),sumQn_k:best.studs*qnStud(inp),limits_used:inp.stud_spacing_limits}},loads:{influence_area_ft2:AtGirder,live_load_reduction_pct:llg.pct,cases:[{name:'env',Mu_kft:best.Mu,Vu_k:best.Vu,defl_in:best.dTot}]},strength:{phiMn_kft:best.Mn,phiVn_k:best.Vn,combos:[]},deflection:{cases:[{name:'TOTAL',defl_in:best.dTot,util:best.ud}]},notes:['Point-load girder analysis by superposition approximation.']},calc_trace:{nBeamLines,tBeam,selfw,DLt,llb,llg}};
+      keep.push(sol);
+      keep.sort((a,b)=>inp.basis.optimize_by==='cost'?a.panel.cost_per_sf-b.panel.cost_per_sf:a.panel.weight_psf-b.panel.weight_psf); if(keep.length>50) keep.length=50;
+      if(iter%5===0) self.postMessage({type:'progress',iter,results:keep});
+    }}
+    self.postMessage({type:'done',results:keep});
+  }
+  `;
+  return new Worker(URL.createObjectURL(new Blob([workerCode],{type:'text/javascript'})));
+}
+
+function renderResults(){
+  const tb=byId('resultsTbl').querySelector('tbody'); tb.innerHTML=''; const arr=runData?.results||[];
+  arr.forEach((r,i)=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${i+1}</td><td>${r.panel.beam_shape}</td><td>${r.panel.girder_shape}</td><td>${r.panel.cost_per_sf.toFixed(3)}</td><td>${r.panel.weight_psf.toFixed(3)}</td><td>${Math.max(r.panel.governing.strength_util_max,r.panel.governing.deflection_util_max).toFixed(3)}</td>`; tr.onclick=()=>{selectedIdx=i;renderSelection();}; tb.appendChild(tr);});
+  renderSelection();
+}
+function renderSelection(){
+  const r=runData?.results?.[selectedIdx]; if(!r){byId('selSummary').textContent='No selection'; byId('trace').textContent=''; return;}
+  byId('selSummary').textContent=JSON.stringify({beam:r.panel.beam_shape,girder:r.panel.girder_shape,cost:r.panel.cost_per_sf,weight:r.panel.weight_psf,governing:r.panel.governing},null,2);
+  byId('trace').textContent=JSON.stringify(r.calc_trace,null,2);
+  const svg=byId('selSvg'); svg.innerHTML=`<rect x='20' y='20' width='280' height='140' fill='none' stroke='#111'/><line x1='20' y1='20' x2='20' y2='160' stroke='#333' stroke-width='3'/><line x1='300' y1='20' x2='300' y2='160' stroke='#333' stroke-width='3'/><text x='24' y='15'>${r.panel.girder_shape}</text><text x='230' y='15'>${r.panel.girder_shape}</text><text x='120' y='90'>${r.panel.beam_shape}</text>`;
+}
+function printPack(type='all'){
+  const r=runData?.results?.[selectedIdx]; if(!r) return; const p=byId('printArea');
+  p.innerHTML=`<section class='print-page'><h2>Panel Summary</h2><p>Beam ${r.panel.beam_shape}, Girder ${r.panel.girder_shape}, Cost ${r.panel.cost_per_sf.toFixed(3)} $/sf, Weight ${r.panel.weight_psf.toFixed(3)} psf</p><p>Conceptual/schematic tool. Not for final design. Verify results independently.</p></section>
+  <section class='print-page'><h2>Beam Report</h2><pre>${JSON.stringify(r.beam,null,2)}</pre></section>
+  <section class='print-page'><h2>Girder Report</h2><pre>${JSON.stringify(r.girder,null,2)}</pre><p>Conceptual/schematic tool. Not for final design. Verify results independently.</p></section>`;
+  window.print();
+}
+function download(name,text,type='text/plain'){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; a.click(); }
+
+initUi();
+byId('runBtn').onclick=()=>{const model=getForm(); runData={run_meta:{tool_version:'0.1.0',timestamp:new Date().toISOString()},basis:{design:'AISC 360-22',loads:'ASCE 7-22',shapes:model.member_criteria.shapes_source.dataset_label},inputs:model,results:[]}; if(worker) worker.terminate(); worker=createWorker(); byId('status').textContent='Running...'; worker.onmessage=e=>{if(e.data.type==='progress'){runData.results=e.data.results;renderResults(); byId('status').textContent=`Running... iter ${e.data.iter}`;} if(e.data.type==='done'){runData.results=e.data.results||[]; renderResults(); byId('status').textContent=e.data.cancelled?'Cancelled':'Done';}}; worker.postMessage({type:'run',model,shapes:SHAPES});};
+byId('stopBtn').onclick=()=>worker&&worker.postMessage({type:'stop'});
+byId('expJson').onclick=()=>runData&&download('floor-framing-run.json',JSON.stringify(runData,null,2),'application/json');
+byId('expCsv').onclick=()=>{if(!runData) return; const head='idx,beam,girder,cost_per_sf,weight_psf,strength_util,deflection_util\n'; const rows=runData.results.map((r,i)=>`${i+1},${r.panel.beam_shape},${r.panel.girder_shape},${r.panel.cost_per_sf},${r.panel.weight_psf},${r.panel.governing.strength_util_max},${r.panel.governing.deflection_util_max}`).join('\n'); download('solutions.csv',head+rows,'text/csv'); const s=runData.results[selectedIdx]; if(s) download('selected_member_summary.csv',`member,shape,camber,studs\nbeam,${s.beam.shape.name},${s.beam.camber.used_in},${s.beam.composite.studs.stud_count_total}\ngirder,${s.girder.shape.name},${s.girder.camber.used_in},${s.girder.composite.studs.stud_count_total}`,'text/csv'); };
+byId('beamRpt').onclick=()=>alert(JSON.stringify(runData?.results?.[selectedIdx]?.beam,null,2));
+byId('girderRpt').onclick=()=>alert(JSON.stringify(runData?.results?.[selectedIdx]?.girder,null,2));
+byId('printRpt').onclick=()=>printPack();
+byId('saveBtn').onclick=()=>runData&&download('run.json',JSON.stringify(runData,null,2),'application/json');
+byId('loadBtn').onclick=()=>byId('loadFile').click();
+byId('loadFile').onchange=(e)=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{try{runData=JSON.parse(fr.result); if(runData.inputs)setForm(runData.inputs); renderResults();}catch{alert('Invalid JSON')}};fr.readAsText(f)};
+byId('shapeFile').onchange=(e)=>{const f=e.target.files[0]; if(!f) return; const fr=new FileReader(); fr.onload=()=>{const lines=fr.result.split(/\r?\n/).filter(Boolean); const h=lines[0].split(',').map(s=>s.trim().toLowerCase()); const idx=k=>h.indexOf(k); const req=['name','d','bf','tf','tw','a','w','ix','sx','zx','ry']; if(req.some(k=>idx(k)<0)){alert('CSV must include: '+req.join(',')); return;} SHAPES=lines.slice(1).map(ln=>{const c=ln.split(','); return {name:c[idx('name')],d:+c[idx('d')],bf:+c[idx('bf')],tf:+c[idx('tf')],tw:+c[idx('tw')],A:+c[idx('a')],W:+c[idx('w')],Ix:+c[idx('ix')],Sx:+c[idx('sx')],Zx:+c[idx('zx')],ry:+c[idx('ry')]};}).filter(x=>x.name); byId('shapeInfo').textContent=`Loaded ${SHAPES.length} shapes from ${f.name}`; byId('m_src').value='upload';}; fr.readAsText(f);};
+byId('devCheck').onclick=()=>{const m=getForm(); const nSpaces=m.geometry.nBeamLines_override?m.geometry.nBeamLines_override+1:Math.max(2,Math.round(m.geometry.Lg_ft/m.geometry.spacing_ft)); const t=m.geometry.Lg_ft/nSpaces; const selfw=m.slab.deck.deck_weight_psf+m.slab.concrete.topping_in/12*m.slab.concrete.unit_weight_pcf; const w=(selfw+m.loads.DL_add_psf+m.loads.SDL_psf+m.loads.LL_psf)*t/1000; const M=w*m.geometry.Lb_ft*m.geometry.Lb_ft/8; byId('devOut').textContent=`nSpaces=${nSpaces}\ntrib=${t.toFixed(3)} ft\nselfw=${selfw.toFixed(3)} psf\nuniform w(total)=${w.toFixed(3)} k/ft\nM~${M.toFixed(2)} k-ft`;};
+</script>
+</body>
+</html>
