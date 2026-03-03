@@ -1024,11 +1024,11 @@
       const slab = inputs.slab || {};
       const deck = slab.deck || {};
       const conc = slab.concrete || {};
-      const deck_psf = toNum(deck.deck_weight_psf, 0);
-      const topping_psf = (toNum(conc.topping_in, 0) / 12) * toNum(conc.unit_weight_pcf, 0);
-      const sr = Math.max(0.01, toNum(deck.rib_spacing_in, 12));
-      const t_flute_avg_in = 0.5 * toNum(deck.hd_in, 0) * (toNum(deck.rib_width_in, 0) / sr);
-      const flute_psf = (t_flute_avg_in / 12) * toNum(conc.unit_weight_pcf, 0);
+      const deck_psf = parseNum(deck.deck_weight_psf, 0);
+      const topping_psf = (parseNum(conc.topping_in, 0) / 12) * parseNum(conc.unit_weight_pcf, 0);
+      const sr = Math.max(0.01, parseNum(deck.rib_spacing_in, 12));
+      const t_flute_avg_in = 0.5 * parseNum(deck.hd_in, 0) * (parseNum(deck.rib_width_in, 0) / sr);
+      const flute_psf = (t_flute_avg_in / 12) * parseNum(conc.unit_weight_pcf, 0);
       return {
         deck_psf,
         topping_psf,
@@ -2754,11 +2754,11 @@
         const slab = inputs.slab || {};
         const deck = slab.deck || {};
         const conc = slab.concrete || {};
-        const deck_psf = toNum(deck.deck_weight_psf, 0);
-        const topping_psf = (toNum(conc.topping_in, 0) / 12) * toNum(conc.unit_weight_pcf, 0);
-        const sr = Math.max(0.01, toNum(deck.rib_spacing_in, 12));
-        const t_flute_avg_in = 0.5 * toNum(deck.hd_in, 0) * (toNum(deck.rib_width_in, 0) / sr);
-        const flute_psf = (t_flute_avg_in / 12) * toNum(conc.unit_weight_pcf, 0);
+        const deck_psf = parseNum(deck.deck_weight_psf, 0);
+        const topping_psf = (parseNum(conc.topping_in, 0) / 12) * parseNum(conc.unit_weight_pcf, 0);
+        const sr = Math.max(0.01, parseNum(deck.rib_spacing_in, 12));
+        const t_flute_avg_in = 0.5 * parseNum(deck.hd_in, 0) * (parseNum(deck.rib_width_in, 0) / sr);
+        const flute_psf = (t_flute_avg_in / 12) * parseNum(conc.unit_weight_pcf, 0);
         return { deck_psf, topping_psf, flute_psf, total_psf: deck_psf + topping_psf + flute_psf };
       }
 
