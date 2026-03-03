@@ -2786,6 +2786,45 @@
         return { psf: wet.total_psf, note: "Using wet slab+deck (metal+topping+flutes) for pre-composite stage." };
       }
 
+      function sectionClass(shape, Fy) {
+        const lambdaF = shape.bf / (2 * shape.tf);
+        const h = Math.max(0.01, shape.d - 2 * shape.tf);
+        const lambdaW = h / shape.tw;
+        const root = Math.sqrt(E / Fy);
+        const lpF = 0.38 * root;
+        const lrF = 1.0 * root;
+        const lpW = 3.76 * root;
+        const lrW = 5.70 * root;
+        const flange_class = lambdaF <= lpF ? "compact" : (lambdaF <= lrF ? "noncompact" : "slender");
+        const web_class = lambdaW <= lpW ? "compact" : (lambdaW <= lrW ? "noncompact" : "slender");
+        return { lambdaF, lambdaW, lpW, flange_class, web_class };
+      }
+
+      function phiMnNonComp(shape, Fy, cls) {
+        let Mn;
+        if (cls.flange_class === "compact" && cls.web_class !== "slender") Mn = Fy * shape.Zx / 12;
+        else if (cls.flange_class === "slender" || cls.web_class === "slender") Mn = 0.7 * Fy * shape.Sx / 12;
+        else Mn = Fy * shape.Sx / 12;
+        return 0.9 * Mn;
+      }
+
+      function phiVn(shape, Fy) {
+        const h = Math.max(0.01, shape.d - 2 * shape.tf);
+        const lambda = h / shape.tw;
+        const lambdaP = 2.24 * Math.sqrt(E / Fy);
+        const Cv = lambda <= lambdaP ? 1 : (lambdaP / lambda);
+        const Aw = h * shape.tw;
+        const Vn = 0.6 * Fy * Aw * Cv;
+        return Vn;
+      }
+
+      function lrfdCombos() {
+        return [
+          { name: "1.4D", D: 1.4, L: 0, CLL: 0 },
+          { name: "1.2D+1.6L", D: 1.2, L: 1.6, CLL: 0 }
+        ];
+      }
+
       function constructionCombos() {
         return [
           { name:"1.4D(constr)", D:1.4, CLL:0 },
@@ -3260,7 +3299,7 @@
               {name:"DL", type:"uniform_kft", value:wComp.DL, note:"Includes slab/deck, SWadd, beam self-weight"},
               {name:"SDL", type:"uniform_kft", value:wComp.SDL, note:"Superimposed dead load"},
               {name:"LL", type:"uniform_kft", value:wComp.LL, note:"Reduced live load"},
-              {name:"CLL", type:"uniform_kft", value:wComp.CLL, note:"Construction live load"}
+              {name:"CLL", type:"uniform_kft", value:wComp.CLL, note:"Construction-stage only (not used in final post-cure LRFD combos)"}
             ],
             cases: best.strength.combos.map(c => ({name:c.name, Mu_kft:c.Mu, Vu_k:c.Vu, defl_in:null, ratio:null, util_M:c.utilM, util_V:c.utilV}))
           },
@@ -3473,7 +3512,7 @@
               {name:"DL", type:"point_k", value:R_DL, note:`${layout.positions_interior_ft.length} point loads + girder self-weight ${r(shape.W/1000,4)} k/ft`},
               {name:"SDL", type:"point_k", value:R_SDL, note:`${layout.positions_interior_ft.length} point loads`},
               {name:"LL", type:"point_k", value:R_LL, note:`${layout.positions_interior_ft.length} point loads (reduced)`},
-              {name:"CLL", type:"point_k", value:R_CLL, note:`${layout.positions_interior_ft.length} point loads`}
+              {name:"CLL", type:"point_k", value:R_CLL, note:`${layout.positions_interior_ft.length} point loads (construction-stage only)`}
             ],
             point_load_table: {
               DL: pointDL.map(p => ({ x_ft:p.x, P_k:p.P })),
