@@ -218,7 +218,7 @@
             <div class="field">
               <label title="Objective metric for ranking.">Optimize By</label>
               <select id="optimizeBy">
-                <option value="cost" selected>Relative Cost</option>
+                <option value="cost" selected>Relative TIC</option>
                 <option value="weight">Weight</option>
               </select>
             </div>
@@ -479,39 +479,37 @@
 
         <!-- COST TAB -->
         <section class="card tab-panel" data-panel="cost">
-          <h3>Cost</h3>
+          <h3>Cost (TIC)</h3>
           <div class="grid3">
-            <div class="field"><label>Steel cost ($/lb)</label><input id="costSteel" type="number" step="0.001" /></div>
-            <div class="field"><label>Installed stud cost ($/stud)</label><input id="costStud" type="number" step="0.01" /></div>
+            <div class="field"><label title="Total installed cost per pound of steel. Should reflect your typical fabricated + erected steel package (not mill price). If you only know $/ton: divide by 2000 to get $/lb.">Steel TIC ($/lb)</label><input id="costSteelTIC" type="number" step="0.001" /></div>
+            <div class="field"><label title="Total installed cost per stud (stud + welding labor + QA). If you only know material cost, installed TIC is typically higher.">Stud TIC ($/stud)</label><input id="costStudTIC" type="number" step="0.01" /></div>
             <div class="field">
-              <label>Camber cost model</label>
+              <label title="Camber is modeled as an installed-cost adder. Equivalent steel lbs/ft is recommended because it scales with member length and Steel TIC.">Camber cost model</label>
               <select id="camberModel">
-                <option value="ranges">Cost depends on camber (ranges)</option>
-                <option value="flat">Flat cost per cambered member</option>
+                <option value="eq_lbs_per_ft">Equivalent Steel (lbs/ft)</option>
+                <option value="flat_per_member">Flat $ per cambered member</option>
               </select>
             </div>
           </div>
 
-          <div id="camberRangesBox">
-            <h4>Camber Cost Ranges</h4>
-            <div class="grid3">
-              <div class="field"><label>Range 1 max camber (in)</label><input id="range1Max" type="number" step="0.01" /></div>
-              <div class="field"><label>Range 1 cost/member ($)</label><input id="range1Cost" type="number" step="0.01" /></div>
-              <div></div>
-              <div class="field"><label>Range 2 max camber (in)</label><input id="range2Max" type="number" step="0.01" /></div>
-              <div class="field"><label>Range 2 cost/member ($)</label><input id="range2Cost" type="number" step="0.01" /></div>
-              <div></div>
-              <div class="field"><label>Beyond range 2 cost/member ($)</label><input id="range3Cost" type="number" step="0.01" /></div>
+          <div id="camberEqBox">
+            <h4>Equivalent Steel (lbs/ft)</h4>
+            <div class="grid2">
+              <div class="field"><label title="These represent additional ‘equivalent steel weight’ attributed to cambering. Increase girder value if cambering deeper/heavier girders costs more at your fabricator.">Beam camber add (lbs/ft)</label><input id="camberEqBeam" type="number" step="0.01" /></div>
+              <div class="field"><label title="These represent additional ‘equivalent steel weight’ attributed to cambering. Increase girder value if cambering deeper/heavier girders costs more at your fabricator.">Girder camber add (lbs/ft)</label><input id="camberEqGirder" type="number" step="0.01" /></div>
             </div>
+            <div class="small muted-box">Camber cost modeled as added equivalent weight × Steel TIC. Defaults are conceptual and should be calibrated to local standards.</div>
           </div>
 
           <div id="camberFlatBox">
-            <h4>Flat Camber Cost</h4>
-            <div class="field" style="max-width:260px">
-              <label>Cost per cambered member ($)</label>
-              <input id="flatCamberCost" type="number" step="0.01" />
+            <h4>Flat $ per cambered member (Legacy)</h4>
+            <div class="grid2">
+              <div class="field"><label title="Legacy mode. Use if your fabricator quotes camber as a flat adder per member.">Beam camber cost ($/member)</label><input id="camberFlatBeam" type="number" step="0.01" /></div>
+              <div class="field"><label title="Legacy mode. Use if your fabricator quotes camber as a flat adder per member.">Girder camber cost ($/member)</label><input id="camberFlatGirder" type="number" step="0.01" /></div>
             </div>
           </div>
+
+          <div class="small muted-box" style="margin-top:.45rem">Tip: Calibrate these values against a recent project. The optimizer ranks options by a relative TIC index.</div>
         </section>
 
         <!-- RESULTS TAB -->
@@ -525,7 +523,7 @@
                   <th>#</th>
                   <th>Beam</th>
                   <th>Girder</th>
-                  <th>Cost ($/sf)</th>
+                  <th>TIC ($/sf)</th>
                   <th>Weight (psf)</th>
                   <th>Strength Util</th>
                   <th>Deflection Util</th>
@@ -621,7 +619,7 @@
      * }} deflection
      * @property {{min_in:number,max_in:number,inc_in:number,min_length_ft:number,pct_of_dead:number,disallow_noncompact_web:boolean}} camber
      * @property {{edge_dist_in:number,end_dist_in:number,long_min_parallel_in:number,long_min_perp_in:number,long_max_parallel_in:number,long_max_perp_in:number,trans_min_parallel_in:number,trans_min_perp_in:number}} stud_spacing_limits
-     * @property {{steel_per_lb:number,stud_per_each:number,camber_model:'ranges'|'flat',flat_cost_per_member:number,ranges:Array<{max_in:number|null,cost_per_member:number}>}} cost
+     * @property {{steel_tic_per_lb:number,stud_tic_per_each:number,camber_model:'eq_lbs_per_ft'|'flat_per_member',camber_eq:{beam_lbs_per_ft:number,girder_lbs_per_ft:number},camber_flat:{beam_cost_per_member:number,girder_cost_per_member:number}}} cost
      */
 
     const APP_VERSION = "0.1.0-mvp";
@@ -682,7 +680,7 @@
       .replace(/>/g, "&gt;");
 
     function defaultInputs() {
-      return {
+      const out = {
         basis: {
           design_method: "AISC_360_22_LRFD",
           live_load_reduction: true,
@@ -771,17 +769,21 @@
           trans_min_perp_in: 3
         },
         cost: {
-          steel_per_lb: 1.2,
-          stud_per_each: 3.5,
-          camber_model: "ranges",
-          flat_cost_per_member: 225,
-          ranges: [
-            { max_in: 1.5, cost_per_member: 180 },
-            { max_in: 2.5, cost_per_member: 260 },
-            { max_in: null, cost_per_member: 360 }
-          ]
+          steel_tic_per_lb: 1.25,
+          stud_tic_per_each: 8.0,
+          camber_model: "eq_lbs_per_ft",
+          camber_eq: {
+            beam_lbs_per_ft: 5,
+            girder_lbs_per_ft: 7
+          },
+          camber_flat: {
+            beam_cost_per_member: 250,
+            girder_cost_per_member: 350
+          }
         }
       };
+      out.cost = normalizeCostInputs(out.cost);
+      return out;
     }
 
     function computeLayout(geometry) {
@@ -805,7 +807,7 @@
       const beam_equiv_count = shareBeams ? nDeckSpans : (nDeckSpans + 1);
       const girder_equiv_count = shareGirders ? 1 : 2;
 
-      return {
+      const out = {
         nDeckSpans,
         spacing_ft,
         positions_all_ft,
@@ -813,6 +815,7 @@
         beam_equiv_count,
         girder_equiv_count
       };
+      return out;
     }
 
     function llReduction(LL, reducible, globalOn, KLL, AT) {
@@ -937,20 +940,18 @@
       $("camberPctDead").value = inputs.camber.pct_of_dead * 100;
       $("camberDisallowNoncompact").checked = !!inputs.camber.disallow_noncompact_web;
 
-      $("costSteel").value = inputs.cost.steel_per_lb;
-      $("costStud").value = inputs.cost.stud_per_each;
+      $("costSteelTIC").value = inputs.cost.steel_tic_per_lb;
+      $("costStudTIC").value = inputs.cost.stud_tic_per_each;
       $("camberModel").value = inputs.cost.camber_model;
-      $("flatCamberCost").value = inputs.cost.flat_cost_per_member;
-      $("range1Max").value = inputs.cost.ranges[0].max_in ?? "";
-      $("range1Cost").value = inputs.cost.ranges[0].cost_per_member;
-      $("range2Max").value = inputs.cost.ranges[1].max_in ?? "";
-      $("range2Cost").value = inputs.cost.ranges[1].cost_per_member;
-      $("range3Cost").value = inputs.cost.ranges[2].cost_per_member;
+      $("camberEqBeam").value = inputs.cost.camber_eq.beam_lbs_per_ft;
+      $("camberEqGirder").value = inputs.cost.camber_eq.girder_lbs_per_ft;
+      $("camberFlatBeam").value = inputs.cost.camber_flat.beam_cost_per_member;
+      $("camberFlatGirder").value = inputs.cost.camber_flat.girder_cost_per_member;
     }
 
     function collectInputs() {
       const shapeMode = document.querySelector("input[name='shapeSource']:checked")?.value ?? "demo";
-      return {
+      const out = {
         basis: {
           design_method: "AISC_360_22_LRFD",
           live_load_reduction: $("globalLLReduction").value === "true",
@@ -1053,16 +1054,46 @@
           trans_min_perp_in: parseNum($("studTransMinPerp").value, 3)
         },
         cost: {
-          steel_per_lb: parseNum($("costSteel").value, 1.2),
-          stud_per_each: parseNum($("costStud").value, 3.5),
-          camber_model: $("camberModel").value === "flat" ? "flat" : "ranges",
-          flat_cost_per_member: parseNum($("flatCamberCost").value, 225),
-          ranges: [
-            { max_in: parseOptionalNum($("range1Max").value), cost_per_member: parseNum($("range1Cost").value, 180) },
-            { max_in: parseOptionalNum($("range2Max").value), cost_per_member: parseNum($("range2Cost").value, 260) },
-            { max_in: null, cost_per_member: parseNum($("range3Cost").value, 360) }
-          ]
+          steel_tic_per_lb: parseNum($("costSteelTIC").value, 1.25),
+          stud_tic_per_each: parseNum($("costStudTIC").value, 8.0),
+          camber_model: $("camberModel").value === "flat_per_member" ? "flat_per_member" : "eq_lbs_per_ft",
+          camber_eq: {
+            beam_lbs_per_ft: parseNum($("camberEqBeam").value, 5),
+            girder_lbs_per_ft: parseNum($("camberEqGirder").value, 7)
+          },
+          camber_flat: {
+            beam_cost_per_member: parseNum($("camberFlatBeam").value, 250),
+            girder_cost_per_member: parseNum($("camberFlatGirder").value, 350)
+          }
         }
+      };
+      out.cost = normalizeCostInputs(out.cost);
+      return out;
+    }
+
+
+    function normalizeCostInputs(costRaw = {}) {
+      if (costRaw.steel_tic_per_lb != null || costRaw.stud_tic_per_each != null || costRaw.camber_eq || costRaw.camber_flat) {
+        return {
+          steel_tic_per_lb: parseNum(costRaw.steel_tic_per_lb, 1.25),
+          stud_tic_per_each: parseNum(costRaw.stud_tic_per_each, 8.0),
+          camber_model: costRaw.camber_model === "flat_per_member" ? "flat_per_member" : "eq_lbs_per_ft",
+          camber_eq: {
+            beam_lbs_per_ft: parseNum(costRaw.camber_eq?.beam_lbs_per_ft, 5),
+            girder_lbs_per_ft: parseNum(costRaw.camber_eq?.girder_lbs_per_ft, 7)
+          },
+          camber_flat: {
+            beam_cost_per_member: parseNum(costRaw.camber_flat?.beam_cost_per_member, 250),
+            girder_cost_per_member: parseNum(costRaw.camber_flat?.girder_cost_per_member, 350)
+          }
+        };
+      }
+      return {
+        steel_tic_per_lb: parseNum(costRaw.steel_per_lb, 1.25),
+        stud_tic_per_each: parseNum(costRaw.stud_per_each, 8.0),
+        camber_model: "eq_lbs_per_ft",
+        camber_eq: { beam_lbs_per_ft: 5, girder_lbs_per_ft: 7 },
+        camber_flat: { beam_cost_per_member: 250, girder_cost_per_member: 350 }
       };
     }
 
@@ -1075,7 +1106,7 @@
       if (inp.member_criteria.Fy_ksi <= 0) e.push("Fy must be positive.");
       if (inp.camber.min_in < 0 || inp.camber.max_in < 0 || inp.camber.inc_in <= 0 || inp.camber.min_in > inp.camber.max_in) e.push("Camber range/increment is invalid.");
       if (inp.camber.pct_of_dead < 0 || inp.camber.pct_of_dead > 1) e.push("Camber dead-load percent must be between 0 and 100%.");
-      if (inp.cost.steel_per_lb < 0 || inp.cost.stud_per_each < 0) e.push("Cost inputs must be nonnegative.");
+      if (inp.cost.steel_tic_per_lb < 0 || inp.cost.stud_tic_per_each < 0) e.push("Cost inputs must be nonnegative.");
       if (inp.member_criteria.beam.shape_filters.d_min > inp.member_criteria.beam.shape_filters.d_max) e.push("Beam filter d min > d max.");
       if (inp.member_criteria.girder.shape_filters.d_min > inp.member_criteria.girder.shape_filters.d_max) e.push("Girder filter d min > d max.");
       if (!shapes.length) e.push("No shapes available. Use demo shapes or upload a valid shapes file.");
@@ -1094,8 +1125,8 @@
     }
 
     function updateCamberCostUI() {
-      const isFlat = $("camberModel").value === "flat";
-      $("camberRangesBox").style.display = isFlat ? "none" : "block";
+      const isFlat = $("camberModel").value === "flat_per_member";
+      $("camberEqBox").style.display = isFlat ? "none" : "block";
       $("camberFlatBox").style.display = isFlat ? "block" : "none";
     }
 
@@ -1341,18 +1372,18 @@
       const cb = sol.panel.cost_breakdown || {};
       $("selectedSummary").innerHTML = `
         <div class="summary-grid">
-          <div class="kpi"><div class="small">Cost</div><div class="v">$${fmt(sol.panel.cost_per_sf,3)}/sf</div></div>
+          <div class="kpi"><div class="small">TIC</div><div class="v">$${fmt(sol.panel.cost_per_sf,3)}/sf</div></div>
           <div class="kpi"><div class="small">Weight</div><div class="v">${fmt(sol.panel.weight_psf,3)} psf</div></div>
           <div class="kpi"><div class="small">Strength Util</div><div class="v ${sol.panel.governing.strength_util_max>1?'bad':'ok'}">${fmt(sol.panel.governing.strength_util_max,3)}</div></div>
           <div class="kpi"><div class="small">Deflection Util</div><div class="v ${sol.panel.governing.deflection_util_max>1?'bad':'ok'}">${fmt(sol.panel.governing.deflection_util_max,3)}</div></div>
         </div>
         <div style="margin-top:.45rem"><strong>Control:</strong> ${safeStr(sol.panel.governing.controlling_case_str)}</div>
         <div style="margin-top:.35rem" class="small">
-          <strong>Cost Breakdown (bay):</strong><br/>
-          Steel: $${fmt(cb.steel_usd,2)} |
-          Studs: $${fmt(cb.stud_usd,2)} |
-          Camber: $${fmt(cb.camber_usd,2)} |
-          Total: $${fmt(cb.total_usd,2)}
+          <strong>TIC Breakdown (bay):</strong><br/>
+          Steel TIC: $${fmt(cb.steel_usd,2)} |
+          Stud TIC: $${fmt(cb.stud_usd,2)} |
+          Camber TIC: $${fmt(cb.camber_usd,2)} (Beam $${fmt(cb.camber_beam_usd,2)} + Girder $${fmt(cb.camber_girder_usd,2)}) |
+          Total TIC: $${fmt(cb.total_usd,2)}
         </div>
       `;
 
@@ -1547,12 +1578,13 @@
       ];
 
       const cost = [
-        ["Steel ($/lb)", fmt(costs.steel_per_lb,3)],
-        ["Stud ($/stud)", fmt(costs.stud_per_each,2)],
+        ["Steel TIC ($/lb)", fmt(costs.steel_tic_per_lb,3)],
+        ["Stud TIC ($/stud)", fmt(costs.stud_tic_per_each,2)],
         ["Camber model", safeStr(costs.camber_model)],
-        ["Range 1", costs.camber_model==="ranges" ? `≤${costs.ranges?.[0]?.max_in ?? "—"} in → ${money(costs.ranges?.[0]?.cost_per_member,0)}` : "—"],
-        ["Range 2", costs.camber_model==="ranges" ? `≤${costs.ranges?.[1]?.max_in ?? "—"} in → ${money(costs.ranges?.[1]?.cost_per_member,0)}` : "—"],
-        ["Range 3", costs.camber_model==="ranges" ? `>${costs.ranges?.[1]?.max_in ?? "—"} in → ${money(costs.ranges?.[2]?.cost_per_member,0)}` : money(costs.flat_cost_per_member,0)]
+        ["Beam camber eq (lbs/ft)", costs.camber_model==="eq_lbs_per_ft" ? fmt(costs.camber_eq?.beam_lbs_per_ft,3) : "—"],
+        ["Girder camber eq (lbs/ft)", costs.camber_model==="eq_lbs_per_ft" ? fmt(costs.camber_eq?.girder_lbs_per_ft,3) : "—"],
+        ["Beam camber flat ($/member)", costs.camber_model==="flat_per_member" ? money(costs.camber_flat?.beam_cost_per_member,2) : "—"],
+        ["Girder camber flat ($/member)", costs.camber_model==="flat_per_member" ? money(costs.camber_flat?.girder_cost_per_member,2) : "—"]
       ];
 
       const section = (title, arr) => `
@@ -1636,11 +1668,16 @@
           ["Weight (psf)", fmt(sol.panel.weight_psf,3)],
           ["Beam studs total", fmtI(beamStud)],
           ["Girder studs total", fmtI(girderStud)],
-          ["Steel cost (bay)", money(cb.steel_usd,2)],
-          ["Stud cost (bay)", money(cb.stud_usd,2)],
-          ["Camber cost (bay)", money(cb.camber_usd,2)],
-          ["Total cost (bay)", money(cb.total_usd,2)],
-          ["Cost ($/sf)", money(sol.panel.cost_per_sf,3)]
+          ["Total studs", fmtI(beamStud + girderStud)],
+          ["Steel TIC ($/lb)", fmt(inputs.cost.steel_tic_per_lb,3)],
+          ["Stud TIC ($/stud)", fmt(inputs.cost.stud_tic_per_each,2)],
+          ["Steel TIC (bay)", money(cb.steel_usd,2)],
+          ["Stud TIC (bay)", money(cb.stud_usd,2)],
+          ["Camber TIC beam (bay)", money(cb.camber_beam_usd,2)],
+          ["Camber TIC girder (bay)", money(cb.camber_girder_usd,2)],
+          ["Camber TIC (bay)", money(cb.camber_usd,2)],
+          ["Total TIC (bay)", money(cb.total_usd,2)],
+          ["Total TIC ($/sf)", money(sol.panel.cost_per_sf,3)]
         ])}
       `;
     }
@@ -1840,7 +1877,7 @@
     function exportCSV() {
       if (!state.results.length) return;
       const rows = [
-        ["Rank","Beam","Girder","Cost_per_sf","Weight_psf","StrengthUtilMax","DeflectionUtilMax","Control"]
+        ["Rank","Beam","Girder","TIC_per_sf","Weight_psf","StrengthUtilMax","DeflectionUtilMax","Control"]
       ];
       state.results.forEach((r, i) => {
         rows.push([
@@ -1901,7 +1938,7 @@
         ${tableHTML(["Field","Value"], [
           ["Beam", safeStr(sol.panel.beam_shape)],
           ["Girder", safeStr(sol.panel.girder_shape)],
-          ["Cost ($/sf)", money(sol.panel.cost_per_sf,3)],
+          ["TIC ($/sf)", money(sol.panel.cost_per_sf,3)],
           ["Weight (psf)", fmt(sol.panel.weight_psf,3)],
           ["Strength Util Max", fmt(sol.panel.governing.strength_util_max,3)],
           ["Deflection Util Max", fmt(sol.panel.governing.deflection_util_max,3)],
@@ -1935,6 +1972,7 @@
           const obj = JSON.parse(fr.result);
           if (!obj || !obj.inputs) throw new Error("Invalid run JSON.");
           state.inputs = deepClone(obj.inputs);
+          state.inputs.cost = normalizeCostInputs(state.inputs.cost || {});
           populateForm(state.inputs);
 
           if (obj.shapes_snapshot?.mode === "upload" && Array.isArray(obj.shapes_snapshot.shapes)) {
@@ -2507,13 +2545,26 @@
         return Array.from(new Set(out));
       }
 
-      function camberCost(camber_in, cost) {
+      function camberCostEq(memberType, camber_in, length_ft, cost) {
         if (!camber_in || camber_in <= 0) return 0;
-        if (cost.camber_model === "flat") return Math.max(0, toNum(cost.flat_cost_per_member, 0));
-        const r1 = cost.ranges[0], r2 = cost.ranges[1], r3 = cost.ranges[2];
-        if (r1.max_in != null && camber_in <= r1.max_in) return Math.max(0, toNum(r1.cost_per_member, 0));
-        if (r2.max_in != null && camber_in <= r2.max_in) return Math.max(0, toNum(r2.cost_per_member, 0));
-        return Math.max(0, toNum(r3.cost_per_member, 0));
+        const lbsPerFt = memberType === "girder"
+          ? toNum(cost.camber_eq?.girder_lbs_per_ft, 7)
+          : toNum(cost.camber_eq?.beam_lbs_per_ft, 5);
+        const steelTic = toNum(cost.steel_tic_per_lb, 1.25);
+        return Math.max(0, lbsPerFt * length_ft * steelTic);
+      }
+
+      function camberCostFlat(memberType, camber_in, cost) {
+        if (!camber_in || camber_in <= 0) return 0;
+        const flatCost = memberType === "girder"
+          ? toNum(cost.camber_flat?.girder_cost_per_member, 350)
+          : toNum(cost.camber_flat?.beam_cost_per_member, 250);
+        return Math.max(0, flatCost);
+      }
+
+      function camberCost(memberType, camber_in, length_ft, cost) {
+        if (cost.camber_model === "flat_per_member") return camberCostFlat(memberType, camber_in, cost);
+        return camberCostEq(memberType, camber_in, length_ft, cost);
       }
 
       function checkDeflCases(defMap, L_ft, limits) {
@@ -2628,8 +2679,8 @@
             const defl = checkDeflCases({ DL:dDL, LL:dLL, SDL:dSDL, LL_SDL:dLL+dSDL, TOTAL:dTOTAL }, L, inputs.deflection.limits);
             if (defl.maxUtil > 1) continue;
 
-            const cCost = camberCost(c, inputs.cost);
-            const localScore = (v.composite.studs.stud_count_total || 0) * inputs.cost.stud_per_each + cCost + 100 * (strength.maxUtil + defl.maxUtil);
+            const cCost = camberCost("beam", c, L, inputs.cost);
+            const localScore = (v.composite.studs.stud_count_total || 0) * inputs.cost.stud_tic_per_each + cCost + 100 * (strength.maxUtil + defl.maxUtil);
 
             if (!best || localScore < best.localScore) {
               best = {
@@ -2819,8 +2870,8 @@
             const defl = checkDeflCases({ DL:dDL, LL:dLL, SDL:dSDL, LL_SDL:dLL+dSDL, TOTAL:dTOTAL }, Lg, inputs.deflection.limits);
             if (defl.maxUtil > 1) continue;
 
-            const cCost = camberCost(c, inputs.cost);
-            const localScore = (v.composite.studs.stud_count_total || 0) * inputs.cost.stud_per_each + cCost + 100 * (strength.maxUtil + defl.maxUtil);
+            const cCost = camberCost("girder", c, Lg, inputs.cost);
+            const localScore = (v.composite.studs.stud_count_total || 0) * inputs.cost.stud_tic_per_each + cCost + 100 * (strength.maxUtil + defl.maxUtil);
 
             if (!best || localScore < best.localScore) {
               best = {
@@ -2907,9 +2958,11 @@
         const girderStudsTotal = (girder.report.composite.studs.stud_count_total || 0) * nGirderEq;
         const totalStuds = beamStudsTotal + girderStudsTotal;
 
-        const steel_usd = totalWeightLb * inputs.cost.steel_per_lb;
-        const stud_usd = totalStuds * inputs.cost.stud_per_each;
-        const camber_usd = beam.report.camber.cost_usd * nBeamEq + girder.report.camber.cost_usd * nGirderEq;
+        const steel_usd = totalWeightLb * inputs.cost.steel_tic_per_lb;
+        const stud_usd = totalStuds * inputs.cost.stud_tic_per_each;
+        const camber_beam_usd = beam.report.camber.cost_usd * nBeamEq;
+        const camber_girder_usd = girder.report.camber.cost_usd * nGirderEq;
+        const camber_usd = camber_beam_usd + camber_girder_usd;
         const total_usd = steel_usd + stud_usd + camber_usd;
         const cost_per_sf = total_usd / bayArea;
 
@@ -2943,6 +2996,8 @@
               bay_area_sf: bayArea,
               steel_usd,
               stud_usd,
+              camber_beam_usd,
+              camber_girder_usd,
               camber_usd,
               total_usd
             },
