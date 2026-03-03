@@ -285,8 +285,8 @@
           <h3>Loads</h3>
           <div class="grid3">
             <div class="field">
-              <label title="Dead load add-on excluding slab/deck self-weight.">DL add-on (psf)</label>
-              <input id="loadDLadd" type="number" step="0.01" />
+              <label title="Permanent self-weight add-on excluding slab/deck self-weight (load-only, e.g., ponding allowance).">Self Weight Add-On (psf)</label>
+              <input id="loadSWadd" type="number" step="0.01" />
             </div>
             <div class="field">
               <label title="Unreduced nominal live load.">LL (psf)</label>
@@ -328,14 +328,11 @@
               <label title="Shored pours typically reduce beam demand during placement. Turn this ON if you want a conservative check that still includes wet concrete on beams.">If shored construction is ON, still enforce unshored-style pre-composite check</label>
             </div>
             <div class="field">
-              <label title="DL add-on often includes partitions/MEP that may not be present at time of pour. Use 0–100%.">% of DL add-on present during pour</label>
-              <input id="constrDLAddPct" type="number" step="0.1" min="0" max="100" />
-            </div>
-            <div class="field inline" style="align-self:end">
-              <input id="constrIncludeSDL" type="checkbox" />
-              <label title="SDL typically represents finishes/partitions that are not present during pour.">Include SDL during pour</label>
+              <label title="Self Weight Add-On may represent permanent load not fully present during pour. Use 0–100%.">% of SWadd present during pour</label>
+              <input id="constrSWaddPct" type="number" step="0.1" min="0" max="100" />
             </div>
           </div>
+          <div class="small muted-box" style="margin-top:.35rem">Note: If Shored construction is selected (Floor Slab tab), all pre-composite checks are automatically skipped.</div>
           <div id="constructionPreview" class="small muted-box"></div>
         </section>
 
@@ -364,10 +361,6 @@
                   <option value="22">22</option><option value="20">20</option><option value="19">19</option><option value="18">18</option><option value="16">16</option>
                 </select>
               </div>
-              <div class="field inline" style="align-self:end">
-                <input id="deckOverrideWt" type="checkbox" />
-                <label>Override deck weight</label>
-              </div>
               <div class="field">
                 <label title="Continuity assumption for construction-stage unshored span table.">Construction span condition</label>
                 <select id="deckSpanCond">
@@ -384,10 +377,6 @@
                 <label title="Temporary shores reduce construction span to shore spacing.">Shore spacing (ft)</label>
                 <input id="shoreSpacing" type="number" step="0.01" min="0.1" />
               </div>
-              <div class="field inline" style="align-self:end">
-                <input id="useVulcraftSW" type="checkbox" />
-                <label title="Uses table Concrete+Deck psf for DL in member design.">Use Vulcraft slab self-weight (Concrete+Deck) for member DL</label>
-              </div>
             </div>
             <div id="deckChecksInfo" class="small muted-box" style="margin-top:.45rem"></div>
             <div class="small muted-box" style="margin-top:.35rem">Note: max unshored span tables do not address bearing/web-crippling; verify separately.</div>
@@ -400,6 +389,12 @@
             <div class="field"><label>Deck weight (psf)</label><input id="deckWt" type="number" step="0.01" /></div>
             <div class="field"><label>Rib width wr (in)</label><input id="deckRibW" type="number" step="0.01" /></div>
             <div class="field"><label>Rib spacing sr (in)</label><input id="deckRibS" type="number" step="0.01" /></div>
+          </div>
+          <div id="slabSelfWeightInfo" class="small muted-box" style="margin-top:.35rem"></div>
+          <div class="field" style="max-width:420px;margin-top:.35rem">
+            <label>Override slab/deck self-weight (psf)</label>
+            <input id="slabSelfWeightOverride" type="number" step="0.01" placeholder="(blank = use computed)" />
+            <div class="small">If provided, replaces computed slab/deck self-weight (does not include beam self-weight).</div>
           </div>
 
           <h4>Concrete</h4>
@@ -666,10 +661,10 @@
      * @typedef {Object} InputModel
      * @property {{design_method:string,live_load_reduction:boolean,optimize_by:'cost'|'weight'}} basis
      * @property {{Lb_ft:number,Lg_ft:number,spacing_ft:number,nBeamLines_override:number|null,share_half_beams:boolean,share_half_girders:boolean}} geometry
-     * @property {{DL_add_psf:number,LL_psf:number,LL_reducible:boolean,SDL_psf:number,CLL_psf:number}} loads
-     * @property {{enabled:boolean,apply_mode:'composite_only'|'all',force_unshored_if_shored:boolean,dl_add_pct:number,include_sdl:boolean}} construction_stage
+     * @property {{SWadd_psf:number,LL_psf:number,LL_reducible:boolean,SDL_psf:number,CLL_psf:number}} loads
+     * @property {{enabled:boolean,apply_mode:'composite_only'|'all',force_unshored_if_shored:boolean,swadd_pct:number}} construction_stage
      * @property {{
-     *   shored:boolean,shore_spacing_ft:number|null,deck_profile:'None'|'2VLI'|'3VLI',deck_gage:number,deck_span_condition:1|2|3,use_vulcraft_slab_self_weight:boolean,deck_override_weight:boolean,
+     *   shored:boolean,shore_spacing_ft:number|null,deck_profile:'None'|'2VLI'|'3VLI',deck_gage:number,deck_span_condition:1|2|3,self_weight_override_psf:number|null,
      *   deck:{hd_in:number,deck_weight_psf:number,rib_width_in:number,rib_spacing_in:number},
      *   concrete:{topping_in:number,fc_ksi:number,unit_weight_pcf:number},
      *   studs:{dia_in:number,height_in:number,Fu_ksi:number,min_comp_pct:number,max_comp_pct:number}
@@ -695,7 +690,7 @@
      * @property {{steel_tic_per_lb:number,stud_tic_per_each:number,camber_model:'eq_lbs_per_ft'|'flat_per_member',camber_eq:{beam_lbs_per_ft:number,girder_lbs_per_ft:number},camber_flat:{beam_cost_per_member:number,girder_cost_per_member:number}}} cost
      */
 
-    const APP_VERSION = "0.1.0-mvp";
+    const APP_VERSION = "0.1.1";
     const MAX_RESULTS = 80;
 
     const VULCRAFT_DECK_DB = {
@@ -849,7 +844,7 @@
           share_half_beams: true
         },
         loads: {
-          DL_add_psf: 0.5,
+          SWadd_psf: 0.5,
           LL_psf: 50,
           LL_reducible: true,
           SDL_psf: 20,
@@ -859,8 +854,7 @@
           enabled: true,
           apply_mode: "composite_only",
           force_unshored_if_shored: false,
-          dl_add_pct: 0,
-          include_sdl: false
+          swadd_pct: 0
         },
         slab: {
           shored: false,
@@ -868,8 +862,7 @@
           deck_profile: "None",
           deck_gage: 22,
           deck_span_condition: 3,
-          use_vulcraft_slab_self_weight: false,
-          deck_override_weight: false,
+          self_weight_override_psf: null,
           deck: {
             hd_in: 2,
             deck_weight_psf: 2.5,
@@ -950,8 +943,9 @@
         }
       };
       out.cost = normalizeCostInputs(out.cost);
-      out.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", force_unshored_if_shored:false, dl_add_pct:0, include_sdl:false }, out.construction_stage || {});
-      out.construction_stage.dl_add_pct = clamp(out.construction_stage.dl_add_pct, 0, 100);
+      out.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", force_unshored_if_shored:false, swadd_pct:0 }, out.construction_stage || {});
+      out.construction_stage.swadd_pct = clamp(out.construction_stage.swadd_pct, 0, 100);
+      out.slab = Object.assign({ self_weight_override_psf: null }, out.slab || {});
       return out;
     }
 
@@ -1004,9 +998,13 @@
 
     function findClosestTotalDepthKey(profile, density, totalDepth_in) {
       const fam = VULCRAFT_DECK_DB?.[profile]?.[density];
-      if (!fam) return null;
-      for (const k of Object.keys(fam)) if (Math.abs(Number(k) - totalDepth_in) <= 0.02) return k;
-      return null;
+      if (!fam) return { key:null, note:null };
+      const keys = Object.keys(fam).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+      if (!keys.length) return { key:null, note:null };
+      const tol = 1e-6;
+      const lower = keys.filter(k => k <= totalDepth_in + tol);
+      if (lower.length) return { key:String(lower[lower.length - 1]), note:null };
+      return { key:String(keys[0]), note:"Total depth below table minimum; using minimum table depth." };
     }
 
     function formatFtIn(span_ft) {
@@ -1023,9 +1021,35 @@
       return { density_family, density_msg };
     }
 
+    function calcSlabDeckSelfWeight(inputs) {
+      const slab = inputs.slab || {};
+      const deck = slab.deck || {};
+      const conc = slab.concrete || {};
+      const deck_psf = parseNum(deck.deck_weight_psf, 0);
+      const topping_psf = (parseNum(conc.topping_in, 0) / 12) * parseNum(conc.unit_weight_pcf, 0);
+      const sr = Math.max(0.01, parseNum(deck.rib_spacing_in, 12));
+      const t_flute_avg_in = 0.5 * parseNum(deck.hd_in, 0) * (parseNum(deck.rib_width_in, 0) / sr);
+      const flute_psf = (t_flute_avg_in / 12) * parseNum(conc.unit_weight_pcf, 0);
+      return {
+        deck_psf,
+        topping_psf,
+        flute_psf,
+        total_psf: deck_psf + topping_psf + flute_psf
+      };
+    }
+
+    function slabSelfWeightPsfUsed(inputs) {
+      const ov = Number.parseFloat(inputs?.slab?.self_weight_override_psf);
+      if (Number.isFinite(ov) && ov > 0) return ov;
+      return calcSlabDeckSelfWeight(inputs).total_psf;
+    }
+
     function deckChecks(inputs, computedLayout) {
       const slab = inputs.slab;
       const profile = slab.deck_profile || "None";
+      const selfWt = calcSlabDeckSelfWeight(inputs);
+      const selfWtUsed = slabSelfWeightPsfUsed(inputs);
+      const D_area = selfWtUsed + inputs.loads.SWadd_psf + inputs.loads.SDL_psf;
       const out = {
         enabled: profile !== "None",
         fc_ok: false,
@@ -1038,6 +1062,7 @@
         deckWeight_psf: slab.deck.deck_weight_psf,
         topping_in: slab.concrete.topping_in,
         totalDepth_in: slab.deck.hd_in + slab.concrete.topping_in,
+        tableDepth_in: null,
         spanDeck_ft: null,
         spanCondition: slab.deck_span_condition || 3,
         maxUnshoredAllowed_ft: null,
@@ -1045,11 +1070,14 @@
         spanUsed_ft_for_superimposed: null,
         phiWn_psf: null,
         wL360_psf: null,
-        demand_strength_psf: 1.2 * inputs.loads.SDL_psf + 1.6 * inputs.loads.LL_psf,
-        demand_defl_psf: inputs.loads.SDL_psf + inputs.loads.LL_psf,
+        governing_allowable_psf: null,
+        computed_slab_deck_self_weight_psf: selfWt.total_psf,
+        used_slab_deck_self_weight_psf: selfWtUsed,
+        D_area_psf: D_area,
+        demand_strength_psf: 1.2 * D_area + 1.6 * inputs.loads.LL_psf,
+        demand_defl_psf: D_area + inputs.loads.LL_psf,
         pass_strength: null,
         pass_defl: null,
-        slabSelfWeightOverride_psf: null,
         notes: []
       };
       if (!out.enabled) return out;
@@ -1057,7 +1085,6 @@
       const db = VULCRAFT_DECK_DB[profile];
       if (!db) { out.fc_msg = "Deck checks disabled: unknown profile."; return out; }
       out.deckDepth_in = db.deckDepth_in;
-      out.deckWeight_psf = db.deckWeight_psf_by_gage[slab.deck_gage] ?? slab.deck.deck_weight_psf;
       out.totalDepth_in = out.deckDepth_in + slab.concrete.topping_in;
 
       out.fc_ok = slab.concrete.fc_ksi >= 3.0;
@@ -1070,9 +1097,11 @@
       out.density_family = fam.density_family;
       out.density_msg = fam.density_msg;
 
-      const key = findClosestTotalDepthKey(profile, out.density_family, out.totalDepth_in);
-      if (!key) { out.notes.push("No table match for total slab depth."); return out; }
-      const row = db[out.density_family][key];
+      const ksel = findClosestTotalDepthKey(profile, out.density_family, out.totalDepth_in);
+      if (!ksel.key) { out.notes.push("No table match for total slab depth."); return out; }
+      if (ksel.note) out.notes.push(ksel.note);
+      out.tableDepth_in = Number(ksel.key);
+      const row = db[out.density_family][ksel.key];
 
       const spacing = computedLayout?.spacing_ft || inputs.geometry.spacing_ft;
       const shore = slab.shore_spacing_ft || spacing;
@@ -1092,30 +1121,21 @@
       if (!cell) return out;
       out.phiWn_psf = cell[0];
       out.wL360_psf = cell[1];
+      out.governing_allowable_psf = Math.min(out.phiWn_psf, out.wL360_psf);
       out.pass_strength = out.demand_strength_psf <= out.phiWn_psf + 1e-9;
       out.pass_defl = out.demand_defl_psf <= out.wL360_psf + 1e-9;
-
-      if (slab.use_vulcraft_slab_self_weight) {
-        out.slabSelfWeightOverride_psf = row.concPlusDeck_psf?.[slab.deck_gage] ?? null;
-        if (out.slabSelfWeightOverride_psf == null) out.notes.push("Vulcraft slab self-weight override not available for this selection.");
-      }
       return out;
     }
 
     function applyDeckProfileToInputs() {
       const inp = collectInputs();
       const p = inp.slab.deck_profile;
-      const g = inp.slab.deck_gage;
       const db = VULCRAFT_DECK_DB[p];
-      const allowOverride = !!$("deckOverrideWt").checked;
       if (p !== "None" && db) {
         $("deckHd").value = db.deckDepth_in;
-        if (!allowOverride) $("deckWt").value = db.deckWeight_psf_by_gage[g] ?? $("deckWt").value;
       }
-      $("deckWt").disabled = p !== "None" && !allowOverride;
       $("shoreSpacingBox").style.display = $("slabShored").checked ? "block" : "none";
       if (!$("shoreSpacing").value) $("shoreSpacing").value = fmt(computeLayout(inp.geometry).spacing_ft, 3);
-      if (p === "None") $("useVulcraftSW").checked = false;
     }
 
     function renderDeckChecks() {
@@ -1123,6 +1143,8 @@
       applyDeckProfileToInputs();
       const lay = computeLayout(inp.geometry);
       const d = deckChecks(inp, lay);
+      const sw = calcSlabDeckSelfWeight(inp);
+      $("slabSelfWeightInfo").innerHTML = `<div><strong>Computed slab/deck self-weight (psf):</strong> ${fmt(sw.total_psf,2)} (metal + topping + flutes)</div>`;
       const box = $("deckChecksInfo");
       if (!d.enabled) {
         box.innerHTML = '<div>Deck checks disabled (profile=None).</div>';
@@ -1133,12 +1155,13 @@
         <div><strong>${d.fc_ok ? '✅' : '❌'} ${safeStr(d.fc_msg)}</strong></div>
         <div>${safeStr(d.density_msg || '')}</div>
         <div><strong>Deck span used:</strong> ${formatFtIn(d.spanDeck_ft)} (${fmt(d.spanDeck_ft,3)} ft)</div>
-        <div><strong>Total slab depth:</strong> ${fmt(d.totalDepth_in,2)} in</div>
+        <div><strong>Total slab depth (lookup):</strong> ${fmt(d.totalDepth_in,2)} in → table ${d.tableDepth_in != null ? fmt(d.tableDepth_in,2) : "—"} in</div>
         <div><strong>Allowed max unshored clear span:</strong> ${formatFtIn(d.maxUnshoredAllowed_ft)} | <strong>Provided:</strong> ${formatFtIn(d.spanDeck_ft)} → ${pf(d.pass_unshored)}</div>
         <div><strong>Span column used:</strong> ${d.spanUsed_ft_for_superimposed != null ? formatFtIn(d.spanUsed_ft_for_superimposed) : '—'}</div>
-        <div><strong>φWn capacity:</strong> ${fmt(d.phiWn_psf,1)} psf; demand=${fmt(d.demand_strength_psf,1)} psf → ${pf(d.pass_strength)}</div>
-        <div><strong>L/360 cap:</strong> ${fmt(d.wL360_psf,1)} psf; demand=${fmt(d.demand_defl_psf,1)} psf → ${pf(d.pass_defl)}</div>
-        ${d.slabSelfWeightOverride_psf != null ? `<div><strong>Vulcraft Concrete+Deck:</strong> ${fmt(d.slabSelfWeightOverride_psf,2)} psf (override available)</div>` : ''}
+        <div><strong>Demand inputs:</strong> SWused=${fmt(d.used_slab_deck_self_weight_psf,2)} psf, SWadd=${fmt(inp.loads.SWadd_psf,2)} psf, SDL=${fmt(inp.loads.SDL_psf,2)} psf, LL=${fmt(inp.loads.LL_psf,2)} psf</div>
+        <div><strong>φWn capacity:</strong> ${fmt(d.phiWn_psf,1)} psf; strength demand=${fmt(d.demand_strength_psf,1)} psf → ${pf(d.pass_strength)}</div>
+        <div><strong style="color:#b91c1c">L/360 cap:</strong> <span style="color:#b91c1c">${fmt(d.wL360_psf,1)} psf</span>; service demand=${fmt(d.demand_defl_psf,1)} psf → ${pf(d.pass_defl)}</div>
+        <div><strong>Governing allowable:</strong> ${fmt(d.governing_allowable_psf,1)} psf (min of φWn and L/360)</div>
         ${d.notes.map(n=>`<div>${safeStr(n)}</div>`).join('')}
       `;
     }
@@ -1182,7 +1205,7 @@
       $("geoShareHalfGirders").checked = !!inputs.geometry.share_half_girders;
       $("geoShareHalfBeams").checked = !!inputs.geometry.share_half_beams;
 
-      $("loadDLadd").value = inputs.loads.DL_add_psf;
+      $("loadSWadd").value = inputs.loads.SWadd_psf;
       $("loadLL").value = inputs.loads.LL_psf;
       $("loadLLReducible").checked = !!inputs.loads.LL_reducible;
       $("loadSDL").value = inputs.loads.SDL_psf;
@@ -1191,16 +1214,14 @@
       $("constrEnable").checked = !!inputs.construction_stage?.enabled;
       $("constrApplyMode").value = inputs.construction_stage?.apply_mode || "composite_only";
       $("constrForceUnshored").checked = !!inputs.construction_stage?.force_unshored_if_shored;
-      $("constrDLAddPct").value = inputs.construction_stage?.dl_add_pct ?? 0;
-      $("constrIncludeSDL").checked = !!inputs.construction_stage?.include_sdl;
+      $("constrSWaddPct").value = inputs.construction_stage?.swadd_pct ?? 0;
 
       $("slabShored").checked = !!inputs.slab.shored;
       $("shoreSpacing").value = inputs.slab.shore_spacing_ft ?? inputs.geometry.spacing_ft;
       $("deckProfile").value = inputs.slab.deck_profile || "None";
       $("deckGage").value = String(inputs.slab.deck_gage || 22);
       $("deckSpanCond").value = String(inputs.slab.deck_span_condition || 3);
-      $("useVulcraftSW").checked = !!inputs.slab.use_vulcraft_slab_self_weight;
-      $("deckOverrideWt").checked = !!inputs.slab.deck_override_weight;
+      $("slabSelfWeightOverride").value = inputs.slab.self_weight_override_psf ?? "";
       $("deckHd").value = inputs.slab.deck.hd_in;
       $("deckWt").value = inputs.slab.deck.deck_weight_psf;
       $("deckRibW").value = inputs.slab.deck.rib_width_in;
@@ -1294,7 +1315,7 @@
           share_half_beams: !!$("geoShareHalfBeams").checked
         },
         loads: {
-          DL_add_psf: parseNum($("loadDLadd").value, 0.5),
+          SWadd_psf: parseNum($("loadSWadd").value, 0.5),
           LL_psf: parseNum($("loadLL").value, 50),
           LL_reducible: !!$("loadLLReducible").checked,
           SDL_psf: parseNum($("loadSDL").value, 20),
@@ -1304,8 +1325,7 @@
           enabled: !!$("constrEnable").checked,
           apply_mode: $("constrApplyMode").value === "all" ? "all" : "composite_only",
           force_unshored_if_shored: !!$("constrForceUnshored").checked,
-          dl_add_pct: parseNum($("constrDLAddPct").value, 0),
-          include_sdl: !!$("constrIncludeSDL").checked
+          swadd_pct: parseNum($("constrSWaddPct").value, 0)
         },
         slab: {
           shored: !!$("slabShored").checked,
@@ -1313,8 +1333,7 @@
           deck_profile: $("deckProfile").value || "None",
           deck_gage: Math.round(parseNum($("deckGage").value, 22)),
           deck_span_condition: Math.max(1, Math.min(3, Math.round(parseNum($("deckSpanCond").value, 3)))),
-          use_vulcraft_slab_self_weight: !!$("useVulcraftSW").checked,
-          deck_override_weight: !!$("deckOverrideWt").checked,
+          self_weight_override_psf: parseOptionalNum($("slabSelfWeightOverride").value),
           deck: {
             hd_in: parseNum($("deckHd").value, 2),
             deck_weight_psf: parseNum($("deckWt").value, 2.5),
@@ -1409,8 +1428,9 @@
         }
       };
       out.cost = normalizeCostInputs(out.cost);
-      out.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", force_unshored_if_shored:false, dl_add_pct:0, include_sdl:false }, out.construction_stage || {});
-      out.construction_stage.dl_add_pct = clamp(out.construction_stage.dl_add_pct, 0, 100);
+      out.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", force_unshored_if_shored:false, swadd_pct:0 }, out.construction_stage || {});
+      out.construction_stage.swadd_pct = clamp(out.construction_stage.swadd_pct, 0, 100);
+      out.slab = Object.assign({ self_weight_override_psf: null }, out.slab || {});
       return out;
     }
 
@@ -1444,7 +1464,7 @@
       const e = [];
       if (inp.geometry.Lb_ft <= 0 || inp.geometry.Lg_ft <= 0 || inp.geometry.spacing_ft <= 0) e.push("Geometry dimensions/spacing must be positive.");
       if (inp.geometry.nBeamLines_override != null && inp.geometry.nBeamLines_override < 1) e.push("Deck spans override must be >= 1.");
-      if (inp.loads.LL_psf < 0 || inp.loads.SDL_psf < 0 || inp.loads.CLL_psf < 0 || inp.loads.DL_add_psf < 0) e.push("Loads must be nonnegative.");
+      if (inp.loads.LL_psf < 0 || inp.loads.SDL_psf < 0 || inp.loads.CLL_psf < 0 || inp.loads.SWadd_psf < 0) e.push("Loads must be nonnegative.");
       if (inp.slab.shored && (inp.slab.shore_spacing_ft == null || inp.slab.shore_spacing_ft <= 0)) e.push("Shore spacing must be positive when shored construction is enabled.");
       if (inp.slab.studs.min_comp_pct < 0 || inp.slab.studs.max_comp_pct > 100 || inp.slab.studs.min_comp_pct > inp.slab.studs.max_comp_pct) e.push("Stud composite % limits are invalid.");
       if (inp.member_criteria.Fy_ksi <= 0) e.push("Fy must be positive.");
@@ -1523,16 +1543,15 @@
       const inp = collectInputs();
       const cfg = inp.construction_stage || {};
       const lay = computeLayout(inp.geometry);
-      const slabDeck = inp.slab.deck.deck_weight_psf;
-      const wetConcrete = (inp.slab.concrete.topping_in / 12) * inp.slab.concrete.unit_weight_pcf;
-      const slabPsfConstr = (inp.slab.shored && !cfg.force_unshored_if_shored) ? slabDeck : (slabDeck + wetConcrete);
-      const dlAddUsed = inp.loads.DL_add_psf * clamp((cfg.dl_add_pct ?? 0) / 100, 0, 1);
-      const sdlUsed = cfg.include_sdl ? inp.loads.SDL_psf : 0;
+      const sw = calcSlabDeckSelfWeight(inp);
+      const slabPsfConstr = sw.total_psf;
+      const dlAddUsed = inp.loads.SWadd_psf * clamp((cfg.swadd_pct ?? 0) / 100, 0, 1);
+      const sdlUsed = 0;
       $("constructionPreview").innerHTML = `
-        <div><strong>Check active:</strong> ${cfg.enabled ? "Yes" : "No"} (${safeStr(cfg.apply_mode === "all" ? "all solutions" : "composite solutions only")})</div>
-        <div><strong>Slab/deck psf used for construction:</strong> ${fmt(slabPsfConstr,2)} psf (${inp.slab.shored && !cfg.force_unshored_if_shored ? "shored deck-only" : "wet slab + deck"})</div>
-        <div><strong>DL add-on portion:</strong> ${fmt(dlAddUsed,2)} psf (${fmt(cfg.dl_add_pct,1)}%)</div>
-        <div><strong>SDL included:</strong> ${fmt(sdlUsed,2)} psf</div>
+        <div><strong>Check active:</strong> ${cfg.enabled ? "Yes" : "No"} (${safeStr(cfg.apply_mode === "all" ? "all solutions" : "composite solutions only")})${inp.slab.shored ? " — Shored selected, checks will be skipped." : ""}</div>
+        <div><strong>Slab/deck psf used for construction:</strong> ${fmt(slabPsfConstr,2)} psf (wet slab + deck (metal+topping+flutes))</div>
+        <div><strong>SWadd portion:</strong> ${fmt(dlAddUsed,2)} psf (${fmt(cfg.swadd_pct,1)}%)</div>
+        <div><strong>SDL included:</strong> ${fmt(sdlUsed,2)} psf (always excluded in pre-composite checks)</div>
         <div><strong>CLL:</strong> ${fmt(inp.loads.CLL_psf,2)} psf</div>
         <div><strong>Beam spacing used:</strong> ${fmt(lay.spacing_ft,3)} ft</div>
       `;
@@ -1787,10 +1806,7 @@
     function pct(v, d=1){ return Number.isFinite(v) ? `${Number(v).toFixed(d)}%` : "—"; }
 
     function calcSlabSelfWeightPsf(inputs){
-      const deck = inputs.slab.deck.deck_weight_psf;
-      const t_ft = inputs.slab.concrete.topping_in / 12;
-      const conc = t_ft * inputs.slab.concrete.unit_weight_pcf;
-      return deck + conc;
+      return calcSlabDeckSelfWeight(inputs).total_psf;
     }
 
     function getLayoutForReport(inputs, sol){
@@ -1874,7 +1890,9 @@
           ["Superimposed span column used", dc.spanUsed_ft_for_superimposed != null ? `${fmt(dc.spanUsed_ft_for_superimposed,3)} ft` : "—"],
           ["φWn capacity vs demand", `${fmt(dc.phiWn_psf,1)} vs ${fmt(dc.demand_strength_psf,1)} psf (${tf(dc.pass_strength)})`],
           ["L/360 cap vs demand", `${fmt(dc.wL360_psf,1)} vs ${fmt(dc.demand_defl_psf,1)} psf (${tf(dc.pass_defl)})`],
-          ["Vulcraft slab self-weight (if used)", dc.slabSelfWeightOverride_psf != null ? `${fmt(dc.slabSelfWeightOverride_psf,2)} psf` : "—"],
+          ["Computed slab/deck SW", `${fmt(dc.computed_slab_deck_self_weight_psf,2)} psf`],
+          ["Used slab/deck SW", `${fmt(dc.used_slab_deck_self_weight_psf,2)} psf`],
+          ["Governing allowable", `${fmt(dc.governing_allowable_psf,1)} psf`],
           ["Note", "Tables do not address bearing/web-crippling; verify separately."]
         ])}
       `;
@@ -1913,7 +1931,7 @@
       ];
 
       const loads = [
-        ["DL add-on (psf)", fmt(inputs.loads.DL_add_psf,3)],
+        ["SWadd (psf)", fmt(inputs.loads.SWadd_psf,3)],
         ["SDL (psf)", fmt(inputs.loads.SDL_psf,3)],
         ["LL (psf)", fmt(inputs.loads.LL_psf,3)],
         ["CLL (psf)", fmt(inputs.loads.CLL_psf,3)]
@@ -1924,8 +1942,7 @@
         ["Enforce pre-composite", yesNo(constr.enabled)],
         ["Apply mode", safeStr(constr.apply_mode || "composite_only")],
         ["Force unshored if shored", yesNo(constr.force_unshored_if_shored)],
-        ["DL add present during pour (%)", fmt(constr.dl_add_pct,2)],
-        ["Include SDL during pour", yesNo(constr.include_sdl)]
+        ["SWadd present during pour (%)", fmt(constr.swadd_pct,2)],
       ];
 
       const slab = [
@@ -1939,11 +1956,10 @@
         ["Computed slab self-weight (psf)", fmt(slabSW,3)],
         ["Deck profile", safeStr(inputs.slab.deck_profile)],
         ["Deck gage", safeStr(inputs.slab.deck_gage)],
-        ["Deck weight overridden", yesNo(inputs.slab.deck_override_weight)],
         ["Deck span condition", safeStr(inputs.slab.deck_span_condition)],
         ["Shored construction", yesNo(inputs.slab.shored)],
         ["Shore spacing (ft)", inputs.slab.shored ? fmt(inputs.slab.shore_spacing_ft ?? spacing_used,3) : "—"],
-        ["Use Vulcraft slab self-weight", yesNo(inputs.slab.use_vulcraft_slab_self_weight)]
+        ["Override slab/deck self-weight (psf)", inputs.slab.self_weight_override_psf != null ? fmt(inputs.slab.self_weight_override_psf,3) : "—"]
       ];
 
       const studs = [
@@ -2019,7 +2035,7 @@
 
       if (member.member_type === "beam") {
         const tw = spacing_used;
-        const DLpsf = slabSW + inputs.loads.DL_add_psf;
+        const DLpsf = slabSW + inputs.loads.SWadd_psf;
         const SDLpsf = inputs.loads.SDL_psf;
         const LLpsf  = inputs.loads.LL_psf;
         const CLLpsf = inputs.loads.CLL_psf;
@@ -2128,16 +2144,15 @@
       const constrRows = (constr.combos || []).map(c => [safeStr(c.name), fmt(c.Mu,3), fmt(c.Vu,3), fmt(c.utilM,3), fmt(c.utilV,3), fmt(c.util,3)]);
       const constrSection = !constr.applied ? `
         <h4>Construction Stage (Pre-Composite) — Bare Steel Check</h4>
-        <div class="small muted-box">Not applied (${!constr.enabled ? "disabled" : "apply mode not triggered for this variant"}).</div>
+        <div class="small muted-box">Not applied (${constr.shored ? "shored construction selected" : (!constr.enabled ? "disabled" : "apply mode not triggered for this variant")}).</div>
       ` : `
         <h4>Construction Stage (Pre-Composite) — Bare Steel Check</h4>
         ${tableHTML(["Field","Value"], [
           ["Shored", yesNo(constr.shored)],
           ["Force unshored if shored", yesNo(constr.force_unshored_if_shored)],
-          ["DL add present (%)", fmt(constr.dl_add_pct,1)],
-          ["Include SDL", yesNo(constr.include_sdl)],
+          ["SWadd present (%)", fmt(constr.swadd_pct,1)],
           ["Slab psf used", fmt(constr.slab_psf_used,3)],
-          ["DL add psf used", fmt(constr.D_area_psf_components?.dl_add_psf_used,3)],
+          ["SWadd psf used", fmt(constr.D_area_psf_components?.swadd_psf_used,3)],
           ["SDL psf used", fmt(constr.D_area_psf_components?.sdl_psf_used,3)],
           ["CLL psf", fmt(constr.cll_psf,3)],
           ["Controlling", safeStr(constr.controlling || "—")],
@@ -2413,8 +2428,12 @@
           const obj = JSON.parse(fr.result);
           if (!obj || !obj.inputs) throw new Error("Invalid run JSON.");
           state.inputs = deepClone(obj.inputs);
+          if (state.inputs.loads && state.inputs.loads.SWadd_psf == null && state.inputs.loads.DL_add_psf != null) state.inputs.loads.SWadd_psf = state.inputs.loads.DL_add_psf;
+          if (state.inputs.loads && state.inputs.loads.SWadd_psf == null) state.inputs.loads.SWadd_psf = 0;
+          if (state.inputs.slab) { delete state.inputs.slab.use_vulcraft_slab_self_weight; delete state.inputs.slab.deck_override_weight; }
           state.inputs.cost = normalizeCostInputs(state.inputs.cost || {});
-          state.inputs.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", force_unshored_if_shored:false, dl_add_pct:0, include_sdl:false }, state.inputs.construction_stage || {});
+          state.inputs.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", force_unshored_if_shored:false, swadd_pct:0 }, state.inputs.construction_stage || {});
+          state.inputs.slab = Object.assign({ self_weight_override_psf: null }, state.inputs.slab || {});
           populateForm(state.inputs);
 
           if (obj.shapes_snapshot?.mode === "upload" && Array.isArray(obj.shapes_snapshot.shapes)) {
@@ -2574,7 +2593,7 @@
       const inp = collectInputs();
       const lay = computeLayout(inp.geometry);
       const selfW = inp.slab.deck.deck_weight_psf + inp.slab.concrete.topping_in / 12 * inp.slab.concrete.unit_weight_pcf;
-      const w = (selfW + inp.loads.DL_add_psf + inp.loads.SDL_psf + inp.loads.LL_psf) * lay.spacing_ft / 1000;
+      const w = (selfW + inp.loads.SWadd_psf + inp.loads.SDL_psf + inp.loads.LL_psf) * lay.spacing_ft / 1000;
       const L = inp.geometry.Lb_ft;
       const M = w * L * L / 8;
       const V = w * L / 2;
@@ -2632,7 +2651,6 @@
       $("camberModel").addEventListener("change", updateCamberCostUI);
       $("deckProfile").addEventListener("change", applyDeckProfileToInputs);
       $("deckGage").addEventListener("change", applyDeckProfileToInputs);
-      $("deckOverrideWt").addEventListener("change", applyDeckProfileToInputs);
       $("slabShored").addEventListener("change", applyDeckProfileToInputs);
 
       document.querySelectorAll("input[name='shapeSource']").forEach(r => {
@@ -2650,9 +2668,9 @@
       });
 
       const watchIds = [
-        "geoLb","geoLg","geoSpacing","geoNBeamOverride","globalLLReduction","loadDLadd","loadLL","loadLLReducible","loadSDL","loadCLL",
-        "concTop","concFc","concUw","deckProfile","deckGage","deckSpanCond","slabShored","shoreSpacing","useVulcraftSW","deckOverrideWt",
-        "camberModel","constrEnable","constrApplyMode","constrForceUnshored","constrDLAddPct","constrIncludeSDL"
+        "geoLb","geoLg","geoSpacing","geoNBeamOverride","globalLLReduction","loadSWadd","loadLL","loadLLReducible","loadSDL","loadCLL",
+        "concTop","concFc","concUw","deckProfile","deckGage","deckSpanCond","slabShored","shoreSpacing","deckHd","deckWt","deckRibW","deckRibS","slabSelfWeightOverride",
+        "camberModel","constrEnable","constrApplyMode","constrForceUnshored","constrSWaddPct"
       ];
       watchIds.forEach(id => {
         $(id).addEventListener("input", () => {
@@ -2740,73 +2758,23 @@
       }
 
 
-      function workerDeckFamily(pcf) {
-        return pcf >= 130 ? "NWC" : "LWC";
-      }
-
-      function workerDepthKey(profile, density, totalDepth_in) {
-        const fam = VULCRAFT_DECK_DB?.[profile]?.[density];
-        if (!fam) return null;
-        for (const k of Object.keys(fam)) if (Math.abs(Number(k) - totalDepth_in) <= 0.02) return k;
-        return null;
+      function calcSlabDeckSelfWeight(inputs) {
+        const slab = inputs.slab || {};
+        const deck = slab.deck || {};
+        const conc = slab.concrete || {};
+        const deck_psf = parseNum(deck.deck_weight_psf, 0);
+        const topping_psf = (parseNum(conc.topping_in, 0) / 12) * parseNum(conc.unit_weight_pcf, 0);
+        const sr = Math.max(0.01, parseNum(deck.rib_spacing_in, 12));
+        const t_flute_avg_in = 0.5 * parseNum(deck.hd_in, 0) * (parseNum(deck.rib_width_in, 0) / sr);
+        const flute_psf = (t_flute_avg_in / 12) * parseNum(conc.unit_weight_pcf, 0);
+        return { deck_psf, topping_psf, flute_psf, total_psf: deck_psf + topping_psf + flute_psf };
       }
 
       function slabSelfWeightPsf(inputs, spacing_ft) {
-        const slab = inputs.slab;
-        if (slab.deck_profile && slab.deck_profile !== "None" && slab.use_vulcraft_slab_self_weight && slab.concrete.fc_ksi >= 3.0) {
-          const density = workerDeckFamily(slab.concrete.unit_weight_pcf);
-          const db = VULCRAFT_DECK_DB?.[slab.deck_profile];
-          if (db) {
-            const totalDepth = db.deckDepth_in + slab.concrete.topping_in;
-            const key = workerDepthKey(slab.deck_profile, density, totalDepth);
-            const row = key ? db[density]?.[key] : null;
-            const val = row?.concPlusDeck_psf?.[slab.deck_gage];
-            if (Number.isFinite(val)) return val;
-          }
-        }
-        return inputs.slab.deck.deck_weight_psf + (inputs.slab.concrete.topping_in / 12) * inputs.slab.concrete.unit_weight_pcf;
+        const ov = Number.parseFloat(inputs?.slab?.self_weight_override_psf);
+        if (Number.isFinite(ov) && ov > 0) return ov;
+        return calcSlabDeckSelfWeight(inputs).total_psf;
       }
-
-      function sectionClass(shape, Fy) {
-        const lambdaF = shape.bf / (2 * shape.tf);
-        const h = Math.max(0.01, shape.d - 2 * shape.tf);
-        const lambdaW = h / shape.tw;
-        const root = Math.sqrt(E / Fy);
-        const lpF = 0.38 * root;
-        const lrF = 1.0 * root;
-        const lpW = 3.76 * root;
-        const lrW = 5.70 * root;
-        const flange_class = lambdaF <= lpF ? "compact" : (lambdaF <= lrF ? "noncompact" : "slender");
-        const web_class = lambdaW <= lpW ? "compact" : (lambdaW <= lrW ? "noncompact" : "slender");
-        return { lambdaF, lambdaW, lpW, flange_class, web_class };
-      }
-
-      function phiMnNonComp(shape, Fy, cls) {
-        let Mn;
-        if (cls.flange_class === "compact" && cls.web_class !== "slender") Mn = Fy * shape.Zx / 12;
-        else if (cls.flange_class === "slender" || cls.web_class === "slender") Mn = 0.7 * Fy * shape.Sx / 12;
-        else Mn = Fy * shape.Sx / 12;
-        return 0.9 * Mn;
-      }
-
-      function phiVn(shape, Fy) {
-        const h = Math.max(0.01, shape.d - 2 * shape.tf);
-        const lambda = h / shape.tw;
-        const lambdaP = 2.24 * Math.sqrt(E / Fy);
-        const Cv = lambda <= lambdaP ? 1 : (lambdaP / lambda);
-        const Aw = h * shape.tw;
-        const Vn = 0.6 * Fy * Aw * Cv;
-        return Vn; // phi_v ~ 1.0 for this simplified MVP
-      }
-
-      function lrfdCombos() {
-        return [
-          { name: "1.4D", D: 1.4, L: 0, CLL: 0 },
-          { name: "1.2D+1.6L", D: 1.2, L: 1.6, CLL: 0 },
-          { name: "1.2D+1.6CLL", D: 1.2, L: 0, CLL: 1.6 }
-        ];
-      }
-
 
       function constructionStageConfig(inputs) {
         const c = inputs.construction_stage || {};
@@ -2814,8 +2782,7 @@
           enabled: !!c.enabled,
           apply_mode: c.apply_mode === "all" ? "all" : "composite_only",
           force_unshored_if_shored: !!c.force_unshored_if_shored,
-          dl_add_pct: clamp(toNum(c.dl_add_pct, 0), 0, 100),
-          include_sdl: !!c.include_sdl
+          swadd_pct: clamp(toNum(c.swadd_pct, 0), 0, 100)
         };
       }
 
@@ -2824,26 +2791,8 @@
       }
 
       function slabWeightPsfConstruction(inputs, cfg) {
-        const slab = inputs.slab;
-        const deckOnly = slab.deck.deck_weight_psf;
-        const wet = slab.deck.deck_weight_psf + (slab.concrete.topping_in / 12) * slab.concrete.unit_weight_pcf;
-        if (slab.shored && !cfg.force_unshored_if_shored) return { psf: deckOnly, note: "Shored construction: deck-only used for pre-composite." };
-
-        if (slab.deck_profile && slab.deck_profile !== "None" && slab.use_vulcraft_slab_self_weight && slab.concrete.fc_ksi >= 3.0) {
-          const density = workerDeckFamily(slab.concrete.unit_weight_pcf);
-          const db = VULCRAFT_DECK_DB?.[slab.deck_profile];
-          if (db) {
-            const totalDepth = db.deckDepth_in + slab.concrete.topping_in;
-            const key = workerDepthKey(slab.deck_profile, density, totalDepth);
-            const row = key ? db[density]?.[key] : null;
-            const val = row?.concPlusDeck_psf?.[slab.deck_gage];
-            if (Number.isFinite(val)) return { psf: val, note: "Using Vulcraft Concrete+Deck psf for pre-composite stage." };
-          }
-        }
-        if (slab.deck_profile && slab.deck_profile !== "None" && slab.use_vulcraft_slab_self_weight && slab.concrete.fc_ksi < 3.0) {
-          return { psf: wet, note: "f'c<3.0 ksi; fallback to manual wet slab for pre-composite stage." };
-        }
-        return { psf: wet, note: "Using manual wet slab+deck psf for pre-composite stage." };
+        const wet = calcSlabDeckSelfWeight(inputs);
+        return { psf: wet.total_psf, note: "Using wet slab+deck (metal+topping+flutes) for pre-composite stage." };
       }
 
       function constructionCombos() {
@@ -2858,9 +2807,9 @@
         const L = inputs.geometry.Lb_ft;
         const spacing = layout.spacing_ft;
         const slab = slabWeightPsfConstruction(inputs, cfg);
-        const dlAdd = inputs.loads.DL_add_psf * (cfg.dl_add_pct / 100);
-        const sdl = cfg.include_sdl ? inputs.loads.SDL_psf : 0;
-        const D_area_psf = slab.psf + dlAdd + sdl;
+        const dlAdd = inputs.loads.SWadd_psf * (cfg.swadd_pct / 100);
+        const sdl = 0;
+        const D_area_psf = slab.psf + dlAdd;
         const wD = D_area_psf * spacing / 1000 + shape.W / 1000;
         const wCLL = inputs.loads.CLL_psf * spacing / 1000;
         const out = [];
@@ -2879,7 +2828,7 @@
           maxUtil, controlling, combos: out,
           slab_psf_used: slab.psf,
           slab_note: slab.note,
-          D_area_psf_components: { slab_psf: slab.psf, dl_add_psf_used: dlAdd, sdl_psf_used: sdl },
+          D_area_psf_components: { slab_psf: slab.psf, swadd_psf_used: dlAdd, sdl_psf_used: 0 },
           cll_psf: inputs.loads.CLL_psf
         };
       }
@@ -2890,9 +2839,9 @@
         const Lb = inputs.geometry.Lb_ft;
         const spacing = layout.spacing_ft;
         const slab = slabWeightPsfConstruction(inputs, cfg);
-        const dlAdd = inputs.loads.DL_add_psf * (cfg.dl_add_pct / 100);
-        const sdl = cfg.include_sdl ? inputs.loads.SDL_psf : 0;
-        const D_area_psf = slab.psf + dlAdd + sdl;
+        const dlAdd = inputs.loads.SWadd_psf * (cfg.swadd_pct / 100);
+        const sdl = 0;
+        const D_area_psf = slab.psf + dlAdd;
 
         const wBeamD_noGirder = D_area_psf * spacing / 1000 + beamShape.W / 1000;
         const R_D = wBeamD_noGirder * Lb / 2;
@@ -2917,7 +2866,7 @@
           maxUtil, controlling, combos: out,
           slab_psf_used: slab.psf,
           slab_note: slab.note,
-          D_area_psf_components: { slab_psf: slab.psf, dl_add_psf_used: dlAdd, sdl_psf_used: sdl },
+          D_area_psf_components: { slab_psf: slab.psf, swadd_psf_used: dlAdd, sdl_psf_used: 0 },
           cll_psf: inputs.loads.CLL_psf
         };
       }
@@ -3060,8 +3009,9 @@
 
       function buildCompositeVariant(shape, memberType, L_ft, trib_ft, layout, inputs, Fy, phiMn_nc) {
         const be = effectiveWidth(memberType, L_ft, trib_ft, inputs);
-        const t_eff = inputs.slab.concrete.topping_in + 0.5 * inputs.slab.deck.hd_in;
-        const Ac = be * t_eff;
+        const t_top = inputs.slab.concrete.topping_in;
+        const hd = inputs.slab.deck.hd_in;
+        const Ac = be * t_top;
         const fc = inputs.slab.concrete.fc_ksi;
         const fc_psi = fc * 1000;
         const wc = Math.max(90, Math.min(155, inputs.slab.concrete.unit_weight_pcf));
@@ -3079,7 +3029,7 @@
 
         const Aeq = Ac / n;
         const ySteel = shape.d / 2;
-        const ySlab = shape.d + t_eff / 2;
+        const ySlab = shape.d + hd + t_top / 2;
         const yBar = (shape.A * ySteel + Aeq * ySlab) / (shape.A + Aeq);
         const Itrans = shape.Ix + shape.A * Math.pow(yBar - ySteel, 2) + Aeq * Math.pow(ySlab - yBar, 2);
         const eta = clamp(sumQn / Math.max(1e-9, Tfull), 0, 1);
@@ -3088,7 +3038,8 @@
         const Cc = 0.85 * fc * Ac;
         const C = Math.min(Cc, sumQn, Tfull);
         const a = C / Math.max(1e-9, (0.85 * fc * be));
-        const yComp = shape.d + t_eff - a / 2;
+        const yTop = shape.d + hd + t_top;
+        const yComp = yTop - a / 2;
         const z = Math.max(0.1, yComp - ySteel);
         const Mn_comp_nom = Math.max(phiMn_nc / 0.9, C * z / 12);
         const phiMn_comp = 0.9 * Mn_comp_nom;
@@ -3101,7 +3052,7 @@
             percent_composite: pct,
             be_in: be,
             Ac_in2: Ac,
-            PNA_from_bottom_in: shape.d + t_eff - a,
+            PNA_from_bottom_in: (shape.d + hd + t_top) - a,
             ENA_from_bottom_in: yBar,
             Ec_ksi,
             n_modular: n,
@@ -3205,8 +3156,8 @@
         const spacing = layout.spacing_ft;
         const selfPsf = slabSelfWeightPsf(inputs, spacing);
 
-        const wDL_area = (selfPsf + inputs.loads.DL_add_psf) * spacing / 1000;
-        const wDL_defl_area = ((inputs.slab.shored ? 0 : selfPsf) + inputs.loads.DL_add_psf) * spacing / 1000;
+        const wDL_area = (selfPsf + inputs.loads.SWadd_psf) * spacing / 1000;
+        const wDL_defl_area = ((inputs.slab.shored ? 0 : selfPsf) + inputs.loads.SWadd_psf) * spacing / 1000;
         const wSelf = shape.W / 1000;
         const wSDL = inputs.loads.SDL_psf * spacing / 1000;
         const wLL = llBeamInfo.LL_used_psf * spacing / 1000;
@@ -3218,8 +3169,8 @@
         const phiV = phiVn(shape, Fy);
 
         const quick = calcStrengthUniform(L, wComp, phiMn_nc, phiV);
-        if (!inputs.member_criteria.beam.composite_allowed && quick.maxUtil > 1) return null;
-        if (!inputs.member_criteria.beam.composite_allowed && quick.maxUtil > 1.2) return null;
+        if (!inputs.member_criteria.beam.composite_allowed && quick.maxUtil > 1.0) return null;
+        if (inputs.member_criteria.beam.composite_allowed && quick.maxUtil > 2.0) return null;
 
         const variants = [];
         variants.push({
@@ -3257,7 +3208,7 @@
           if (strength.maxUtil > 1.0) continue;
           if (strength.maxUtil > 1.2 && v.kind === "NONCOMP" && !inputs.member_criteria.beam.composite_allowed) continue;
 
-          const precompApplied = constrCfg.enabled && (constrCfg.apply_mode === "all" || (constrCfg.apply_mode === "composite_only" && v.composite.enabled));
+          const precompApplied = constrCfg.enabled && !inputs.slab.shored && (constrCfg.apply_mode === "all" || (constrCfg.apply_mode === "composite_only" && v.composite.enabled));
           const precomp = precompApplied ? precompBeamStrengthCheck(shape, inputs, layout, phiMn_nc, phiV) : null;
           if (precompApplied && precomp.maxUtil > 1.0) continue;
 
@@ -3295,7 +3246,8 @@
                   `Camber=${r(c,3)} in, camber offset=${r(offset,3)} in`,
                   `Deflection control=${defl.controlling}, util=${r(defl.maxUtil,4)}`,
                   `Strength control=${strength.controlling}, util=${r(strength.maxUtil,4)}`,
-                  `Pre-composite check uses NONCOMPOSITE φMn/φVn regardless of final composite selection.`
+                  `Pre-composite check uses NONCOMPOSITE φMn/φVn regardless of final composite selection.`,
+                  ...(inputs.slab.shored ? ["Pre-composite checks skipped because Shored construction is selected."] : [])
                 ].concat(v.trace)
               };
             }
@@ -3314,7 +3266,7 @@
             influence_area_ft2: spacing * L,
             live_load_reduction_pct: llBeamInfo.reduction_pct,
             components: [
-              {name:"DL", type:"uniform_kft", value:wComp.DL, note:"Includes slab/deck, DL_add, beam self-weight"},
+              {name:"DL", type:"uniform_kft", value:wComp.DL, note:"Includes slab/deck, SWadd, beam self-weight"},
               {name:"SDL", type:"uniform_kft", value:wComp.SDL, note:"Superimposed dead load"},
               {name:"LL", type:"uniform_kft", value:wComp.LL, note:"Reduced live load"},
               {name:"CLL", type:"uniform_kft", value:wComp.CLL, note:"Construction live load"}
@@ -3335,8 +3287,7 @@
             applied: !!best.precompApplied,
             shored: !!inputs.slab.shored,
             force_unshored_if_shored: !!constrCfg.force_unshored_if_shored,
-            dl_add_pct: constrCfg.dl_add_pct,
-            include_sdl: !!constrCfg.include_sdl,
+            swadd_pct: constrCfg.swadd_pct,
             slab_psf_used: best.precomp?.slab_psf_used ?? null,
             D_area_psf_components: best.precomp?.D_area_psf_components || null,
             cll_psf: best.precomp?.cll_psf ?? null,
@@ -3404,8 +3355,8 @@
         const spacing = layout.spacing_ft;
         const selfPsf = slabSelfWeightPsf(inputs, spacing);
 
-        const wBeamDL_area = (selfPsf + inputs.loads.DL_add_psf) * spacing / 1000;
-        const wBeamDL_defl_area = ((inputs.slab.shored ? 0 : selfPsf) + inputs.loads.DL_add_psf) * spacing / 1000;
+        const wBeamDL_area = (selfPsf + inputs.loads.SWadd_psf) * spacing / 1000;
+        const wBeamDL_defl_area = ((inputs.slab.shored ? 0 : selfPsf) + inputs.loads.SWadd_psf) * spacing / 1000;
         const wBeamSelf = beamShape.W / 1000;
 
         const R_DL = (wBeamDL_area + wBeamSelf) * Lb / 2;
@@ -3433,8 +3384,8 @@
         const phiV = phiVn(shape, Fy);
 
         const quick = calcStrengthPoint(Lg, compLoads, phiMn_nc, phiV);
-        if (!inputs.member_criteria.girder.composite_allowed && quick.maxUtil > 1) return null;
-        if (!inputs.member_criteria.girder.composite_allowed && quick.maxUtil > 1.2) return null;
+        if (!inputs.member_criteria.girder.composite_allowed && quick.maxUtil > 1.0) return null;
+        if (inputs.member_criteria.girder.composite_allowed && quick.maxUtil > 2.0) return null;
 
         const variants = [{
           kind: "NONCOMP",
@@ -3471,7 +3422,7 @@
           const strength = calcStrengthPoint(Lg, compLoads, v.phiMn, phiV);
           if (strength.maxUtil > 1) continue;
 
-          const precompApplied = constrCfg.enabled && (constrCfg.apply_mode === "all" || (constrCfg.apply_mode === "composite_only" && v.composite.enabled));
+          const precompApplied = constrCfg.enabled && !inputs.slab.shored && (constrCfg.apply_mode === "all" || (constrCfg.apply_mode === "composite_only" && v.composite.enabled));
           const precomp = precompApplied ? precompGirderStrengthCheck(shape, beamShape, inputs, layout, phiMn_nc, phiV) : null;
           if (precompApplied && precomp.maxUtil > 1.0) continue;
 
@@ -3509,7 +3460,8 @@
                   `Camber=${r(c,3)} in, camber offset=${r(offset,3)} in`,
                   `Deflection control=${defl.controlling}, util=${r(defl.maxUtil,4)}`,
                   `Strength control=${strength.controlling}, util=${r(strength.maxUtil,4)}`,
-                  `Pre-composite check uses NONCOMPOSITE φMn/φVn regardless of final composite selection.`
+                  `Pre-composite check uses NONCOMPOSITE φMn/φVn regardless of final composite selection.`,
+                  ...(inputs.slab.shored ? ["Pre-composite checks skipped because Shored construction is selected."] : [])
                 ].concat(v.trace)
               };
             }
@@ -3555,8 +3507,7 @@
             applied: !!best.precompApplied,
             shored: !!inputs.slab.shored,
             force_unshored_if_shored: !!constrCfg.force_unshored_if_shored,
-            dl_add_pct: constrCfg.dl_add_pct,
-            include_sdl: !!constrCfg.include_sdl,
+            swadd_pct: constrCfg.swadd_pct,
             slab_psf_used: best.precomp?.slab_psf_used ?? null,
             D_area_psf_components: best.precomp?.D_area_psf_components || null,
             cll_psf: best.precomp?.cll_psf ?? null,
