@@ -317,10 +317,52 @@
             <label>Slab Type</label>
             <input value="Metal Deck with Concrete Topping (MVP only)" disabled />
           </div>
-          <div class="inline" style="margin-top:.3rem">
-            <input id="slabShored" type="checkbox" />
-            <label title="Minimal implementation: reduces construction-stage slab dead deflection demand assumption.">Shored construction</label>
-          </div>
+
+          <section class="card" style="margin:.5rem 0">
+            <h4>Deck Selection + Checks (Vulcraft 2VLI / 3VLI — LRFD)</h4>
+            <div class="grid3">
+              <div class="field">
+                <label title="Uses embedded Vulcraft LRFD tables for 2VLI/3VLI (GR50).">Deck profile</label>
+                <select id="deckProfile">
+                  <option value="None">None (manual deck inputs)</option>
+                  <option value="2VLI">2VLI-36 (GR50)</option>
+                  <option value="3VLI">3VLI-36 (GR50)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label title="Updates deck weight & enables table lookups.">Deck gage</label>
+                <select id="deckGage">
+                  <option value="22">22</option><option value="20">20</option><option value="19">19</option><option value="18">18</option><option value="16">16</option>
+                </select>
+              </div>
+              <div class="field inline" style="align-self:end">
+                <input id="deckOverrideWt" type="checkbox" />
+                <label>Override deck weight</label>
+              </div>
+              <div class="field">
+                <label title="Continuity assumption for construction-stage unshored span table.">Construction span condition</label>
+                <select id="deckSpanCond">
+                  <option value="1">1-span (simple)</option>
+                  <option value="2">2-span</option>
+                  <option value="3" selected>3+ spans</option>
+                </select>
+              </div>
+              <div class="field inline" style="align-self:end">
+                <input id="slabShored" type="checkbox" />
+                <label title="Shored = deck is supported by temporary shores during concrete placement; deck construction span is shore spacing (not beam spacing).">Shored construction</label>
+              </div>
+              <div class="field" id="shoreSpacingBox" style="display:none">
+                <label title="Temporary shores reduce construction span to shore spacing.">Shore spacing (ft)</label>
+                <input id="shoreSpacing" type="number" step="0.01" min="0.1" />
+              </div>
+              <div class="field inline" style="align-self:end">
+                <input id="useVulcraftSW" type="checkbox" />
+                <label title="Uses table Concrete+Deck psf for DL in member design.">Use Vulcraft slab self-weight (Concrete+Deck) for member DL</label>
+              </div>
+            </div>
+            <div id="deckChecksInfo" class="small muted-box" style="margin-top:.45rem"></div>
+            <div class="small muted-box" style="margin-top:.35rem">Note: max unshored span tables do not address bearing/web-crippling; verify separately.</div>
+          </section>
           <div class="hr"></div>
 
           <h4>Deck</h4>
@@ -596,7 +638,7 @@
      * @property {{Lb_ft:number,Lg_ft:number,spacing_ft:number,nBeamLines_override:number|null,share_half_beams:boolean,share_half_girders:boolean}} geometry
      * @property {{DL_add_psf:number,LL_psf:number,LL_reducible:boolean,SDL_psf:number,CLL_psf:number}} loads
      * @property {{
-     *   shored:boolean,
+     *   shored:boolean,shore_spacing_ft:number|null,deck_profile:'None'|'2VLI'|'3VLI',deck_gage:number,deck_span_condition:1|2|3,use_vulcraft_slab_self_weight:boolean,deck_override_weight:boolean,
      *   deck:{hd_in:number,deck_weight_psf:number,rib_width_in:number,rib_spacing_in:number},
      *   concrete:{topping_in:number,fc_ksi:number,unit_weight_pcf:number},
      *   studs:{dia_in:number,height_in:number,Fu_ksi:number,min_comp_pct:number,max_comp_pct:number}
@@ -624,6 +666,87 @@
 
     const APP_VERSION = "0.1.0-mvp";
     const MAX_RESULTS = 80;
+
+    const VULCRAFT_DECK_DB = {
+      "2VLI": {
+        deckDepth_in: 2.0,
+        deckWeight_psf_by_gage: {22:1.6, 20:1.9, 19:2.2, 18:2.5, 16:3.2},
+        spanCols_superimposed_ft: [6,7,8,9,10,11,12,14],
+        "NWC": {
+          "4.0": { topping_in: 2.0,
+            maxUnshored_ft: {22:{1:7.8333,2:9.0000,3:9.2500},20:{1:9.4167,2:10.3333,3:10.6667},19:{1:10.0833,2:11.5833,3:11.9167},18:{1:10.5000,2:12.5833,3:12.5833},16:{1:11.3333,2:14.0833,3:13.2500}},
+            concPlusDeck_psf: {22:37.9,20:38.2,19:38.5,18:38.8,16:39.5},
+            superimposed_phiWn_L360_psf: {22:[[752,837],[540,527],[403,353],[309,248],[241,180],[192,135],[154,104],[101,65]],20:[[899,895],[648,563],[485,377],[374,265],[294,193],[235,145],[190,111],[127,70]],19:[[1034,947],[747,596],[561,399],[434,280],[342,204],[275,153],[224,118],[152,74]],18:[[1157,994],[837,626],[630,419],[488,294],[386,214],[311,161],[254,124],[174,78]],16:[[1417,1090],[1029,686],[776,459],[603,323],[480,235],[388,176],[318,136],[221,85]]}
+          },
+          "5.5": { topping_in: 3.5,
+            maxUnshored_ft: {22:{1:6.8333,2:7.8333,3:8.0833},20:{1:8.1667,2:9.0000,3:9.3333},19:{1:9.0000,2:10.0833,3:10.4167},18:{1:9.3333,2:11.0000,3:11.3333},16:{1:10.0833,2:12.5000,3:12.0833}},
+            concPlusDeck_psf: {22:56.0,20:56.3,19:56.6,18:56.9,16:57.6},
+            superimposed_phiWn_L360_psf: {22:[[1077,2088],[774,1315],[576,881],[441,618],[345,451],[273,338],[219,261],[143,164]],20:[[1294,2224],[933,1401],[698,938],[537,659],[422,480],[337,361],[272,278],[182,175]],19:[[1494,2347],[1080,1478],[811,990],[626,695],[494,507],[397,380],[322,293],[219,184]],18:[[1677,2456],[1214,1546],[913,1036],[707,727],[560,530],[451,398],[368,307],[252,193]],16:[[2068,2681],[1501,1688],[1133,1131],[881,794],[700,579],[566,435],[465,335],[323,211]]}
+          },
+          "6.5": { topping_in: 4.5,
+            maxUnshored_ft: {22:{1:6.4167,2:7.2500,3:7.5000},20:{1:7.5833,2:8.3333,3:8.6667},19:{1:8.4167,2:9.3333,3:9.6667},18:{1:8.7500,2:10.1667,3:10.5000},16:{1:9.5000,2:11.5833,3:11.5833}},
+            concPlusDeck_psf: {22:68.1,20:68.4,19:68.7,18:69.0,16:69.7},
+            superimposed_phiWn_L360_psf: {22:[[1373,3395],[987,2138],[737,1432],[565,1006],[442,733],[351,551],[282,424],[185,267]],20:[[1655,3607],[1194,2271],[895,1521],[690,1068],[543,779],[434,585],[352,450],[237,283]],19:[[1916,3798],[1385,2391],[1041,1602],[805,1125],[637,820],[512,616],[417,474],[284,298]],18:[[2155,3968],[1561,2498],[1176,1674],[911,1175],[722,857],[583,643],[476,496],[328,312]],16:[[2532,4321],[1838,2721],[1387,1823],[1078,1280],[858,933],[694,701],[570,540],[396,340]]}
+          }
+        },
+        "LWC": {
+          "4.0": { topping_in: 2.0,
+            maxUnshored_ft: {22:{1:8.6667,2:9.8333,3:10.1667},20:{1:10.4167,2:11.3333,3:11.7500},19:{1:11.0833,2:12.6667,3:13.0000},18:{1:11.4167,2:13.7500,3:13.4167},16:{1:12.0833,2:15.0000,3:14.1667}},
+            concPlusDeck_psf: {22:29.1,20:29.4,19:29.7,18:30.0,16:30.7},
+            superimposed_phiWn_L360_psf: {22:[[727,644],[525,405],[394,271],[304,190],[239,139],[191,104],[155,80],[105,50]],20:[[864,695],[625,437],[470,293],[364,205],[288,150],[232,112],[189,86],[129,54]],19:[[989,740],[717,466],[541,312],[420,219],[333,159],[269,120],[220,92],[152,58]],18:[[1103,779],[801,491],[604,329],[470,231],[374,168],[302,126],[248,97],[173,61]],16:[[1342,860],[976,542],[739,363],[576,255],[459,185],[373,139],[308,107],[216,67]]}
+          },
+          "4.5": { topping_in: 2.5,
+            maxUnshored_ft: {22:{1:8.2500,2:9.4167,3:9.7500},20:{1:9.9167,2:10.8333,3:11.2500},19:{1:10.5833,2:12.0833,3:12.5000},18:{1:11.0000,2:13.1667,3:13.0000},16:{1:11.6667,2:14.5000,3:13.6667}},
+            concPlusDeck_psf: {22:33.7,20:34.0,19:34.3,18:34.6,16:35.3},
+            superimposed_phiWn_L360_psf: {22:[[830,898],[599,565],[449,378],[346,266],[273,194],[218,145],[177,112],[119,70]],20:[[988,967],[715,609],[538,408],[416,286],[329,208],[265,156],[216,120],[148,76]],19:[[1133,1028],[821,647],[619,433],[480,304],[381,222],[308,166],[252,128],[174,80]],18:[[1264,1082],[918,681],[693,456],[539,320],[428,233],[347,175],[285,135],[198,85]],16:[[1541,1192],[1121,750],[848,503],[661,353],[528,257],[429,193],[353,149],[248,93]]}
+          },
+          "5.25": { topping_in: 3.25,
+            maxUnshored_ft: {22:{1:7.7500,2:8.8333,3:9.1667},20:{1:9.3333,2:10.1667,3:10.5000},19:{1:10.0000,2:11.4167,3:11.7500},18:{1:10.4167,2:12.4167,3:12.4167},16:{1:11.1667,2:13.9167,3:13.0833}},
+            concPlusDeck_psf: {22:40.6,20:40.9,19:41.2,18:41.5,16:42.2},
+            superimposed_phiWn_L360_psf: {22:[[994,1393],[717,877],[538,587],[414,412],[326,300],[261,226],[212,174],[142,109]],20:[[1186,1497],[858,943],[645,631],[500,443],[395,323],[318,243],[259,187],[177,117]],19:[[1363,1590],[988,1001],[745,671],[578,471],[459,343],[370,258],[303,198],[210,125]],18:[[1523,1672],[1105,1053],[835,705],[649,495],[516,361],[418,271],[343,209],[239,131]],16:[[1863,1839],[1355,1158],[1026,775],[800,545],[638,397],[518,298],[427,229],[300,144]]}
+          }
+        }
+      },
+      "3VLI": {
+        deckDepth_in: 3.0,
+        deckWeight_psf_by_gage: {22:1.7, 20:2.1, 19:2.4, 18:2.7, 16:3.5},
+        spanCols_superimposed_ft: [8,9,10,11,12,13,14,16],
+        "NWC": {
+          "5.0": { topping_in: 2.0,
+            maxUnshored_ft: {22:{1:10.0000,2:10.5833,3:11.0000},20:{1:11.7500,2:12.4167,3:12.8333},19:{1:12.2500,2:13.8333,3:14.2500},18:{1:12.6667,2:15.0833,3:14.8333},16:{1:13.3333,2:16.6667,3:15.6667}},
+            concPlusDeck_psf: {22:44.0,20:44.4,19:44.7,18:45.0,16:45.8},
+            superimposed_phiWn_L360_psf: {22:[[592,643],[456,451],[360,329],[288,247],[233,190],[191,149],[157,120],[108,80]],20:[[713,686],[552,481],[437,351],[352,263],[287,203],[237,159],[197,128],[138,85]],19:[[825,724],[641,508],[509,370],[411,278],[337,214],[279,168],[233,135],[166,90]],18:[[927,758],[721,533],[574,388],[465,291],[382,224],[317,176],[266,141],[191,94]],16:[[1144,829],[893,582],[713,424],[579,319],[478,245],[399,193],[336,154],[245,103]]}
+          },
+          "6.5": { topping_in: 3.5,
+            maxUnshored_ft: {22:{1:8.7500,2:8.2500,3:9.3333},20:{1:10.3333,2:10.9167,3:11.2500},19:{1:11.3333,2:12.1667,3:12.5833},18:{1:11.6667,2:13.3333,3:13.6667},16:{1:12.3333,2:15.0000,3:14.5000}},
+            concPlusDeck_psf: {22:62.1,20:62.5,19:62.8,18:63.1,16:63.9},
+            superimposed_phiWn_L360_psf: {22:[[775,1360],[597,955],[469,696],[375,523],[303,403],[247,317],[203,253],[138,170]],20:[[938,1445],[725,1014],[573,739],[461,555],[375,428],[308,336],[255,269],[178,180]],19:[[1088,1521],[843,1068],[669,778],[540,585],[441,450],[365,354],[304,283],[215,190]],18:[[1225,1589],[952,1116],[756,813],[612,611],[502,470],[416,370],[349,296],[249,198]],16:[[1517,1729],[1182,1214],[943,885],[766,665],[631,512],[527,403],[443,322],[321,216]]}
+          },
+          "7.5": { topping_in: 4.5,
+            maxUnshored_ft: {22:{1:8.1667,2:7.1667,3:8.1667},20:{1:9.5833,2:10.1667,3:10.5000},19:{1:10.7500,2:11.4167,3:11.7500},18:{1:11.1667,2:12.4167,3:12.8333},16:{1:11.8333,2:14.0000,3:13.9167}},
+            concPlusDeck_psf: {22:74.2,20:74.6,19:74.9,18:75.2,16:76.0},
+            superimposed_phiWn_L360_psf: {22:[[907,2059],[698,1446],[548,1054],[438,792],[354,610],[288,479],[236,384],[160,257]],20:[[1100,2182],[850,1533],[672,1117],[540,839],[439,646],[361,508],[299,407],[208,272]],19:[[1278,2293],[991,1611],[785,1174],[633,882],[518,679],[428,534],[356,428],[252,286]],18:[[1441,2393],[1120,1681],[890,1225],[720,920],[590,709],[489,557],[410,446],[292,299]],16:[[1791,2600],[1396,1826],[1113,1331],[904,1000],[745,770],[621,606],[523,485],[379,325]]}
+          }
+        },
+        "LWC": {
+          "5.0": { topping_in: 2.0,
+            maxUnshored_ft: {22:{1:11.0833,2:11.8333,3:12.1667},20:{1:12.5833,2:13.6667,3:14.0833},19:{1:13.0833,2:15.2500,3:15.4167},18:{1:13.5000,2:16.5833,3:15.8333},16:{1:14.2500,2:17.7500,3:16.7500}},
+            concPlusDeck_psf: {22:33.8,20:34.2,19:34.5,18:34.8,16:35.6},
+            superimposed_phiWn_L360_psf: {22:[[577,491],[448,344],[355,251],[286,188],[234,145],[193,114],[161,91],[114,61]],20:[[691,528],[538,371],[428,270],[346,203],[284,156],[236,123],[198,98],[142,66]],19:[[796,562],[620,395],[494,287],[401,216],[331,166],[275,131],[232,104],[168,70]],18:[[891,592],[695,416],[555,303],[452,227],[373,175],[311,138],[263,110],[191,74]],16:[[1093,654],[854,459],[684,334],[558,251],[462,193],[387,152],[328,122],[241,81]]}
+          },
+          "5.5": { topping_in: 2.5,
+            maxUnshored_ft: {22:{1:10.5833,2:11.3333,3:11.6667},20:{1:12.1667,2:13.0833,3:13.5000},19:{1:12.7500,2:14.5833,3:14.9167},18:{1:13.1667,2:15.9167,3:15.4167},16:{1:13.8333,2:17.2500,3:16.2500}},
+            concPlusDeck_psf: {22:38.4,20:38.8,19:39.1,18:39.4,16:40.2},
+            superimposed_phiWn_L360_psf: {22:[[635,641],[492,450],[390,328],[314,246],[256,189],[211,149],[176,119],[124,80]],20:[[761,689],[591,483],[470,352],[380,265],[312,204],[259,160],[217,128],[155,86]],19:[[876,731],[682,513],[544,374],[441,281],[363,216],[302,170],[254,136],[184,91]],18:[[981,769],[765,540],[611,394],[497,296],[410,228],[342,179],[288,143],[210,96]],16:[[1204,847],[941,595],[753,433],[614,325],[508,251],[426,197],[360,158],[264,105]]}
+          },
+          "6.25": { topping_in: 3.25,
+            maxUnshored_ft: {22:{1:9.9167,2:10.5000,3:11.0000},20:{1:11.7500,2:12.3333,3:12.7500},19:{1:12.2500,2:13.8333,3:14.2500},18:{1:12.6667,2:15.0833,3:14.8333},16:{1:13.3333,2:16.5833,3:15.6667}},
+            concPlusDeck_psf: {22:45.2,20:45.6,19:45.9,18:46.2,16:47.0},
+            superimposed_phiWn_L360_psf: {22:[[728,920],[564,646],[446,471],[359,354],[293,272],[242,214],[201,171],[141,115]],20:[[874,987],[679,693],[540,505],[436,379],[358,292],[297,230],[248,184],[177,123]],19:[[1008,1047],[785,735],[625,536],[507,402],[417,310],[347,244],[292,195],[210,130]],18:[[1130,1100],[881,772],[703,563],[571,423],[471,325],[393,256],[331,205],[240,137]],16:[[1388,1208],[1085,848],[868,618],[707,464],[585,358],[490,281],[415,225],[304,151]]}
+          }
+        }
+      }
+    };
 
     const DEMO_SHAPES = [
       {name:"W12x26",d:12.22,bf:6.49,tf:0.38,tw:0.23,A:7.65,W:26,Ix:204,Sx:33.4,Zx:37.3,ry:1.71},
@@ -703,6 +826,12 @@
         },
         slab: {
           shored: false,
+          shore_spacing_ft: null,
+          deck_profile: "None",
+          deck_gage: 22,
+          deck_span_condition: 3,
+          use_vulcraft_slab_self_weight: false,
+          deck_override_weight: false,
           deck: {
             hd_in: 2,
             deck_weight_psf: 2.5,
@@ -827,6 +956,153 @@
       return { LL_used_psf: LL * f, factor: f, reduction_pct: (1 - f) * 100 };
     }
 
+
+    function roundUpSpanToTable(spanDeck_ft, spanColsArray) {
+      for (const c of spanColsArray) if (spanDeck_ft <= c + 1e-9) return { spanUsed_ft: c, okInRange: true };
+      return { spanUsed_ft: null, okInRange: false };
+    }
+
+    function findClosestTotalDepthKey(profile, density, totalDepth_in) {
+      const fam = VULCRAFT_DECK_DB?.[profile]?.[density];
+      if (!fam) return null;
+      for (const k of Object.keys(fam)) if (Math.abs(Number(k) - totalDepth_in) <= 0.02) return k;
+      return null;
+    }
+
+    function formatFtIn(span_ft) {
+      if (!Number.isFinite(span_ft)) return "—";
+      const ft = Math.floor(span_ft);
+      const inch = Math.round((span_ft - ft) * 12);
+      return `${ft}'-${inch}"`;
+    }
+
+    function computeDeckFamilyFromConcUnitWeight(pcf) {
+      const density_family = pcf >= 130 ? "NWC" : "LWC";
+      let density_msg = density_family === "NWC" ? "Using NWC (145 pcf) tables." : "Using LWC (110 pcf) tables.";
+      if (pcf >= 120 && pcf <= 140) density_msg += " Unit weight not equal to table value; using nearest conservative table family.";
+      return { density_family, density_msg };
+    }
+
+    function deckChecks(inputs, computedLayout) {
+      const slab = inputs.slab;
+      const profile = slab.deck_profile || "None";
+      const out = {
+        enabled: profile !== "None",
+        fc_ok: false,
+        fc_msg: "Deck checks disabled.",
+        density_family: null,
+        density_msg: "",
+        profile,
+        gage: slab.deck_gage,
+        deckDepth_in: slab.deck.hd_in,
+        deckWeight_psf: slab.deck.deck_weight_psf,
+        topping_in: slab.concrete.topping_in,
+        totalDepth_in: slab.deck.hd_in + slab.concrete.topping_in,
+        spanDeck_ft: null,
+        spanCondition: slab.deck_span_condition || 3,
+        maxUnshoredAllowed_ft: null,
+        pass_unshored: null,
+        spanUsed_ft_for_superimposed: null,
+        phiWn_psf: null,
+        wL360_psf: null,
+        demand_strength_psf: 1.2 * inputs.loads.SDL_psf + 1.6 * inputs.loads.LL_psf,
+        demand_defl_psf: inputs.loads.SDL_psf + inputs.loads.LL_psf,
+        pass_strength: null,
+        pass_defl: null,
+        slabSelfWeightOverride_psf: null,
+        notes: []
+      };
+      if (!out.enabled) return out;
+
+      const db = VULCRAFT_DECK_DB[profile];
+      if (!db) { out.fc_msg = "Deck checks disabled: unknown profile."; return out; }
+      out.deckDepth_in = db.deckDepth_in;
+      out.deckWeight_psf = db.deckWeight_psf_by_gage[slab.deck_gage] ?? slab.deck.deck_weight_psf;
+      out.totalDepth_in = out.deckDepth_in + slab.concrete.topping_in;
+
+      out.fc_ok = slab.concrete.fc_ksi >= 3.0;
+      out.fc_msg = out.fc_ok
+        ? "Using Vulcraft LRFD tables (f’c=3000 psi baseline)."
+        : "Deck table checks disabled: Vulcraft tables assume f’c = 3000 psi minimum.";
+      if (!out.fc_ok) return out;
+
+      const fam = computeDeckFamilyFromConcUnitWeight(slab.concrete.unit_weight_pcf);
+      out.density_family = fam.density_family;
+      out.density_msg = fam.density_msg;
+
+      const key = findClosestTotalDepthKey(profile, out.density_family, out.totalDepth_in);
+      if (!key) { out.notes.push("No table match for total slab depth."); return out; }
+      const row = db[out.density_family][key];
+
+      const spacing = computedLayout?.spacing_ft || inputs.geometry.spacing_ft;
+      const shore = slab.shore_spacing_ft || spacing;
+      out.spanDeck_ft = slab.shored ? shore : spacing;
+      out.notes.push("Span treated as clear span for table lookups (conceptual).");
+
+      const cond = Math.max(1, Math.min(3, slab.deck_span_condition || 3));
+      out.spanCondition = cond;
+      out.maxUnshoredAllowed_ft = row.maxUnshored_ft?.[slab.deck_gage]?.[cond] ?? null;
+      out.pass_unshored = out.maxUnshoredAllowed_ft != null ? out.spanDeck_ft <= out.maxUnshoredAllowed_ft + 1e-9 : null;
+
+      const ru = roundUpSpanToTable(out.spanDeck_ft, db.spanCols_superimposed_ft || []);
+      if (!ru.okInRange) { out.notes.push("Span exceeds superimposed-load table range."); return out; }
+      out.spanUsed_ft_for_superimposed = ru.spanUsed_ft;
+      const idx = (db.spanCols_superimposed_ft || []).indexOf(ru.spanUsed_ft);
+      const cell = row.superimposed_phiWn_L360_psf?.[slab.deck_gage]?.[idx];
+      if (!cell) return out;
+      out.phiWn_psf = cell[0];
+      out.wL360_psf = cell[1];
+      out.pass_strength = out.demand_strength_psf <= out.phiWn_psf + 1e-9;
+      out.pass_defl = out.demand_defl_psf <= out.wL360_psf + 1e-9;
+
+      if (slab.use_vulcraft_slab_self_weight) {
+        out.slabSelfWeightOverride_psf = row.concPlusDeck_psf?.[slab.deck_gage] ?? null;
+        if (out.slabSelfWeightOverride_psf == null) out.notes.push("Vulcraft slab self-weight override not available for this selection.");
+      }
+      return out;
+    }
+
+    function applyDeckProfileToInputs() {
+      const inp = collectInputs();
+      const p = inp.slab.deck_profile;
+      const g = inp.slab.deck_gage;
+      const db = VULCRAFT_DECK_DB[p];
+      const allowOverride = !!$("deckOverrideWt").checked;
+      if (p !== "None" && db) {
+        $("deckHd").value = db.deckDepth_in;
+        if (!allowOverride) $("deckWt").value = db.deckWeight_psf_by_gage[g] ?? $("deckWt").value;
+      }
+      $("deckWt").disabled = p !== "None" && !allowOverride;
+      $("shoreSpacingBox").style.display = $("slabShored").checked ? "block" : "none";
+      if (!$("shoreSpacing").value) $("shoreSpacing").value = fmt(computeLayout(inp.geometry).spacing_ft, 3);
+      if (p === "None") $("useVulcraftSW").checked = false;
+    }
+
+    function renderDeckChecks() {
+      const inp = collectInputs();
+      applyDeckProfileToInputs();
+      const lay = computeLayout(inp.geometry);
+      const d = deckChecks(inp, lay);
+      const box = $("deckChecksInfo");
+      if (!d.enabled) {
+        box.innerHTML = '<div>Deck checks disabled (profile=None).</div>';
+        return;
+      }
+      const pf = (v) => v == null ? '—' : (v ? '<span class="ok">PASS</span>' : '<span class="bad">FAIL</span>');
+      box.innerHTML = `
+        <div><strong>${d.fc_ok ? '✅' : '❌'} ${safeStr(d.fc_msg)}</strong></div>
+        <div>${safeStr(d.density_msg || '')}</div>
+        <div><strong>Deck span used:</strong> ${formatFtIn(d.spanDeck_ft)} (${fmt(d.spanDeck_ft,3)} ft)</div>
+        <div><strong>Total slab depth:</strong> ${fmt(d.totalDepth_in,2)} in</div>
+        <div><strong>Allowed max unshored clear span:</strong> ${formatFtIn(d.maxUnshoredAllowed_ft)} | <strong>Provided:</strong> ${formatFtIn(d.spanDeck_ft)} → ${pf(d.pass_unshored)}</div>
+        <div><strong>Span column used:</strong> ${d.spanUsed_ft_for_superimposed != null ? formatFtIn(d.spanUsed_ft_for_superimposed) : '—'}</div>
+        <div><strong>φWn capacity:</strong> ${fmt(d.phiWn_psf,1)} psf; demand=${fmt(d.demand_strength_psf,1)} psf → ${pf(d.pass_strength)}</div>
+        <div><strong>L/360 cap:</strong> ${fmt(d.wL360_psf,1)} psf; demand=${fmt(d.demand_defl_psf,1)} psf → ${pf(d.pass_defl)}</div>
+        ${d.slabSelfWeightOverride_psf != null ? `<div><strong>Vulcraft Concrete+Deck:</strong> ${fmt(d.slabSelfWeightOverride_psf,2)} psf (override available)</div>` : ''}
+        ${d.notes.map(n=>`<div>${safeStr(n)}</div>`).join('')}
+      `;
+    }
+
     function makePlanSVG(geometry, layout, beamLabel = "", girderLabel = "") {
       const W = 300, H = 200, m = 24;
       const x0 = m, y0 = m, w = W - 2 * m, h = H - 2 * m;
@@ -873,6 +1149,12 @@
       $("loadCLL").value = inputs.loads.CLL_psf;
 
       $("slabShored").checked = !!inputs.slab.shored;
+      $("shoreSpacing").value = inputs.slab.shore_spacing_ft ?? inputs.geometry.spacing_ft;
+      $("deckProfile").value = inputs.slab.deck_profile || "None";
+      $("deckGage").value = String(inputs.slab.deck_gage || 22);
+      $("deckSpanCond").value = String(inputs.slab.deck_span_condition || 3);
+      $("useVulcraftSW").checked = !!inputs.slab.use_vulcraft_slab_self_weight;
+      $("deckOverrideWt").checked = !!inputs.slab.deck_override_weight;
       $("deckHd").value = inputs.slab.deck.hd_in;
       $("deckWt").value = inputs.slab.deck.deck_weight_psf;
       $("deckRibW").value = inputs.slab.deck.rib_width_in;
@@ -974,6 +1256,12 @@
         },
         slab: {
           shored: !!$("slabShored").checked,
+          shore_spacing_ft: parseOptionalNum($("shoreSpacing").value),
+          deck_profile: $("deckProfile").value || "None",
+          deck_gage: Math.round(parseNum($("deckGage").value, 22)),
+          deck_span_condition: Math.max(1, Math.min(3, Math.round(parseNum($("deckSpanCond").value, 3)))),
+          use_vulcraft_slab_self_weight: !!$("useVulcraftSW").checked,
+          deck_override_weight: !!$("deckOverrideWt").checked,
           deck: {
             hd_in: parseNum($("deckHd").value, 2),
             deck_weight_psf: parseNum($("deckWt").value, 2.5),
@@ -1102,6 +1390,7 @@
       if (inp.geometry.Lb_ft <= 0 || inp.geometry.Lg_ft <= 0 || inp.geometry.spacing_ft <= 0) e.push("Geometry dimensions/spacing must be positive.");
       if (inp.geometry.nBeamLines_override != null && inp.geometry.nBeamLines_override < 1) e.push("Deck spans override must be >= 1.");
       if (inp.loads.LL_psf < 0 || inp.loads.SDL_psf < 0 || inp.loads.CLL_psf < 0 || inp.loads.DL_add_psf < 0) e.push("Loads must be nonnegative.");
+      if (inp.slab.shored && (inp.slab.shore_spacing_ft == null || inp.slab.shore_spacing_ft <= 0)) e.push("Shore spacing must be positive when shored construction is enabled.");
       if (inp.slab.studs.min_comp_pct < 0 || inp.slab.studs.max_comp_pct > 100 || inp.slab.studs.min_comp_pct > inp.slab.studs.max_comp_pct) e.push("Stud composite % limits are invalid.");
       if (inp.member_criteria.Fy_ksi <= 0) e.push("Fy must be positive.");
       if (inp.camber.min_in < 0 || inp.camber.max_in < 0 || inp.camber.inc_in <= 0 || inp.camber.min_in > inp.camber.max_in) e.push("Camber range/increment is invalid.");
@@ -1170,6 +1459,7 @@
       `;
       $("planDiagram").innerHTML = makePlanSVG(g, lay);
       updateLLPreview();
+      renderDeckChecks();
     }
 
     function updateLLPreview() {
@@ -1200,7 +1490,8 @@
     }
 
     function createWorker() {
-      const code = `(${optimizationWorkerMain.toString()})();`;
+      const pre = `const VULCRAFT_DECK_DB = ${JSON.stringify(VULCRAFT_DECK_DB)};`;
+      const code = pre + `(${optimizationWorkerMain.toString()})();`;
       const blob = new Blob([code], { type: "application/javascript" });
       const url = URL.createObjectURL(blob);
       return new Worker(url);
@@ -1489,6 +1780,27 @@
       };
     }
 
+
+    function deckCheckSummaryHTML(dc) {
+      const tf = (v) => v == null ? "—" : (v ? "PASS" : "FAIL");
+      return `
+        <h4>Deck Check Summary</h4>
+        ${tableHTML(["Item","Value"], [
+          ["Deck checks enabled", yesNo(dc.enabled)],
+          ["f’c gate", safeStr(dc.fc_msg)],
+          ["Density family", safeStr(dc.density_family || "—")],
+          ["Construction span used", `${fmt(dc.spanDeck_ft,3)} ft (${formatFtIn(dc.spanDeck_ft)})`],
+          ["Allowed max unshored span", `${fmt(dc.maxUnshoredAllowed_ft,3)} ft (${formatFtIn(dc.maxUnshoredAllowed_ft)})`],
+          ["Unshored span check", tf(dc.pass_unshored)],
+          ["Superimposed span column used", dc.spanUsed_ft_for_superimposed != null ? `${fmt(dc.spanUsed_ft_for_superimposed,3)} ft` : "—"],
+          ["φWn capacity vs demand", `${fmt(dc.phiWn_psf,1)} vs ${fmt(dc.demand_strength_psf,1)} psf (${tf(dc.pass_strength)})`],
+          ["L/360 cap vs demand", `${fmt(dc.wL360_psf,1)} vs ${fmt(dc.demand_defl_psf,1)} psf (${tf(dc.pass_defl)})`],
+          ["Vulcraft slab self-weight (if used)", dc.slabSelfWeightOverride_psf != null ? `${fmt(dc.slabSelfWeightOverride_psf,2)} psf` : "—"],
+          ["Note", "Tables do not address bearing/web-crippling; verify separately."]
+        ])}
+      `;
+    }
+
     function inputSummaryHTML(inputs, sol){
       const slabSW = calcSlabSelfWeightPsf(inputs);
       const { spacing_used, interiorPositions, beams_per_bay, girders_per_bay, note } = getLayoutForReport(inputs, sol);
@@ -1537,7 +1849,13 @@
         ["Concrete f'c (ksi)", fmt(inputs.slab.concrete.fc_ksi,3)],
         ["Concrete unit wt (pcf)", fmt(inputs.slab.concrete.unit_weight_pcf,1)],
         ["Computed slab self-weight (psf)", fmt(slabSW,3)],
-        ["Shored construction", yesNo(inputs.slab.shored)]
+        ["Deck profile", safeStr(inputs.slab.deck_profile)],
+        ["Deck gage", safeStr(inputs.slab.deck_gage)],
+        ["Deck weight overridden", yesNo(inputs.slab.deck_override_weight)],
+        ["Deck span condition", safeStr(inputs.slab.deck_span_condition)],
+        ["Shored construction", yesNo(inputs.slab.shored)],
+        ["Shore spacing (ft)", inputs.slab.shored ? fmt(inputs.slab.shore_spacing_ft ?? spacing_used,3) : "—"],
+        ["Use Vulcraft slab self-weight", yesNo(inputs.slab.use_vulcraft_slab_self_weight)]
       ];
 
       const studs = [
@@ -1596,12 +1914,13 @@
         ${section("Run Metadata", rows)}
         ${section("Geometry + Layout", geom)}
         ${section("Loads (psf)", loads)}
-        ${section("Slab / Deck / Concrete", slab)}
+        ${section("Floor Slab + Deck Inputs", slab)}
         ${section("Studs + Limits", studs)}
         ${section("Member Criteria", memberCrit)}
         ${section("Deflection Criteria", defl)}
         ${section("Camber Criteria", camber)}
         ${section("Cost Inputs", cost)}
+        ${deckCheckSummaryHTML(deckChecks(inputs, getLayoutForReport(inputs, sol).layout))}
       `;
     }
 
@@ -1829,6 +2148,8 @@
 
     function buildRunObject() {
       const inputs = state.inputs || collectInputs();
+      const layoutForDeck = (selectedSolution()?.panel?.layout) || computeLayout(inputs.geometry);
+      const deck_check_summary = deckChecks(inputs, layoutForDeck);
       return {
         run_meta: {
           tool_version: APP_VERSION,
@@ -1840,6 +2161,7 @@
           shapes_dataset_label: inputs.member_criteria.shapes_source.dataset_label || state.shapeDatasetLabel
         },
         inputs: deepClone(inputs),
+        deck_check_summary: deepClone(deck_check_summary),
         results: deepClone(state.results),
         shapes_snapshot: {
           mode: inputs.member_criteria.shapes_source.mode,
@@ -2188,6 +2510,10 @@
       });
 
       $("camberModel").addEventListener("change", updateCamberCostUI);
+      $("deckProfile").addEventListener("change", applyDeckProfileToInputs);
+      $("deckGage").addEventListener("change", applyDeckProfileToInputs);
+      $("deckOverrideWt").addEventListener("change", applyDeckProfileToInputs);
+      $("slabShored").addEventListener("change", applyDeckProfileToInputs);
 
       document.querySelectorAll("input[name='shapeSource']").forEach(r => {
         r.addEventListener("change", updateShapeStatus);
@@ -2204,7 +2530,8 @@
       });
 
       const watchIds = [
-        "geoLb","geoLg","geoSpacing","geoNBeamOverride","globalLLReduction","loadLL","loadLLReducible",
+        "geoLb","geoLg","geoSpacing","geoNBeamOverride","globalLLReduction","loadLL","loadLLReducible","loadSDL",
+        "concTop","concFc","concUw","deckProfile","deckGage","deckSpanCond","slabShored","shoreSpacing","useVulcraftSW","deckOverrideWt",
         "camberModel"
       ];
       watchIds.forEach(id => {
@@ -2232,6 +2559,7 @@
       updateShapeStatus();
       updateGeometryPreview();
       updateLLPreview();
+      renderDeckChecks();
       renderResultsTable();
       updateSelectedPane();
       hookEvents();
@@ -2288,6 +2616,34 @@
         const minF = at >= 400 ? 0.4 : 0.5;
         f = clamp(f, minF, 1);
         return { LL_used_psf: LL * f, factor: f, reduction_pct: (1 - f) * 100 };
+      }
+
+
+      function workerDeckFamily(pcf) {
+        return pcf >= 130 ? "NWC" : "LWC";
+      }
+
+      function workerDepthKey(profile, density, totalDepth_in) {
+        const fam = VULCRAFT_DECK_DB?.[profile]?.[density];
+        if (!fam) return null;
+        for (const k of Object.keys(fam)) if (Math.abs(Number(k) - totalDepth_in) <= 0.02) return k;
+        return null;
+      }
+
+      function slabSelfWeightPsf(inputs, spacing_ft) {
+        const slab = inputs.slab;
+        if (slab.deck_profile && slab.deck_profile !== "None" && slab.use_vulcraft_slab_self_weight && slab.concrete.fc_ksi >= 3.0) {
+          const density = workerDeckFamily(slab.concrete.unit_weight_pcf);
+          const db = VULCRAFT_DECK_DB?.[slab.deck_profile];
+          if (db) {
+            const totalDepth = db.deckDepth_in + slab.concrete.topping_in;
+            const key = workerDepthKey(slab.deck_profile, density, totalDepth);
+            const row = key ? db[density]?.[key] : null;
+            const val = row?.concPlusDeck_psf?.[slab.deck_gage];
+            if (Number.isFinite(val)) return val;
+          }
+        }
+        return inputs.slab.deck.deck_weight_psf + (inputs.slab.concrete.topping_in / 12) * inputs.slab.concrete.unit_weight_pcf;
       }
 
       function sectionClass(shape, Fy) {
@@ -2611,7 +2967,7 @@
         const Fy = inputs.member_criteria.Fy_ksi;
         const L = inputs.geometry.Lb_ft;
         const spacing = layout.spacing_ft;
-        const selfPsf = inputs.slab.deck.deck_weight_psf + (inputs.slab.concrete.topping_in / 12) * inputs.slab.concrete.unit_weight_pcf;
+        const selfPsf = slabSelfWeightPsf(inputs, spacing);
 
         const wDL_area = (selfPsf + inputs.loads.DL_add_psf) * spacing / 1000;
         const wDL_defl_area = ((inputs.slab.shored ? 0 : selfPsf) + inputs.loads.DL_add_psf) * spacing / 1000;
@@ -2787,7 +3143,7 @@
         const Lg = inputs.geometry.Lg_ft;
         const Lb = inputs.geometry.Lb_ft;
         const spacing = layout.spacing_ft;
-        const selfPsf = inputs.slab.deck.deck_weight_psf + (inputs.slab.concrete.topping_in / 12) * inputs.slab.concrete.unit_weight_pcf;
+        const selfPsf = slabSelfWeightPsf(inputs, spacing);
 
         const wBeamDL_area = (selfPsf + inputs.loads.DL_add_psf) * spacing / 1000;
         const wBeamDL_defl_area = ((inputs.slab.shored ? 0 : selfPsf) + inputs.loads.DL_add_psf) * spacing / 1000;
