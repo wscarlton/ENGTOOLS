@@ -230,14 +230,8 @@
               <input id="geoLg" type="number" step="0.01" min="1" />
             </div>
             <div class="field">
-              <label title="Nominal beam spacing along girder.">Beam Spacing s (ft)</label>
+              <label title="Nominal beam spacing along girder.">Max Beam Spacing</label>
               <input id="geoSpacing" type="number" step="0.01" min="0.1" />
-            </div>
-            <div class="field">
-              <label title="Optional override. If set, spacing is recomputed as Lg / (#deck spans). Example: 30 ft with 2 spans → 15 ft spacing.">
-  # Deck Spans (optional override)
-</label>
-              <input id="geoNBeamOverride" type="number" min="1" step="1" placeholder="auto" />
             </div>
             <div class="field">
               <label title="Interior bay accounting: count edge beams as 1/2 each (½ + interior + ½).">
@@ -1228,7 +1222,7 @@
       $("geoLb").value = inputs.geometry.Lb_ft;
       $("geoLg").value = inputs.geometry.Lg_ft;
       $("geoSpacing").value = inputs.geometry.spacing_ft;
-      $("geoNBeamOverride").value = inputs.geometry.nBeamLines_override ?? "";
+      if ($("geoNBeamOverride")) $("geoNBeamOverride").value = inputs.geometry.nBeamLines_override ?? "";
       $("geoShareHalfGirders").checked = !!inputs.geometry.share_half_girders;
       $("geoShareHalfBeams").checked = !!inputs.geometry.share_half_beams;
 
@@ -1331,7 +1325,7 @@
           Lb_ft: parseNum($("geoLb").value, 40),
           Lg_ft: parseNum($("geoLg").value, 30),
           spacing_ft: parseNum($("geoSpacing").value, 15),
-          nBeamLines_override: parseOptionalNum($("geoNBeamOverride").value),
+          nBeamLines_override: $("geoNBeamOverride") ? parseOptionalNum($("geoNBeamOverride").value) : (state.inputs?.geometry?.nBeamLines_override ?? null),
           share_half_girders: !!$("geoShareHalfGirders").checked,
           share_half_beams: !!$("geoShareHalfBeams").checked
         },
@@ -1536,7 +1530,7 @@
         Lb_ft: parseNum($("geoLb").value, 40),
         Lg_ft: parseNum($("geoLg").value, 30),
         spacing_ft: parseNum($("geoSpacing").value, 15),
-        nBeamLines_override: parseOptionalNum($("geoNBeamOverride").value),
+        nBeamLines_override: $("geoNBeamOverride") ? parseOptionalNum($("geoNBeamOverride").value) : (state.inputs?.geometry?.nBeamLines_override ?? null),
         share_half_girders: !!$("geoShareHalfGirders").checked,
         share_half_beams: !!$("geoShareHalfBeams").checked
       };
@@ -2692,7 +2686,7 @@
       });
 
       const watchIds = [
-        "geoLb","geoLg","geoSpacing","geoNBeamOverride","loadSWadd","loadLL","loadLLReductionMode","loadSDL","loadCLL",
+        "geoLb","geoLg","geoSpacing","loadSWadd","loadLL","loadLLReductionMode","loadSDL","loadCLL",
         "concTop","concFc","concUw","deckProfile","deckGage","deckSpanCond","deckTableDensity","slabShored","shoreSpacing","deckHd","deckWt","deckRibW","deckRibS","slabSelfWeightOverride",
         "camberModel","constrEnable","constrApplyMode","constrSWaddPct"
       ];
