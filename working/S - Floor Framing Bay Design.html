@@ -209,13 +209,6 @@
               </select>
             </div>
             <div class="field">
-              <label title="Enable ASCE 7-22 live load reduction calc.">Live Load Reduction (ASCE 7-22)</label>
-              <select id="globalLLReduction">
-                <option value="true" selected>On</option>
-                <option value="false">Off</option>
-              </select>
-            </div>
-            <div class="field">
               <label title="Objective metric for ranking.">Optimize By</label>
               <select id="optimizeBy">
                 <option value="cost" selected>Relative TIC</option>
@@ -294,7 +287,7 @@
             </div>
             <div class="field inline" style="align-self:end">
               <input id="loadLLReducible" type="checkbox" />
-              <label title="If checked and global reduction is On, ASCE 7-22 reduction is applied.">LL is reducible</label>
+              <label title="If checked, selected live-load reduction mode is applied.">LL is reducible</label>
             </div>
             <div class="field">
               <label title="Superimposed dead load.">SDL (psf)</label>
@@ -303,6 +296,14 @@
             <div class="field">
               <label title="Construction live load for construction stage combo.">CLL (psf)</label>
               <input id="loadCLL" type="number" step="0.01" />
+            </div>
+            <div class="field">
+              <label>Live Load Reduction</label>
+              <select id="loadLLReductionMode">
+                <option value="none">None (no reduction)</option>
+                <option value="asce" selected>ASCE 7-22 (per code)</option>
+                <option value="asce_cap20">ASCE 7-22 (cap reduction at 20%)</option>
+              </select>
             </div>
           </div>
           <div class="hr"></div>
@@ -323,16 +324,12 @@
                 <option value="all">All solutions</option>
               </select>
             </div>
-            <div class="field inline" style="align-self:end">
-              <input id="constrForceUnshored" type="checkbox" />
-              <label title="Shored pours typically reduce beam demand during placement. Turn this ON if you want a conservative check that still includes wet concrete on beams.">If shored construction is ON, still enforce unshored-style pre-composite check</label>
-            </div>
             <div class="field">
               <label title="Self Weight Add-On may represent permanent load not fully present during pour. Use 0–100%.">% of SWadd present during pour</label>
               <input id="constrSWaddPct" type="number" step="0.1" min="0" max="100" />
             </div>
           </div>
-          <div class="small muted-box" style="margin-top:.35rem">Note: If Shored construction is selected (Floor Slab tab), all pre-composite checks are automatically skipped.</div>
+          <div class="small muted-box" style="margin-top:.35rem">Note: If Shored construction is selected (Floor Slab tab), pre-composite checks are automatically skipped.</div>
           <div id="constructionPreview" class="small muted-box"></div>
         </section>
 
@@ -356,9 +353,16 @@
                 </select>
               </div>
               <div class="field">
-                <label title="Updates deck weight & enables table lookups.">Deck gage</label>
+                <label title="Used for Vulcraft table lookups only.">Deck gage</label>
                 <select id="deckGage">
                   <option value="22">22</option><option value="20">20</option><option value="19">19</option><option value="18">18</option><option value="16">16</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Concrete Topping Density</label>
+                <select id="deckTableDensity">
+                  <option value="LWC" selected>LWC (110 pcf tables)</option>
+                  <option value="NWC">NWC (145 pcf tables)</option>
                 </select>
               </div>
               <div class="field">
@@ -407,22 +411,17 @@
           <h4>Studs</h4>
           <div class="grid3">
             <div class="field"><label>Diameter (in)</label><input id="studDia" type="number" step="0.01" /></div>
-            <div class="field"><label>Installed height (in)</label><input id="studH" type="number" step="0.01" /></div>
-            <div class="field"><label>Fu (ksi)</label><input id="studFu" type="number" step="0.01" /></div>
+                        <div class="field"><label>Fu (ksi)</label><input id="studFu" type="number" step="0.01" /></div>
             <div class="field"><label>Min composite (%)</label><input id="studMinComp" type="number" step="0.01" min="0" max="100" /></div>
             <div class="field"><label>Max composite (%)</label><input id="studMaxComp" type="number" step="0.01" min="0" max="100" /></div>
           </div>
 
           <h4>Stud Spacing Limits (MVP editable)</h4>
-          <div class="grid3">
-            <div class="field"><label>Edge dist (in)</label><input id="studEdgeDist" type="number" step="0.01" /></div>
+          <div class="grid2">
             <div class="field"><label>End dist (in)</label><input id="studEndDist" type="number" step="0.01" /></div>
             <div class="field"><label>Long min parallel (in)</label><input id="studLongMinPar" type="number" step="0.01" /></div>
-            <div class="field"><label>Long min perp (in)</label><input id="studLongMinPerp" type="number" step="0.01" /></div>
             <div class="field"><label>Long max parallel (in)</label><input id="studLongMaxPar" type="number" step="0.01" /></div>
-            <div class="field"><label>Long max perp (in)</label><input id="studLongMaxPerp" type="number" step="0.01" /></div>
             <div class="field"><label>Trans min parallel (in)</label><input id="studTransMinPar" type="number" step="0.01" /></div>
-            <div class="field"><label>Trans min perp (in)</label><input id="studTransMinPerp" type="number" step="0.01" /></div>
           </div>
         </section>
 
@@ -659,15 +658,15 @@
   <script>
     /**
      * @typedef {Object} InputModel
-     * @property {{design_method:string,live_load_reduction:boolean,optimize_by:'cost'|'weight'}} basis
+     * @property {{design_method:string,optimize_by:'cost'|'weight'}} basis
      * @property {{Lb_ft:number,Lg_ft:number,spacing_ft:number,nBeamLines_override:number|null,share_half_beams:boolean,share_half_girders:boolean}} geometry
-     * @property {{SWadd_psf:number,LL_psf:number,LL_reducible:boolean,SDL_psf:number,CLL_psf:number}} loads
-     * @property {{enabled:boolean,apply_mode:'composite_only'|'all',force_unshored_if_shored:boolean,swadd_pct:number}} construction_stage
+     * @property {{SWadd_psf:number,LL_psf:number,LL_reducible:boolean,LL_reduction_mode:'none'|'asce'|'asce_cap20',SDL_psf:number,CLL_psf:number}} loads
+     * @property {{enabled:boolean,apply_mode:'composite_only'|'all',swadd_pct:number}} construction_stage
      * @property {{
-     *   shored:boolean,shore_spacing_ft:number|null,deck_profile:'None'|'2VLI'|'3VLI',deck_gage:number,deck_span_condition:1|2|3,self_weight_override_psf:number|null,
+     *   shored:boolean,shore_spacing_ft:number|null,deck_profile:'None'|'2VLI'|'3VLI',deck_gage:number,deck_span_condition:1|2|3,deck_table_density:'LWC'|'NWC',self_weight_override_psf:number|null,
      *   deck:{hd_in:number,deck_weight_psf:number,rib_width_in:number,rib_spacing_in:number},
      *   concrete:{topping_in:number,fc_ksi:number,unit_weight_pcf:number},
-     *   studs:{dia_in:number,height_in:number,Fu_ksi:number,min_comp_pct:number,max_comp_pct:number}
+     *   studs:{dia_in:number,Fu_ksi:number,min_comp_pct:number,max_comp_pct:number}
      * }} slab
      * @property {{
      *   Fy_ksi:number,
@@ -686,7 +685,7 @@
      *   }
      * }} deflection
      * @property {{min_in:number,max_in:number,inc_in:number,min_length_ft:number,pct_of_dead:number,disallow_noncompact_web:boolean}} camber
-     * @property {{edge_dist_in:number,end_dist_in:number,long_min_parallel_in:number,long_min_perp_in:number,long_max_parallel_in:number,long_max_perp_in:number,trans_min_parallel_in:number,trans_min_perp_in:number}} stud_spacing_limits
+     * @property {{end_dist_in:number,long_min_parallel_in:number,long_max_parallel_in:number,trans_min_parallel_in:number}} stud_spacing_limits
      * @property {{steel_tic_per_lb:number,stud_tic_per_each:number,camber_model:'eq_lbs_per_ft'|'flat_per_member',camber_eq:{beam_lbs_per_ft:number,girder_lbs_per_ft:number},camber_flat:{beam_cost_per_member:number,girder_cost_per_member:number}}} cost
      */
 
@@ -832,7 +831,6 @@
       const out = {
         basis: {
           design_method: "AISC_360_22_LRFD",
-          live_load_reduction: true,
           optimize_by: "cost"
         },
         geometry: {
@@ -847,13 +845,13 @@
           SWadd_psf: 0.5,
           LL_psf: 50,
           LL_reducible: true,
+          LL_reduction_mode: "asce",
           SDL_psf: 20,
           CLL_psf: 20
         },
         construction_stage: {
           enabled: true,
           apply_mode: "composite_only",
-          force_unshored_if_shored: false,
           swadd_pct: 0
         },
         slab: {
@@ -862,6 +860,7 @@
           deck_profile: "None",
           deck_gage: 22,
           deck_span_condition: 3,
+          deck_table_density: "LWC",
           self_weight_override_psf: null,
           deck: {
             hd_in: 2,
@@ -876,7 +875,6 @@
           },
           studs: {
             dia_in: 0.75,
-            height_in: 4,
             Fu_ksi: 60,
             min_comp_pct: 25,
             max_comp_pct: 100
@@ -919,14 +917,10 @@
           disallow_noncompact_web: true
         },
         stud_spacing_limits: {
-          edge_dist_in: 1.5,
           end_dist_in: 6,
           long_min_parallel_in: 4,
-          long_min_perp_in: 4,
           long_max_parallel_in: 24,
-          long_max_perp_in: 24,
-          trans_min_parallel_in: 3,
-          trans_min_perp_in: 3
+          trans_min_parallel_in: 3
         },
         cost: {
           steel_tic_per_lb: 1.25,
@@ -943,9 +937,9 @@
         }
       };
       out.cost = normalizeCostInputs(out.cost);
-      out.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", force_unshored_if_shored:false, swadd_pct:0 }, out.construction_stage || {});
+      out.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", swadd_pct:0 }, out.construction_stage || {});
       out.construction_stage.swadd_pct = clamp(out.construction_stage.swadd_pct, 0, 100);
-      out.slab = Object.assign({ self_weight_override_psf: null }, out.slab || {});
+      out.slab = Object.assign({ deck_table_density:"LWC", self_weight_override_psf: null }, out.slab || {});
       return out;
     }
 
@@ -981,12 +975,13 @@
       return out;
     }
 
-    function llReduction(LL, reducible, globalOn, KLL, AT) {
-      if (!reducible || !globalOn) return { LL_used_psf: LL, factor: 1, reduction_pct: 0 };
+    function llReduction(LL, reducible, mode, KLL, AT) {
+      if (!reducible || mode === "none") return { LL_used_psf: LL, factor: 1, reduction_pct: 0 };
       const at = Math.max(1, AT);
       let f = 0.25 + 15 / Math.sqrt(Math.max(1, KLL * at));
       const minF = at >= 400 ? 0.40 : 0.50;
       f = clamp(f, minF, 1);
+      if (mode === "asce_cap20") f = Math.max(f, 0.80);
       return { LL_used_psf: LL * f, factor: f, reduction_pct: (1 - f) * 100 };
     }
 
@@ -1014,22 +1009,26 @@
       return `${ft}'-${inch}"`;
     }
 
-    function computeDeckFamilyFromConcUnitWeight(pcf) {
-      const density_family = pcf >= 130 ? "NWC" : "LWC";
-      let density_msg = density_family === "NWC" ? "Using NWC (145 pcf) tables." : "Using LWC (110 pcf) tables.";
-      if (pcf >= 120 && pcf <= 140) density_msg += " Unit weight not equal to table value; using nearest conservative table family.";
-      return { density_family, density_msg };
+    function computeDeckFamilyFromSelection(family, concUw) {
+      const density_family = family === "NWC" ? "NWC" : "LWC";
+      const target = density_family === "NWC" ? 145 : 110;
+      const density_msg = `Using ${density_family} (${target} pcf) tables.`;
+      const mismatch = Math.abs(parseNum(concUw, target) - target) > 2;
+      const warn_msg = mismatch
+        ? `Vulcraft tables assume ${target} pcf (${density_family}). Your concrete unit weight is ${fmt(parseNum(concUw, target),1)} pcf. Proceeding using ${density_family} tables.`
+        : "";
+      return { density_family, density_msg, warn_msg };
     }
 
     function calcSlabDeckSelfWeight(inputs) {
       const slab = inputs.slab || {};
       const deck = slab.deck || {};
       const conc = slab.concrete || {};
-      const deck_psf = parseNum(deck.deck_weight_psf, 0);
-      const topping_psf = (parseNum(conc.topping_in, 0) / 12) * parseNum(conc.unit_weight_pcf, 0);
-      const sr = Math.max(0.01, parseNum(deck.rib_spacing_in, 12));
-      const t_flute_avg_in = 0.5 * parseNum(deck.hd_in, 0) * (parseNum(deck.rib_width_in, 0) / sr);
-      const flute_psf = (t_flute_avg_in / 12) * parseNum(conc.unit_weight_pcf, 0);
+      const deck_psf = toNum(deck.deck_weight_psf, 0);
+      const topping_psf = (toNum(conc.topping_in, 0) / 12) * toNum(conc.unit_weight_pcf, 0);
+      const sr = Math.max(0.01, toNum(deck.rib_spacing_in, 12));
+      const t_flute_avg_in = 0.5 * toNum(deck.hd_in, 0) * (toNum(deck.rib_width_in, 0) / sr);
+      const flute_psf = (t_flute_avg_in / 12) * toNum(conc.unit_weight_pcf, 0);
       return {
         deck_psf,
         topping_psf,
@@ -1093,9 +1092,10 @@
         : "Deck table checks disabled: Vulcraft tables assume f’c = 3000 psi minimum.";
       if (!out.fc_ok) return out;
 
-      const fam = computeDeckFamilyFromConcUnitWeight(slab.concrete.unit_weight_pcf);
+      const fam = computeDeckFamilyFromSelection(slab.deck_table_density, slab.concrete.unit_weight_pcf);
       out.density_family = fam.density_family;
       out.density_msg = fam.density_msg;
+      if (fam.warn_msg) out.notes.push(fam.warn_msg);
 
       const ksel = findClosestTotalDepthKey(profile, out.density_family, out.totalDepth_in);
       if (!ksel.key) { out.notes.push("No table match for total slab depth."); return out; }
@@ -1144,7 +1144,7 @@
       const lay = computeLayout(inp.geometry);
       const d = deckChecks(inp, lay);
       const sw = calcSlabDeckSelfWeight(inp);
-      $("slabSelfWeightInfo").innerHTML = `<div><strong>Computed slab/deck self-weight (psf):</strong> ${fmt(sw.total_psf,2)} (metal + topping + flutes)</div>`;
+      $("slabSelfWeightInfo").innerHTML = `<div><strong>Computed slab/deck self-weight (psf):</strong> ${fmt(sw.total_psf,2)} = metal ${fmt(sw.deck_psf,2)} + topping ${fmt(sw.topping_psf,2)} + flutes ${fmt(sw.flute_psf,2)}</div>`;
       const box = $("deckChecksInfo");
       if (!d.enabled) {
         box.innerHTML = '<div>Deck checks disabled (profile=None).</div>';
@@ -1195,7 +1195,6 @@
     }
 
     function populateForm(inputs) {
-      $("globalLLReduction").value = String(inputs.basis.live_load_reduction);
       $("optimizeBy").value = inputs.basis.optimize_by;
 
       $("geoLb").value = inputs.geometry.Lb_ft;
@@ -1208,12 +1207,12 @@
       $("loadSWadd").value = inputs.loads.SWadd_psf;
       $("loadLL").value = inputs.loads.LL_psf;
       $("loadLLReducible").checked = !!inputs.loads.LL_reducible;
+      $("loadLLReductionMode").value = inputs.loads.LL_reduction_mode || "asce";
       $("loadSDL").value = inputs.loads.SDL_psf;
       $("loadCLL").value = inputs.loads.CLL_psf;
 
       $("constrEnable").checked = !!inputs.construction_stage?.enabled;
       $("constrApplyMode").value = inputs.construction_stage?.apply_mode || "composite_only";
-      $("constrForceUnshored").checked = !!inputs.construction_stage?.force_unshored_if_shored;
       $("constrSWaddPct").value = inputs.construction_stage?.swadd_pct ?? 0;
 
       $("slabShored").checked = !!inputs.slab.shored;
@@ -1221,6 +1220,7 @@
       $("deckProfile").value = inputs.slab.deck_profile || "None";
       $("deckGage").value = String(inputs.slab.deck_gage || 22);
       $("deckSpanCond").value = String(inputs.slab.deck_span_condition || 3);
+      $("deckTableDensity").value = inputs.slab.deck_table_density || "LWC";
       $("slabSelfWeightOverride").value = inputs.slab.self_weight_override_psf ?? "";
       $("deckHd").value = inputs.slab.deck.hd_in;
       $("deckWt").value = inputs.slab.deck.deck_weight_psf;
@@ -1232,19 +1232,14 @@
       $("concUw").value = inputs.slab.concrete.unit_weight_pcf;
 
       $("studDia").value = inputs.slab.studs.dia_in;
-      $("studH").value = inputs.slab.studs.height_in;
       $("studFu").value = inputs.slab.studs.Fu_ksi;
       $("studMinComp").value = inputs.slab.studs.min_comp_pct;
       $("studMaxComp").value = inputs.slab.studs.max_comp_pct;
 
-      $("studEdgeDist").value = inputs.stud_spacing_limits.edge_dist_in;
       $("studEndDist").value = inputs.stud_spacing_limits.end_dist_in;
       $("studLongMinPar").value = inputs.stud_spacing_limits.long_min_parallel_in;
-      $("studLongMinPerp").value = inputs.stud_spacing_limits.long_min_perp_in;
       $("studLongMaxPar").value = inputs.stud_spacing_limits.long_max_parallel_in;
-      $("studLongMaxPerp").value = inputs.stud_spacing_limits.long_max_perp_in;
       $("studTransMinPar").value = inputs.stud_spacing_limits.trans_min_parallel_in;
-      $("studTransMinPerp").value = inputs.stud_spacing_limits.trans_min_perp_in;
 
       $("Fy").value = inputs.member_criteria.Fy_ksi;
       $("beamCompositeAllowed").checked = !!inputs.member_criteria.beam.composite_allowed;
@@ -1303,7 +1298,6 @@
       const out = {
         basis: {
           design_method: "AISC_360_22_LRFD",
-          live_load_reduction: $("globalLLReduction").value === "true",
           optimize_by: $("optimizeBy").value === "weight" ? "weight" : "cost"
         },
         geometry: {
@@ -1318,13 +1312,13 @@
           SWadd_psf: parseNum($("loadSWadd").value, 0.5),
           LL_psf: parseNum($("loadLL").value, 50),
           LL_reducible: !!$("loadLLReducible").checked,
+          LL_reduction_mode: ["none","asce","asce_cap20"].includes($("loadLLReductionMode").value) ? $("loadLLReductionMode").value : "asce",
           SDL_psf: parseNum($("loadSDL").value, 20),
           CLL_psf: parseNum($("loadCLL").value, 20)
         },
         construction_stage: {
           enabled: !!$("constrEnable").checked,
           apply_mode: $("constrApplyMode").value === "all" ? "all" : "composite_only",
-          force_unshored_if_shored: !!$("constrForceUnshored").checked,
           swadd_pct: parseNum($("constrSWaddPct").value, 0)
         },
         slab: {
@@ -1333,6 +1327,7 @@
           deck_profile: $("deckProfile").value || "None",
           deck_gage: Math.round(parseNum($("deckGage").value, 22)),
           deck_span_condition: Math.max(1, Math.min(3, Math.round(parseNum($("deckSpanCond").value, 3)))),
+          deck_table_density: $("deckTableDensity").value === "NWC" ? "NWC" : "LWC",
           self_weight_override_psf: parseOptionalNum($("slabSelfWeightOverride").value),
           deck: {
             hd_in: parseNum($("deckHd").value, 2),
@@ -1347,7 +1342,6 @@
           },
           studs: {
             dia_in: parseNum($("studDia").value, 0.75),
-            height_in: parseNum($("studH").value, 4),
             Fu_ksi: parseNum($("studFu").value, 60),
             min_comp_pct: parseNum($("studMinComp").value, 25),
             max_comp_pct: parseNum($("studMaxComp").value, 100)
@@ -1404,14 +1398,10 @@
           disallow_noncompact_web: !!$("camberDisallowNoncompact").checked
         },
         stud_spacing_limits: {
-          edge_dist_in: parseNum($("studEdgeDist").value, 1.5),
           end_dist_in: parseNum($("studEndDist").value, 6),
           long_min_parallel_in: parseNum($("studLongMinPar").value, 4),
-          long_min_perp_in: parseNum($("studLongMinPerp").value, 4),
           long_max_parallel_in: parseNum($("studLongMaxPar").value, 24),
-          long_max_perp_in: parseNum($("studLongMaxPerp").value, 24),
-          trans_min_parallel_in: parseNum($("studTransMinPar").value, 3),
-          trans_min_perp_in: parseNum($("studTransMinPerp").value, 3)
+          trans_min_parallel_in: parseNum($("studTransMinPar").value, 3)
         },
         cost: {
           steel_tic_per_lb: parseNum($("costSteelTIC").value, 1.25),
@@ -1428,9 +1418,9 @@
         }
       };
       out.cost = normalizeCostInputs(out.cost);
-      out.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", force_unshored_if_shored:false, swadd_pct:0 }, out.construction_stage || {});
+      out.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", swadd_pct:0 }, out.construction_stage || {});
       out.construction_stage.swadd_pct = clamp(out.construction_stage.swadd_pct, 0, 100);
-      out.slab = Object.assign({ self_weight_override_psf: null }, out.slab || {});
+      out.slab = Object.assign({ deck_table_density:"LWC", self_weight_override_psf: null }, out.slab || {});
       return out;
     }
 
@@ -1562,9 +1552,12 @@
       const lay = computeLayout(inp.geometry);
       const AT_beam = lay.spacing_ft * inp.geometry.Lb_ft;
       const AT_girder = inp.geometry.Lb_ft * inp.geometry.Lg_ft;
-      const beam = llReduction(inp.loads.LL_psf, inp.loads.LL_reducible, inp.basis.live_load_reduction, 2, AT_beam);
-      const girder = llReduction(inp.loads.LL_psf, inp.loads.LL_reducible, inp.basis.live_load_reduction, 1, AT_girder);
+      const beam = llReduction(inp.loads.LL_psf, inp.loads.LL_reducible, inp.loads.LL_reduction_mode, 2, AT_beam);
+      const girder = llReduction(inp.loads.LL_psf, inp.loads.LL_reducible, inp.loads.LL_reduction_mode, 1, AT_girder);
+      const mode = inp.loads.LL_reduction_mode || "asce";
+      const modeLbl = mode === "none" ? "None" : (mode === "asce_cap20" ? "ASCE 7-22 (20% cap)" : "ASCE 7-22");
       $("llReductionInfo").innerHTML = `
+        <div><strong>Mode:</strong> ${safeStr(modeLbl)}</div>
         <div><strong>Beam:</strong> AT=${fmt(AT_beam,2)} sf, KLL=2 → KLL·AT=${fmt(2 * AT_beam,2)} sf, LL_used=${fmt(beam.LL_used_psf,2)} psf (${fmt(beam.reduction_pct,1)}% reduction)</div>
         <div><strong>Girder:</strong> AT=${fmt(AT_girder,2)} sf, KLL=1 → KLL·AT=${fmt(AT_girder,2)} sf, LL_used=${fmt(girder.LL_used_psf,2)} psf (${fmt(girder.reduction_pct,1)}% reduction)</div>
       `;
@@ -1913,7 +1906,7 @@
         ["Design Basis", "AISC 360-22 LRFD (MVP)"],
         ["Load Basis", "ASCE 7-22 (LL reduction per tool settings)"],
         ["Optimize By", safeStr(inputs.basis.optimize_by)],
-        ["LL Reduction Enabled", yesNo(inputs.basis.live_load_reduction)],
+        ["LL Reduction Mode", safeStr(inputs.loads.LL_reduction_mode || "asce")],
         ["LL Reducible Flag", yesNo(inputs.loads.LL_reducible)],
         ["Shapes Dataset", safeStr(shapeSrc.dataset_label || "—")],
         ["Shapes File", safeStr(shapeSrc.file_name || "—")]
@@ -1941,8 +1934,7 @@
       const constrRows = [
         ["Enforce pre-composite", yesNo(constr.enabled)],
         ["Apply mode", safeStr(constr.apply_mode || "composite_only")],
-        ["Force unshored if shored", yesNo(constr.force_unshored_if_shored)],
-        ["SWadd present during pour (%)", fmt(constr.swadd_pct,2)],
+                ["SWadd present during pour (%)", fmt(constr.swadd_pct,2)],
       ];
 
       const slab = [
@@ -1957,6 +1949,7 @@
         ["Deck profile", safeStr(inputs.slab.deck_profile)],
         ["Deck gage", safeStr(inputs.slab.deck_gage)],
         ["Deck span condition", safeStr(inputs.slab.deck_span_condition)],
+        ["Deck table density", safeStr(inputs.slab.deck_table_density || "LWC")],
         ["Shored construction", yesNo(inputs.slab.shored)],
         ["Shore spacing (ft)", inputs.slab.shored ? fmt(inputs.slab.shore_spacing_ft ?? spacing_used,3) : "—"],
         ["Override slab/deck self-weight (psf)", inputs.slab.self_weight_override_psf != null ? fmt(inputs.slab.self_weight_override_psf,3) : "—"]
@@ -1964,11 +1957,9 @@
 
       const studs = [
         ["Stud dia (in)", fmt(inputs.slab.studs.dia_in,3)],
-        ["Stud height (in)", fmt(inputs.slab.studs.height_in,3)],
         ["Stud Fu (ksi)", fmt(inputs.slab.studs.Fu_ksi,3)],
         ["Min composite (%)", fmt(inputs.slab.studs.min_comp_pct,2)],
         ["Max composite (%)", fmt(inputs.slab.studs.max_comp_pct,2)],
-        ["Edge dist (in)", fmt(inputs.stud_spacing_limits.edge_dist_in,2)],
         ["End dist (in)", fmt(inputs.stud_spacing_limits.end_dist_in,2)],
         ["Long min parallel (in)", fmt(inputs.stud_spacing_limits.long_min_parallel_in,2)],
         ["Long max parallel (in)", fmt(inputs.stud_spacing_limits.long_max_parallel_in,2)],
@@ -2149,8 +2140,7 @@
         <h4>Construction Stage (Pre-Composite) — Bare Steel Check</h4>
         ${tableHTML(["Field","Value"], [
           ["Shored", yesNo(constr.shored)],
-          ["Force unshored if shored", yesNo(constr.force_unshored_if_shored)],
-          ["SWadd present (%)", fmt(constr.swadd_pct,1)],
+                    ["SWadd present (%)", fmt(constr.swadd_pct,1)],
           ["Slab psf used", fmt(constr.slab_psf_used,3)],
           ["SWadd psf used", fmt(constr.D_area_psf_components?.swadd_psf_used,3)],
           ["SDL psf used", fmt(constr.D_area_psf_components?.sdl_psf_used,3)],
@@ -2430,10 +2420,11 @@
           state.inputs = deepClone(obj.inputs);
           if (state.inputs.loads && state.inputs.loads.SWadd_psf == null && state.inputs.loads.DL_add_psf != null) state.inputs.loads.SWadd_psf = state.inputs.loads.DL_add_psf;
           if (state.inputs.loads && state.inputs.loads.SWadd_psf == null) state.inputs.loads.SWadd_psf = 0;
+          if (state.inputs.loads && !state.inputs.loads.LL_reduction_mode) state.inputs.loads.LL_reduction_mode = "asce";
           if (state.inputs.slab) { delete state.inputs.slab.use_vulcraft_slab_self_weight; delete state.inputs.slab.deck_override_weight; }
           state.inputs.cost = normalizeCostInputs(state.inputs.cost || {});
-          state.inputs.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", force_unshored_if_shored:false, swadd_pct:0 }, state.inputs.construction_stage || {});
-          state.inputs.slab = Object.assign({ self_weight_override_psf: null }, state.inputs.slab || {});
+          state.inputs.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", swadd_pct:0 }, state.inputs.construction_stage || {});
+          state.inputs.slab = Object.assign({ deck_table_density:"LWC", self_weight_override_psf: null }, state.inputs.slab || {});
           populateForm(state.inputs);
 
           if (obj.shapes_snapshot?.mode === "upload" && Array.isArray(obj.shapes_snapshot.shapes)) {
@@ -2668,9 +2659,9 @@
       });
 
       const watchIds = [
-        "geoLb","geoLg","geoSpacing","geoNBeamOverride","globalLLReduction","loadSWadd","loadLL","loadLLReducible","loadSDL","loadCLL",
-        "concTop","concFc","concUw","deckProfile","deckGage","deckSpanCond","slabShored","shoreSpacing","deckHd","deckWt","deckRibW","deckRibS","slabSelfWeightOverride",
-        "camberModel","constrEnable","constrApplyMode","constrForceUnshored","constrSWaddPct"
+        "geoLb","geoLg","geoSpacing","geoNBeamOverride","loadSWadd","loadLL","loadLLReducible","loadLLReductionMode","loadSDL","loadCLL",
+        "concTop","concFc","concUw","deckProfile","deckGage","deckSpanCond","deckTableDensity","slabShored","shoreSpacing","deckHd","deckWt","deckRibW","deckRibS","slabSelfWeightOverride",
+        "camberModel","constrEnable","constrApplyMode","constrSWaddPct"
       ];
       watchIds.forEach(id => {
         $(id).addEventListener("input", () => {
@@ -2748,12 +2739,13 @@
         };
       }
 
-      function llReduction(LL, reducible, globalOn, KLL, AT) {
-        if (!reducible || !globalOn) return { LL_used_psf: LL, factor: 1, reduction_pct: 0 };
+      function llReduction(LL, reducible, mode, KLL, AT) {
+        if (!reducible || mode === "none") return { LL_used_psf: LL, factor: 1, reduction_pct: 0 };
         const at = Math.max(1, AT);
         let f = 0.25 + 15 / Math.sqrt(Math.max(1, KLL * at));
         const minF = at >= 400 ? 0.4 : 0.5;
         f = clamp(f, minF, 1);
+        if (mode === "asce_cap20") f = Math.max(f, 0.80);
         return { LL_used_psf: LL * f, factor: f, reduction_pct: (1 - f) * 100 };
       }
 
@@ -2762,11 +2754,11 @@
         const slab = inputs.slab || {};
         const deck = slab.deck || {};
         const conc = slab.concrete || {};
-        const deck_psf = parseNum(deck.deck_weight_psf, 0);
-        const topping_psf = (parseNum(conc.topping_in, 0) / 12) * parseNum(conc.unit_weight_pcf, 0);
-        const sr = Math.max(0.01, parseNum(deck.rib_spacing_in, 12));
-        const t_flute_avg_in = 0.5 * parseNum(deck.hd_in, 0) * (parseNum(deck.rib_width_in, 0) / sr);
-        const flute_psf = (t_flute_avg_in / 12) * parseNum(conc.unit_weight_pcf, 0);
+        const deck_psf = toNum(deck.deck_weight_psf, 0);
+        const topping_psf = (toNum(conc.topping_in, 0) / 12) * toNum(conc.unit_weight_pcf, 0);
+        const sr = Math.max(0.01, toNum(deck.rib_spacing_in, 12));
+        const t_flute_avg_in = 0.5 * toNum(deck.hd_in, 0) * (toNum(deck.rib_width_in, 0) / sr);
+        const flute_psf = (t_flute_avg_in / 12) * toNum(conc.unit_weight_pcf, 0);
         return { deck_psf, topping_psf, flute_psf, total_psf: deck_psf + topping_psf + flute_psf };
       }
 
@@ -2781,7 +2773,6 @@
         return {
           enabled: !!c.enabled,
           apply_mode: c.apply_mode === "all" ? "all" : "composite_only",
-          force_unshored_if_shored: !!c.force_unshored_if_shored,
           swadd_pct: clamp(toNum(c.swadd_pct, 0), 0, 100)
         };
       }
@@ -3286,8 +3277,7 @@
             enabled: constrCfg.enabled,
             applied: !!best.precompApplied,
             shored: !!inputs.slab.shored,
-            force_unshored_if_shored: !!constrCfg.force_unshored_if_shored,
-            swadd_pct: constrCfg.swadd_pct,
+                        swadd_pct: constrCfg.swadd_pct,
             slab_psf_used: best.precomp?.slab_psf_used ?? null,
             D_area_psf_components: best.precomp?.D_area_psf_components || null,
             cll_psf: best.precomp?.cll_psf ?? null,
@@ -3506,8 +3496,7 @@
             enabled: constrCfg.enabled,
             applied: !!best.precompApplied,
             shored: !!inputs.slab.shored,
-            force_unshored_if_shored: !!constrCfg.force_unshored_if_shored,
-            swadd_pct: constrCfg.swadd_pct,
+                        swadd_pct: constrCfg.swadd_pct,
             slab_psf_used: best.precomp?.slab_psf_used ?? null,
             D_area_psf_components: best.precomp?.D_area_psf_components || null,
             cll_psf: best.precomp?.cll_psf ?? null,
@@ -3655,8 +3644,8 @@
         const layout = computeLayout(inputs.geometry);
         const AT_beam = layout.spacing_ft * inputs.geometry.Lb_ft;
         const AT_girder = inputs.geometry.Lb_ft * inputs.geometry.Lg_ft;
-        const llBeamInfo = llReduction(inputs.loads.LL_psf, inputs.loads.LL_reducible, inputs.basis.live_load_reduction, 2, AT_beam);
-        const llGirderInfo = llReduction(inputs.loads.LL_psf, inputs.loads.LL_reducible, inputs.basis.live_load_reduction, 1, AT_girder);
+        const llBeamInfo = llReduction(inputs.loads.LL_psf, inputs.loads.LL_reducible, inputs.loads.LL_reduction_mode, 2, AT_beam);
+        const llGirderInfo = llReduction(inputs.loads.LL_psf, inputs.loads.LL_reducible, inputs.loads.LL_reduction_mode, 1, AT_girder);
 
         const total = beamShapes.length * girderShapes.length;
         self.postMessage({ cmd: "started", total, beamCount: beamShapes.length, girderCount: girderShapes.length });
