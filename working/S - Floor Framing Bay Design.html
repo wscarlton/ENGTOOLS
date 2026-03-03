@@ -241,8 +241,16 @@
               <input id="geoSpacing" type="number" step="0.01" min="0.1" />
             </div>
             <div class="field">
-              <label title="Optional advanced override. If set, spacing is recomputed as Lg/(n+1)."># Interior Beam Lines (optional override)</label>
+              <label title="Optional override. If set, spacing is recomputed as Lg / (#deck spans). Example: 30 ft with 2 spans → 15 ft spacing.">
+  # Deck Spans (optional override)
+</label>
               <input id="geoNBeamOverride" type="number" min="1" step="1" placeholder="auto" />
+            </div>
+            <div class="field">
+              <label title="Interior bay accounting: count edge beams as 1/2 each (½ + interior + ½).">
+                <input id="geoShareHalfBeams" type="checkbox" />
+                Interior bay sharing (½ edge beams)
+              </label>
             </div>
             <div class="field">
               <label title="Optional accounting switch for interior bay cost/weight allocation.">
@@ -587,7 +595,7 @@
     /**
      * @typedef {Object} InputModel
      * @property {{design_method:string,live_load_reduction:boolean,optimize_by:'cost'|'weight'}} basis
-     * @property {{Lb_ft:number,Lg_ft:number,spacing_ft:number,nBeamLines_override:number|null,share_half_girders:boolean}} geometry
+     * @property {{Lb_ft:number,Lg_ft:number,spacing_ft:number,nBeamLines_override:number|null,share_half_beams:boolean,share_half_girders:boolean}} geometry
      * @property {{DL_add_psf:number,LL_psf:number,LL_reducible:boolean,SDL_psf:number,CLL_psf:number}} loads
      * @property {{
      *   shored:boolean,
@@ -685,7 +693,8 @@
           Lg_ft: 30,
           spacing_ft: 15,
           nBeamLines_override: null,
-          share_half_girders: false
+          share_half_girders: true,
+          share_half_beams: true
         },
         loads: {
           DL_add_psf: 0.5,
@@ -777,19 +786,33 @@
 
     function computeLayout(geometry) {
       const Lg = Math.max(0.01, geometry.Lg_ft);
-      let nBeamLines, spacing_ft;
+
+      let nDeckSpans;
       if (geometry.nBeamLines_override != null && Number.isFinite(geometry.nBeamLines_override)) {
-        nBeamLines = Math.max(1, Math.round(geometry.nBeamLines_override));
-        spacing_ft = Lg / (nBeamLines + 1);
+        nDeckSpans = Math.max(1, Math.round(geometry.nBeamLines_override));
       } else {
-        const nSpaces = Math.max(2, Math.round(Lg / Math.max(0.1, geometry.spacing_ft)));
-        nBeamLines = Math.max(1, nSpaces - 1);
-        spacing_ft = Lg / nSpaces;
+        nDeckSpans = Math.max(1, Math.round(Lg / Math.max(0.1, geometry.spacing_ft)));
       }
-      const nSpaces = nBeamLines + 1;
-      const positions_ft = [];
-      for (let i = 1; i <= nBeamLines; i++) positions_ft.push(i * spacing_ft);
-      return { nBeamLines, nSpaces, spacing_ft, positions_ft };
+
+      const spacing_ft = Lg / nDeckSpans;
+      const positions_all_ft = [];
+      for (let i = 0; i <= nDeckSpans; i++) positions_all_ft.push(i * spacing_ft);
+      const positions_interior_ft = positions_all_ft.slice(1, -1);
+
+      const shareBeams = !!geometry.share_half_beams;
+      const shareGirders = !!geometry.share_half_girders;
+
+      const beam_equiv_count = shareBeams ? nDeckSpans : (nDeckSpans + 1);
+      const girder_equiv_count = shareGirders ? 1 : 2;
+
+      return {
+        nDeckSpans,
+        spacing_ft,
+        positions_all_ft,
+        positions_interior_ft,
+        beam_equiv_count,
+        girder_equiv_count
+      };
     }
 
     function llReduction(LL, reducible, globalOn, KLL, AT) {
@@ -806,7 +829,7 @@
       const x0 = m, y0 = m, w = W - 2 * m, h = H - 2 * m;
       const Lg = Math.max(0.01, geometry.Lg_ft);
       let beams = "";
-      for (const xFt of layout.positions_ft) {
+      for (const xFt of layout.positions_all_ft) {
         const x = x0 + (xFt / Lg) * w;
         beams += `<line x1="${x}" y1="${y0}" x2="${x}" y2="${y0 + h}" stroke="#1d4ed8" stroke-width="2"/>`;
       }
@@ -838,6 +861,7 @@
       $("geoSpacing").value = inputs.geometry.spacing_ft;
       $("geoNBeamOverride").value = inputs.geometry.nBeamLines_override ?? "";
       $("geoShareHalfGirders").checked = !!inputs.geometry.share_half_girders;
+      $("geoShareHalfBeams").checked = !!inputs.geometry.share_half_beams;
 
       $("loadDLadd").value = inputs.loads.DL_add_psf;
       $("loadLL").value = inputs.loads.LL_psf;
@@ -937,7 +961,8 @@
           Lg_ft: parseNum($("geoLg").value, 30),
           spacing_ft: parseNum($("geoSpacing").value, 15),
           nBeamLines_override: parseOptionalNum($("geoNBeamOverride").value),
-          share_half_girders: !!$("geoShareHalfGirders").checked
+          share_half_girders: !!$("geoShareHalfGirders").checked,
+          share_half_beams: !!$("geoShareHalfBeams").checked
         },
         loads: {
           DL_add_psf: parseNum($("loadDLadd").value, 0.5),
@@ -1044,7 +1069,7 @@
     function validateInputs(inp, shapes) {
       const e = [];
       if (inp.geometry.Lb_ft <= 0 || inp.geometry.Lg_ft <= 0 || inp.geometry.spacing_ft <= 0) e.push("Geometry dimensions/spacing must be positive.");
-      if (inp.geometry.nBeamLines_override != null && inp.geometry.nBeamLines_override < 1) e.push("Interior beam line override must be >= 1.");
+      if (inp.geometry.nBeamLines_override != null && inp.geometry.nBeamLines_override < 1) e.push("Deck spans override must be >= 1.");
       if (inp.loads.LL_psf < 0 || inp.loads.SDL_psf < 0 || inp.loads.CLL_psf < 0 || inp.loads.DL_add_psf < 0) e.push("Loads must be nonnegative.");
       if (inp.slab.studs.min_comp_pct < 0 || inp.slab.studs.max_comp_pct > 100 || inp.slab.studs.min_comp_pct > inp.slab.studs.max_comp_pct) e.push("Stud composite % limits are invalid.");
       if (inp.member_criteria.Fy_ksi <= 0) e.push("Fy must be positive.");
@@ -1100,13 +1125,17 @@
         Lb_ft: parseNum($("geoLb").value, 40),
         Lg_ft: parseNum($("geoLg").value, 30),
         spacing_ft: parseNum($("geoSpacing").value, 15),
-        nBeamLines_override: parseOptionalNum($("geoNBeamOverride").value)
+        nBeamLines_override: parseOptionalNum($("geoNBeamOverride").value),
+        share_half_girders: !!$("geoShareHalfGirders").checked,
+        share_half_beams: !!$("geoShareHalfBeams").checked
       };
       const lay = computeLayout(g);
       $("layoutInfo").innerHTML = `
-        <div><strong>Computed interior beam lines:</strong> ${lay.nBeamLines}</div>
+        <div><strong>Computed deck spans:</strong> ${lay.nDeckSpans}</div>
+        <div><strong>Computed interior beam lines:</strong> ${lay.positions_interior_ft.length}</div>
         <div><strong>Actual spacing used:</strong> ${fmt(lay.spacing_ft,3)} ft</div>
-        <div><strong>Beam line positions xᵢ (ft):</strong> ${lay.positions_ft.map(v => fmt(v,2)).join(", ")}</div>
+        <div><strong>Beam lines (all) xᵢ (ft):</strong> ${lay.positions_all_ft.map(v => fmt(v,2)).join(", ")}</div>
+        <div><strong>Interior beam lines xᵢ (ft):</strong> ${lay.positions_interior_ft.map(v => fmt(v,2)).join(", ") || "none"}</div>
       `;
       $("planDiagram").innerHTML = makePlanSVG(g, lay);
       updateLLPreview();
@@ -1120,8 +1149,8 @@
       const beam = llReduction(inp.loads.LL_psf, inp.loads.LL_reducible, inp.basis.live_load_reduction, 2, AT_beam);
       const girder = llReduction(inp.loads.LL_psf, inp.loads.LL_reducible, inp.basis.live_load_reduction, 1, AT_girder);
       $("llReductionInfo").innerHTML = `
-        <div><strong>Beam:</strong> KLL=2, AT=${fmt(AT_beam,2)} sf, LL_used=${fmt(beam.LL_used_psf,2)} psf (${fmt(beam.reduction_pct,1)}% reduction)</div>
-        <div><strong>Girder:</strong> KLL=1, AT=${fmt(AT_girder,2)} sf, LL_used=${fmt(girder.LL_used_psf,2)} psf (${fmt(girder.reduction_pct,1)}% reduction)</div>
+        <div><strong>Beam:</strong> AT=${fmt(AT_beam,2)} sf, KLL=2 → KLL·AT=${fmt(2 * AT_beam,2)} sf, LL_used=${fmt(beam.LL_used_psf,2)} psf (${fmt(beam.reduction_pct,1)}% reduction)</div>
+        <div><strong>Girder:</strong> AT=${fmt(AT_girder,2)} sf, KLL=1 → KLL·AT=${fmt(AT_girder,2)} sf, LL_used=${fmt(girder.LL_used_psf,2)} psf (${fmt(girder.reduction_pct,1)}% reduction)</div>
       `;
     }
 
@@ -1351,7 +1380,7 @@
         </div>`;
     }
 
-    function memberReportHTML(member, panel) {
+    function memberReportBodyHTML(member, panel) {
       const comp = member.composite || {};
       const studs = comp.studs || {};
       const strengthRows = (member.strength?.combos || []).map(c => [
@@ -1391,7 +1420,6 @@
 
       const html = `
         <div>
-          <h3 style="margin-top:0;text-transform:capitalize">${safeStr(member.member_type)} Report</h3>
           ${tableHTML(["Field","Value"], [
             ["Shape", safeStr(member.shape?.name || "—")],
             ["Length (ft)", fmt(member.length_ft,3)],
@@ -1434,10 +1462,19 @@
           <h4>Notes</h4>
           <ul>${(member.notes || []).map(n => `<li>${safeStr(n)}</li>`).join("")}</ul>
 
-          <div class="report-footer"><strong>Disclaimer:</strong> Conceptual/schematic tool. Not for final design. Verify results independently.</div>
         </div>
       `;
       return html;
+    }
+
+    function memberReportFullHTML(member, panel) {
+      return `
+        <div>
+          <h3 style="margin-top:0;text-transform:capitalize">${safeStr(member.member_type)} Report</h3>
+          ${memberReportBodyHTML(member, panel)}
+          <div class="report-footer"><strong>Disclaimer:</strong> Conceptual/schematic tool. Not for final design. Verify results independently.</div>
+        </div>
+      `;
     }
 
     function openModal(title, html) {
@@ -1563,13 +1600,13 @@
         <section class="print-page">
           <div class="report-title">Beam Report</div>
           <div class="report-sub">${safeStr(sol.beam.shape.name)}</div>
-          ${memberReportHTML(sol.beam, sol.panel)}
+          ${memberReportBodyHTML(sol.beam, sol.panel)}
         </section>
 
         <section class="print-page">
           <div class="report-title">Girder Report</div>
           <div class="report-sub">${safeStr(sol.girder.shape.name)}</div>
-          ${memberReportHTML(sol.girder, sol.panel)}
+          ${memberReportBodyHTML(sol.girder, sol.panel)}
         </section>
       `;
       window.print();
@@ -1752,7 +1789,8 @@
       const lines = [
         "Reference Case Sanity Check (order-of-magnitude only)",
         `Lb=${fmt(inp.geometry.Lb_ft,2)} ft, Lg=${fmt(inp.geometry.Lg_ft,2)} ft, spacing_used=${fmt(lay.spacing_ft,3)} ft`,
-        `Interior beam lines=${lay.nBeamLines}`,
+        `Deck spans=${lay.nDeckSpans}`,
+        `Interior beam lines=${lay.positions_interior_ft.length}`,
         `Computed slab self-weight=${fmt(selfW,3)} psf`,
         `Approx beam service line load w≈${fmt(w,4)} k/ft`,
         `Approx Mmax=wL²/8≈${fmt(M,3)} k-ft`,
@@ -1775,12 +1813,12 @@
       $("btnViewBeam").addEventListener("click", () => {
         const sol = selectedSolution();
         if (!sol) return;
-        openModal("Beam Report", memberReportHTML(sol.beam, sol.panel));
+        openModal("Beam Report", memberReportFullHTML(sol.beam, sol.panel));
       });
       $("btnViewGirder").addEventListener("click", () => {
         const sol = selectedSolution();
         if (!sol) return;
-        openModal("Girder Report", memberReportHTML(sol.girder, sol.panel));
+        openModal("Girder Report", memberReportFullHTML(sol.girder, sol.panel));
       });
       $("btnPrintPack").addEventListener("click", renderReportPackAndPrint);
       $("btnExportJSON").addEventListener("click", exportJSON);
@@ -1864,19 +1902,33 @@
 
       function computeLayout(geometry) {
         const Lg = Math.max(0.01, toNum(geometry.Lg_ft, 1));
-        let nBeamLines, spacing_ft;
+
+        let nDeckSpans;
         if (geometry.nBeamLines_override != null && Number.isFinite(geometry.nBeamLines_override)) {
-          nBeamLines = Math.max(1, Math.round(geometry.nBeamLines_override));
-          spacing_ft = Lg / (nBeamLines + 1);
+          nDeckSpans = Math.max(1, Math.round(geometry.nBeamLines_override));
         } else {
-          const nSpaces = Math.max(2, Math.round(Lg / Math.max(0.1, toNum(geometry.spacing_ft, 1))));
-          nBeamLines = Math.max(1, nSpaces - 1);
-          spacing_ft = Lg / nSpaces;
+          nDeckSpans = Math.max(1, Math.round(Lg / Math.max(0.1, toNum(geometry.spacing_ft, 1))));
         }
-        const nSpaces = nBeamLines + 1;
-        const positions_ft = [];
-        for (let i = 1; i <= nBeamLines; i++) positions_ft.push(i * spacing_ft);
-        return { nBeamLines, nSpaces, spacing_ft, positions_ft };
+
+        const spacing_ft = Lg / nDeckSpans;
+        const positions_all_ft = [];
+        for (let i = 0; i <= nDeckSpans; i++) positions_all_ft.push(i * spacing_ft);
+        const positions_interior_ft = positions_all_ft.slice(1, -1);
+
+        const shareBeams = !!geometry.share_half_beams;
+        const shareGirders = !!geometry.share_half_girders;
+
+        const beam_equiv_count = shareBeams ? nDeckSpans : (nDeckSpans + 1);
+        const girder_equiv_count = shareGirders ? 1 : 2;
+
+        return {
+          nDeckSpans,
+          spacing_ft,
+          positions_all_ft,
+          positions_interior_ft,
+          beam_equiv_count,
+          girder_equiv_count
+        };
       }
 
       function llReduction(LL, reducible, globalOn, KLL, AT) {
@@ -1922,11 +1974,9 @@
 
       function lrfdCombos() {
         return [
-          { name: "1.4D", D: 1.4, SDL: 0, L: 0, CLL: 0 },
-          { name: "1.2D+1.6L+0.5SDL", D: 1.2, SDL: 0.5, L: 1.6, CLL: 0 },
-          { name: "1.2D+1.6L", D: 1.2, SDL: 0, L: 1.6, CLL: 0 },
-          { name: "1.2D+1.6CLL", D: 1.2, SDL: 0, L: 0, CLL: 1.6 },
-          { name: "1.2D+1.0SDL+1.0L", D: 1.2, SDL: 1.0, L: 1.0, CLL: 0 }
+          { name: "1.4D", D: 1.4, L: 0, CLL: 0 },
+          { name: "1.2D+1.6L", D: 1.2, L: 1.6, CLL: 0 },
+          { name: "1.2D+1.6CLL", D: 1.2, L: 0, CLL: 1.6 }
         ];
       }
 
@@ -1942,7 +1992,8 @@
         const out = [];
         let maxUtil = 0, ctrl = "";
         for (const c of combos) {
-          const wc = c.D * w.DL + c.SDL * w.SDL + c.L * w.LL + c.CLL * w.CLL;
+          const D = w.DL + w.SDL;
+          const wc = c.D * D + c.L * w.LL + c.CLL * w.CLL;
           const Mu = wc * L_ft * L_ft / 8;
           const Vu = wc * L_ft / 2;
           const utilM = phiMn_kft > 0 ? Mu / phiMn_kft : 999;
@@ -2025,10 +2076,13 @@
       function studQn(inputs) {
         const dia = inputs.slab.studs.dia_in;
         const As = Math.PI * dia * dia / 4;
-        const fc = inputs.slab.concrete.fc_ksi * 1000;
-        const Ec = 57000 * Math.sqrt(Math.max(fc, 1));
+
+        const wc = Math.max(90, Math.min(155, inputs.slab.concrete.unit_weight_pcf));
+        const fc_psi = inputs.slab.concrete.fc_ksi * 1000;
+        const Ec_psi = 33 * Math.pow(wc, 1.5) * Math.sqrt(Math.max(fc_psi, 1));
+
         const Fu = inputs.slab.studs.Fu_ksi;
-        const qConc = 0.5 * As * Math.sqrt(fc * Ec) / 1000;
+        const qConc = 0.5 * As * Math.sqrt(fc_psi * Ec_psi) / 1000;
         const qSteel = As * Fu;
         return Math.min(qConc, qSteel);
       }
@@ -2067,7 +2121,10 @@
         const t_eff = inputs.slab.concrete.topping_in + 0.5 * inputs.slab.deck.hd_in;
         const Ac = be * t_eff;
         const fc = inputs.slab.concrete.fc_ksi;
-        const Ec_ksi = 57 * Math.sqrt(Math.max(fc * 1000, 1));
+        const fc_psi = fc * 1000;
+        const wc = Math.max(90, Math.min(155, inputs.slab.concrete.unit_weight_pcf));
+        const Ec_psi = 33 * Math.pow(wc, 1.5) * Math.sqrt(Math.max(fc_psi, 1));
+        const Ec_ksi = Ec_psi / 1000;
         const n = E / Ec_ksi;
 
         const Qn = studQn(inputs);
@@ -2344,13 +2401,14 @@
         const out = [];
         let maxUtil = 0, ctrl = "";
         for (const c of combos) {
+          const ptsD = mergePointLoads([comp.DL.point, comp.SDL.point]);
           const pts = mergePointLoads([
-            scaleLoads(comp.DL.point, c.D),
-            scaleLoads(comp.SDL.point, c.SDL),
+            scaleLoads(ptsD, c.D),
             scaleLoads(comp.LL.point, c.L),
             scaleLoads(comp.CLL.point, c.CLL)
           ]);
-          const w = c.D * comp.DL.w + c.SDL * comp.SDL.w + c.L * comp.LL.w + c.CLL * comp.CLL.w;
+          const wD = comp.DL.w + comp.SDL.w;
+          const w = c.D * wD + c.L * comp.LL.w + c.CLL * comp.CLL.w;
           const a = analyzePointUniform(L_ft, pts, w);
           const utilM = phiMn_kft > 0 ? a.maxM / phiMn_kft : 999;
           const utilV = phiVn_k > 0 ? a.maxV / phiVn_k : 999;
@@ -2378,7 +2436,7 @@
         const R_LL = (llGirderInfo.LL_used_psf * spacing / 1000) * Lb / 2;
         const R_CLL = (inputs.loads.CLL_psf * spacing / 1000) * Lb / 2;
 
-        const mk = (R) => layout.positions_ft.map(x => ({ x, P: R }));
+        const mk = (R) => layout.positions_interior_ft.map(x => ({ x, P: R }));
         const pointDL = mk(R_DL);
         const pointDLdefl = mk(R_DL_defl);
         const pointSDL = mk(R_SDL);
@@ -2484,10 +2542,10 @@
             influence_area_ft2: inputs.geometry.Lb_ft * inputs.geometry.Lg_ft,
             live_load_reduction_pct: llGirderInfo.reduction_pct,
             components: [
-              {name:"DL", type:"point_k", value:R_DL, note:`${layout.nBeamLines} point loads + girder self-weight ${r(shape.W/1000,4)} k/ft`},
-              {name:"SDL", type:"point_k", value:R_SDL, note:`${layout.nBeamLines} point loads`},
-              {name:"LL", type:"point_k", value:R_LL, note:`${layout.nBeamLines} point loads (reduced)`},
-              {name:"CLL", type:"point_k", value:R_CLL, note:`${layout.nBeamLines} point loads`}
+              {name:"DL", type:"point_k", value:R_DL, note:`${layout.positions_interior_ft.length} point loads + girder self-weight ${r(shape.W/1000,4)} k/ft`},
+              {name:"SDL", type:"point_k", value:R_SDL, note:`${layout.positions_interior_ft.length} point loads`},
+              {name:"LL", type:"point_k", value:R_LL, note:`${layout.positions_interior_ft.length} point loads (reduced)`},
+              {name:"CLL", type:"point_k", value:R_CLL, note:`${layout.positions_interior_ft.length} point loads`}
             ],
             point_load_table: {
               DL: pointDL.map(p => ({ x_ft:p.x, P_k:p.P })),
@@ -2526,19 +2584,20 @@
         if (!girder) return null;
 
         const bayArea = inputs.geometry.Lb_ft * inputs.geometry.Lg_ft;
-        const girderCount = inputs.geometry.share_half_girders ? 1 : 2;
-        const beamWeightLb = beamShape.W * inputs.geometry.Lb_ft * layout.nBeamLines;
-        const girderWeightLb = girderShape.W * inputs.geometry.Lg_ft * girderCount;
+        const nBeamEq = layout.beam_equiv_count;
+        const nGirderEq = layout.girder_equiv_count;
+        const beamWeightLb = beamShape.W * inputs.geometry.Lb_ft * nBeamEq;
+        const girderWeightLb = girderShape.W * inputs.geometry.Lg_ft * nGirderEq;
         const totalWeightLb = beamWeightLb + girderWeightLb;
         const weight_psf = totalWeightLb / bayArea;
 
-        const beamStudsTotal = (beam.report.composite.studs.stud_count_total || 0) * layout.nBeamLines;
-        const girderStudsTotal = (girder.report.composite.studs.stud_count_total || 0) * girderCount;
+        const beamStudsTotal = (beam.report.composite.studs.stud_count_total || 0) * nBeamEq;
+        const girderStudsTotal = (girder.report.composite.studs.stud_count_total || 0) * nGirderEq;
         const totalStuds = beamStudsTotal + girderStudsTotal;
 
         const steel_usd = totalWeightLb * inputs.cost.steel_per_lb;
         const stud_usd = totalStuds * inputs.cost.stud_per_each;
-        const camber_usd = beam.report.camber.cost_usd * layout.nBeamLines + girder.report.camber.cost_usd * girderCount;
+        const camber_usd = beam.report.camber.cost_usd * nBeamEq + girder.report.camber.cost_usd * nGirderEq;
         const total_usd = steel_usd + stud_usd + camber_usd;
         const cost_per_sf = total_usd / bayArea;
 
