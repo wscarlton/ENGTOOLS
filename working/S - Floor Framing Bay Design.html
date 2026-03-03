@@ -308,6 +308,35 @@
           <div class="hr"></div>
           <h4>Live Load Reduction Preview</h4>
           <div id="llReductionInfo" class="small muted-box"></div>
+
+          <div class="hr"></div>
+          <h4>Construction Stage (Pre-Composite) Checks</h4>
+          <div class="grid3">
+            <div class="field inline" style="align-self:end">
+              <input id="constrEnable" type="checkbox" />
+              <label title="Checks steel beam/girder for construction stage before composite action develops (e.g., during pour). Uses noncomposite φMn and φVn.">Enforce pre-composite (bare steel) strength checks</label>
+            </div>
+            <div class="field">
+              <label title="If final design is already noncomposite, this check can be redundant, but keeping it ON for all solutions is conservative.">Apply mode</label>
+              <select id="constrApplyMode">
+                <option value="composite_only">Composite solutions only</option>
+                <option value="all">All solutions</option>
+              </select>
+            </div>
+            <div class="field inline" style="align-self:end">
+              <input id="constrForceUnshored" type="checkbox" />
+              <label title="Shored pours typically reduce beam demand during placement. Turn this ON if you want a conservative check that still includes wet concrete on beams.">If shored construction is ON, still enforce unshored-style pre-composite check</label>
+            </div>
+            <div class="field">
+              <label title="DL add-on often includes partitions/MEP that may not be present at time of pour. Use 0–100%.">% of DL add-on present during pour</label>
+              <input id="constrDLAddPct" type="number" step="0.1" min="0" max="100" />
+            </div>
+            <div class="field inline" style="align-self:end">
+              <input id="constrIncludeSDL" type="checkbox" />
+              <label title="SDL typically represents finishes/partitions that are not present during pour.">Include SDL during pour</label>
+            </div>
+          </div>
+          <div id="constructionPreview" class="small muted-box"></div>
         </section>
 
         <!-- FLOOR SLAB TAB -->
@@ -568,6 +597,7 @@
                   <th>TIC ($/sf)</th>
                   <th>Weight (psf)</th>
                   <th>Strength Util</th>
+                  <th>Pre-Comp Util</th>
                   <th>Deflection Util</th>
                   <th>Control</th>
                 </tr>
@@ -637,6 +667,7 @@
      * @property {{design_method:string,live_load_reduction:boolean,optimize_by:'cost'|'weight'}} basis
      * @property {{Lb_ft:number,Lg_ft:number,spacing_ft:number,nBeamLines_override:number|null,share_half_beams:boolean,share_half_girders:boolean}} geometry
      * @property {{DL_add_psf:number,LL_psf:number,LL_reducible:boolean,SDL_psf:number,CLL_psf:number}} loads
+     * @property {{enabled:boolean,apply_mode:'composite_only'|'all',force_unshored_if_shored:boolean,dl_add_pct:number,include_sdl:boolean}} construction_stage
      * @property {{
      *   shored:boolean,shore_spacing_ft:number|null,deck_profile:'None'|'2VLI'|'3VLI',deck_gage:number,deck_span_condition:1|2|3,use_vulcraft_slab_self_weight:boolean,deck_override_weight:boolean,
      *   deck:{hd_in:number,deck_weight_psf:number,rib_width_in:number,rib_spacing_in:number},
@@ -824,6 +855,13 @@
           SDL_psf: 20,
           CLL_psf: 20
         },
+        construction_stage: {
+          enabled: true,
+          apply_mode: "composite_only",
+          force_unshored_if_shored: false,
+          dl_add_pct: 0,
+          include_sdl: false
+        },
         slab: {
           shored: false,
           shore_spacing_ft: null,
@@ -912,6 +950,8 @@
         }
       };
       out.cost = normalizeCostInputs(out.cost);
+      out.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", force_unshored_if_shored:false, dl_add_pct:0, include_sdl:false }, out.construction_stage || {});
+      out.construction_stage.dl_add_pct = clamp(out.construction_stage.dl_add_pct, 0, 100);
       return out;
     }
 
@@ -1148,6 +1188,12 @@
       $("loadSDL").value = inputs.loads.SDL_psf;
       $("loadCLL").value = inputs.loads.CLL_psf;
 
+      $("constrEnable").checked = !!inputs.construction_stage?.enabled;
+      $("constrApplyMode").value = inputs.construction_stage?.apply_mode || "composite_only";
+      $("constrForceUnshored").checked = !!inputs.construction_stage?.force_unshored_if_shored;
+      $("constrDLAddPct").value = inputs.construction_stage?.dl_add_pct ?? 0;
+      $("constrIncludeSDL").checked = !!inputs.construction_stage?.include_sdl;
+
       $("slabShored").checked = !!inputs.slab.shored;
       $("shoreSpacing").value = inputs.slab.shore_spacing_ft ?? inputs.geometry.spacing_ft;
       $("deckProfile").value = inputs.slab.deck_profile || "None";
@@ -1254,6 +1300,13 @@
           SDL_psf: parseNum($("loadSDL").value, 20),
           CLL_psf: parseNum($("loadCLL").value, 20)
         },
+        construction_stage: {
+          enabled: !!$("constrEnable").checked,
+          apply_mode: $("constrApplyMode").value === "all" ? "all" : "composite_only",
+          force_unshored_if_shored: !!$("constrForceUnshored").checked,
+          dl_add_pct: parseNum($("constrDLAddPct").value, 0),
+          include_sdl: !!$("constrIncludeSDL").checked
+        },
         slab: {
           shored: !!$("slabShored").checked,
           shore_spacing_ft: parseOptionalNum($("shoreSpacing").value),
@@ -1356,6 +1409,8 @@
         }
       };
       out.cost = normalizeCostInputs(out.cost);
+      out.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", force_unshored_if_shored:false, dl_add_pct:0, include_sdl:false }, out.construction_stage || {});
+      out.construction_stage.dl_add_pct = clamp(out.construction_stage.dl_add_pct, 0, 100);
       return out;
     }
 
@@ -1459,7 +1514,28 @@
       `;
       $("planDiagram").innerHTML = makePlanSVG(g, lay);
       updateLLPreview();
+      updateConstructionPreview();
       renderDeckChecks();
+    }
+
+
+    function updateConstructionPreview() {
+      const inp = collectInputs();
+      const cfg = inp.construction_stage || {};
+      const lay = computeLayout(inp.geometry);
+      const slabDeck = inp.slab.deck.deck_weight_psf;
+      const wetConcrete = (inp.slab.concrete.topping_in / 12) * inp.slab.concrete.unit_weight_pcf;
+      const slabPsfConstr = (inp.slab.shored && !cfg.force_unshored_if_shored) ? slabDeck : (slabDeck + wetConcrete);
+      const dlAddUsed = inp.loads.DL_add_psf * clamp((cfg.dl_add_pct ?? 0) / 100, 0, 1);
+      const sdlUsed = cfg.include_sdl ? inp.loads.SDL_psf : 0;
+      $("constructionPreview").innerHTML = `
+        <div><strong>Check active:</strong> ${cfg.enabled ? "Yes" : "No"} (${safeStr(cfg.apply_mode === "all" ? "all solutions" : "composite solutions only")})</div>
+        <div><strong>Slab/deck psf used for construction:</strong> ${fmt(slabPsfConstr,2)} psf (${inp.slab.shored && !cfg.force_unshored_if_shored ? "shored deck-only" : "wet slab + deck"})</div>
+        <div><strong>DL add-on portion:</strong> ${fmt(dlAddUsed,2)} psf (${fmt(cfg.dl_add_pct,1)}%)</div>
+        <div><strong>SDL included:</strong> ${fmt(sdlUsed,2)} psf</div>
+        <div><strong>CLL:</strong> ${fmt(inp.loads.CLL_psf,2)} psf</div>
+        <div><strong>Beam spacing used:</strong> ${fmt(lay.spacing_ft,3)} ft</div>
+      `;
     }
 
     function updateLLPreview() {
@@ -1611,7 +1687,7 @@
       const tb = $("resultsTbody");
       tb.innerHTML = "";
       if (!state.results.length) {
-        tb.innerHTML = `<tr><td colspan="8" class="small">No results yet.</td></tr>`;
+        tb.innerHTML = `<tr><td colspan="9" class="small">No results yet.</td></tr>`;
       } else {
         state.results.forEach((r, i) => {
           const tr = document.createElement("tr");
@@ -1623,6 +1699,7 @@
             <td>${fmt(r.panel.cost_per_sf,3)}</td>
             <td>${fmt(r.panel.weight_psf,3)}</td>
             <td>${fmt(r.panel.governing.strength_util_max,3)}</td>
+            <td>${r.panel.governing.precomp_strength_util_max != null ? fmt(r.panel.governing.precomp_strength_util_max,3) : "—"}</td>
             <td>${fmt(r.panel.governing.deflection_util_max,3)}</td>
             <td>${safeStr(r.panel.governing.controlling_case_str)}</td>
           `;
@@ -1666,9 +1743,11 @@
           <div class="kpi"><div class="small">TIC</div><div class="v">$${fmt(sol.panel.cost_per_sf,3)}/sf</div></div>
           <div class="kpi"><div class="small">Weight</div><div class="v">${fmt(sol.panel.weight_psf,3)} psf</div></div>
           <div class="kpi"><div class="small">Strength Util</div><div class="v ${sol.panel.governing.strength_util_max>1?'bad':'ok'}">${fmt(sol.panel.governing.strength_util_max,3)}</div></div>
+          <div class="kpi"><div class="small">Pre-Comp Util</div><div class="v ${(sol.panel.governing.precomp_strength_util_max||0)>1?'bad':'ok'}">${sol.panel.governing.precomp_strength_util_max!=null?fmt(sol.panel.governing.precomp_strength_util_max,3):"—"}</div></div>
           <div class="kpi"><div class="small">Deflection Util</div><div class="v ${sol.panel.governing.deflection_util_max>1?'bad':'ok'}">${fmt(sol.panel.governing.deflection_util_max,3)}</div></div>
         </div>
         <div style="margin-top:.45rem"><strong>Control:</strong> ${safeStr(sol.panel.governing.controlling_case_str)}</div>
+        <div class="small"><strong>Pre-composite control:</strong> ${safeStr(sol.panel.governing.precomp_controlling_case_str || "—")}</div>
         <div style="margin-top:.35rem" class="small">
           <strong>TIC Breakdown (bay):</strong><br/>
           Steel TIC: $${fmt(cb.steel_usd,2)} |
@@ -1840,6 +1919,15 @@
         ["CLL (psf)", fmt(inputs.loads.CLL_psf,3)]
       ];
 
+      const constr = inputs.construction_stage || {};
+      const constrRows = [
+        ["Enforce pre-composite", yesNo(constr.enabled)],
+        ["Apply mode", safeStr(constr.apply_mode || "composite_only")],
+        ["Force unshored if shored", yesNo(constr.force_unshored_if_shored)],
+        ["DL add present during pour (%)", fmt(constr.dl_add_pct,2)],
+        ["Include SDL during pour", yesNo(constr.include_sdl)]
+      ];
+
       const slab = [
         ["Deck height hd (in)", fmt(inputs.slab.deck.hd_in,3)],
         ["Deck weight (psf)", fmt(inputs.slab.deck.deck_weight_psf,3)],
@@ -1914,6 +2002,7 @@
         ${section("Run Metadata", rows)}
         ${section("Geometry + Layout", geom)}
         ${section("Loads (psf)", loads)}
+        ${section("Construction Stage (Pre-Composite)", constrRows)}
         ${section("Floor Slab + Deck Inputs", slab)}
         ${section("Studs + Limits", studs)}
         ${section("Member Criteria", memberCrit)}
@@ -2034,6 +2123,30 @@
         safeStr(c.note || "")
       ]);
 
+
+      const constr = member.construction_stage || {};
+      const constrRows = (constr.combos || []).map(c => [safeStr(c.name), fmt(c.Mu,3), fmt(c.Vu,3), fmt(c.utilM,3), fmt(c.utilV,3), fmt(c.util,3)]);
+      const constrSection = !constr.applied ? `
+        <h4>Construction Stage (Pre-Composite) — Bare Steel Check</h4>
+        <div class="small muted-box">Not applied (${!constr.enabled ? "disabled" : "apply mode not triggered for this variant"}).</div>
+      ` : `
+        <h4>Construction Stage (Pre-Composite) — Bare Steel Check</h4>
+        ${tableHTML(["Field","Value"], [
+          ["Shored", yesNo(constr.shored)],
+          ["Force unshored if shored", yesNo(constr.force_unshored_if_shored)],
+          ["DL add present (%)", fmt(constr.dl_add_pct,1)],
+          ["Include SDL", yesNo(constr.include_sdl)],
+          ["Slab psf used", fmt(constr.slab_psf_used,3)],
+          ["DL add psf used", fmt(constr.D_area_psf_components?.dl_add_psf_used,3)],
+          ["SDL psf used", fmt(constr.D_area_psf_components?.sdl_psf_used,3)],
+          ["CLL psf", fmt(constr.cll_psf,3)],
+          ["Controlling", safeStr(constr.controlling || "—")],
+          ["Max util", fmt(constr.maxUtil,3)],
+          ["Pass", constr.maxUtil != null && constr.maxUtil <= 1 ? "PASS" : "FAIL"]
+        ])}
+        ${tableHTML(["Combo","Mu (k-ft)","Vu (k)","Mu/(φMn_nc)","Vu/(φVn)","Util"], constrRows)}
+      `;
+
       let pointLoadSection = "";
       if (member.loads?.point_load_table) {
         const comps = Object.keys(member.loads.point_load_table);
@@ -2109,6 +2222,8 @@
         ${tableHTML(["Name","Type","Value","Note"], loadRows)}
 
         ${pointLoadSection}
+
+        ${constrSection}
 
         <h4>Strength Combos (LRFD)</h4>
         ${tableHTML(["Combo","Mu (k-ft)","Vu (k)","Mu/(φMn)","Vu/(φVn)"], strengthRows)}
@@ -2199,7 +2314,7 @@
     function exportCSV() {
       if (!state.results.length) return;
       const rows = [
-        ["Rank","Beam","Girder","TIC_per_sf","Weight_psf","StrengthUtilMax","DeflectionUtilMax","Control"]
+        ["Rank","Beam","Girder","TIC_per_sf","Weight_psf","StrengthUtilMax","PreCompUtilMax","DeflectionUtilMax","PreCompControl","Control"]
       ];
       state.results.forEach((r, i) => {
         rows.push([
@@ -2209,7 +2324,9 @@
           fmt(r.panel.cost_per_sf, 4),
           fmt(r.panel.weight_psf, 4),
           fmt(r.panel.governing.strength_util_max, 4),
+          r.panel.governing.precomp_strength_util_max != null ? fmt(r.panel.governing.precomp_strength_util_max, 4) : "—",
           fmt(r.panel.governing.deflection_util_max, 4),
+          r.panel.governing.precomp_controlling_case_str || "—",
           r.panel.governing.controlling_case_str
         ]);
       });
@@ -2264,6 +2381,8 @@
           ["Weight (psf)", fmt(sol.panel.weight_psf,3)],
           ["Strength Util Max", fmt(sol.panel.governing.strength_util_max,3)],
           ["Deflection Util Max", fmt(sol.panel.governing.deflection_util_max,3)],
+          ["Pre-composite strength util max", sol.panel.governing.precomp_strength_util_max != null ? fmt(sol.panel.governing.precomp_strength_util_max,3) : "—"],
+          ["Pre-composite controlling", safeStr(sol.panel.governing.precomp_controlling_case_str || "—")],
           ["Controlling", safeStr(sol.panel.governing.controlling_case_str)]
         ])}
         ${panelTakeoffHTML(sol, inputs)}
@@ -2295,6 +2414,7 @@
           if (!obj || !obj.inputs) throw new Error("Invalid run JSON.");
           state.inputs = deepClone(obj.inputs);
           state.inputs.cost = normalizeCostInputs(state.inputs.cost || {});
+          state.inputs.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", force_unshored_if_shored:false, dl_add_pct:0, include_sdl:false }, state.inputs.construction_stage || {});
           populateForm(state.inputs);
 
           if (obj.shapes_snapshot?.mode === "upload" && Array.isArray(obj.shapes_snapshot.shapes)) {
@@ -2530,9 +2650,9 @@
       });
 
       const watchIds = [
-        "geoLb","geoLg","geoSpacing","geoNBeamOverride","globalLLReduction","loadLL","loadLLReducible","loadSDL",
+        "geoLb","geoLg","geoSpacing","geoNBeamOverride","globalLLReduction","loadDLadd","loadLL","loadLLReducible","loadSDL","loadCLL",
         "concTop","concFc","concUw","deckProfile","deckGage","deckSpanCond","slabShored","shoreSpacing","useVulcraftSW","deckOverrideWt",
-        "camberModel"
+        "camberModel","constrEnable","constrApplyMode","constrForceUnshored","constrDLAddPct","constrIncludeSDL"
       ];
       watchIds.forEach(id => {
         $(id).addEventListener("input", () => {
@@ -2559,6 +2679,7 @@
       updateShapeStatus();
       updateGeometryPreview();
       updateLLPreview();
+      updateConstructionPreview();
       renderDeckChecks();
       renderResultsTable();
       updateSelectedPane();
@@ -2684,6 +2805,121 @@
           { name: "1.2D+1.6L", D: 1.2, L: 1.6, CLL: 0 },
           { name: "1.2D+1.6CLL", D: 1.2, L: 0, CLL: 1.6 }
         ];
+      }
+
+
+      function constructionStageConfig(inputs) {
+        const c = inputs.construction_stage || {};
+        return {
+          enabled: !!c.enabled,
+          apply_mode: c.apply_mode === "all" ? "all" : "composite_only",
+          force_unshored_if_shored: !!c.force_unshored_if_shored,
+          dl_add_pct: clamp(toNum(c.dl_add_pct, 0), 0, 100),
+          include_sdl: !!c.include_sdl
+        };
+      }
+
+      function slabWeightPsfFinal(inputs, spacing_ft) {
+        return slabSelfWeightPsf(inputs, spacing_ft);
+      }
+
+      function slabWeightPsfConstruction(inputs, cfg) {
+        const slab = inputs.slab;
+        const deckOnly = slab.deck.deck_weight_psf;
+        const wet = slab.deck.deck_weight_psf + (slab.concrete.topping_in / 12) * slab.concrete.unit_weight_pcf;
+        if (slab.shored && !cfg.force_unshored_if_shored) return { psf: deckOnly, note: "Shored construction: deck-only used for pre-composite." };
+
+        if (slab.deck_profile && slab.deck_profile !== "None" && slab.use_vulcraft_slab_self_weight && slab.concrete.fc_ksi >= 3.0) {
+          const density = workerDeckFamily(slab.concrete.unit_weight_pcf);
+          const db = VULCRAFT_DECK_DB?.[slab.deck_profile];
+          if (db) {
+            const totalDepth = db.deckDepth_in + slab.concrete.topping_in;
+            const key = workerDepthKey(slab.deck_profile, density, totalDepth);
+            const row = key ? db[density]?.[key] : null;
+            const val = row?.concPlusDeck_psf?.[slab.deck_gage];
+            if (Number.isFinite(val)) return { psf: val, note: "Using Vulcraft Concrete+Deck psf for pre-composite stage." };
+          }
+        }
+        if (slab.deck_profile && slab.deck_profile !== "None" && slab.use_vulcraft_slab_self_weight && slab.concrete.fc_ksi < 3.0) {
+          return { psf: wet, note: "f'c<3.0 ksi; fallback to manual wet slab for pre-composite stage." };
+        }
+        return { psf: wet, note: "Using manual wet slab+deck psf for pre-composite stage." };
+      }
+
+      function constructionCombos() {
+        return [
+          { name:"1.4D(constr)", D:1.4, CLL:0 },
+          { name:"1.2D+1.6CLL(constr)", D:1.2, CLL:1.6 }
+        ];
+      }
+
+      function precompBeamStrengthCheck(shape, inputs, layout, phiMn_nc, phiV) {
+        const cfg = constructionStageConfig(inputs);
+        const L = inputs.geometry.Lb_ft;
+        const spacing = layout.spacing_ft;
+        const slab = slabWeightPsfConstruction(inputs, cfg);
+        const dlAdd = inputs.loads.DL_add_psf * (cfg.dl_add_pct / 100);
+        const sdl = cfg.include_sdl ? inputs.loads.SDL_psf : 0;
+        const D_area_psf = slab.psf + dlAdd + sdl;
+        const wD = D_area_psf * spacing / 1000 + shape.W / 1000;
+        const wCLL = inputs.loads.CLL_psf * spacing / 1000;
+        const out = [];
+        let maxUtil = 0, controlling = "";
+        for (const c of constructionCombos()) {
+          const w = c.D * wD + c.CLL * wCLL;
+          const Mu = w * L * L / 8;
+          const Vu = w * L / 2;
+          const utilM = phiMn_nc > 0 ? Mu / phiMn_nc : 999;
+          const utilV = phiV > 0 ? Vu / phiV : 999;
+          const util = Math.max(utilM, utilV);
+          if (util > maxUtil) { maxUtil = util; controlling = c.name; }
+          out.push({ name:c.name, Mu, Vu, utilM, utilV, util });
+        }
+        return {
+          maxUtil, controlling, combos: out,
+          slab_psf_used: slab.psf,
+          slab_note: slab.note,
+          D_area_psf_components: { slab_psf: slab.psf, dl_add_psf_used: dlAdd, sdl_psf_used: sdl },
+          cll_psf: inputs.loads.CLL_psf
+        };
+      }
+
+      function precompGirderStrengthCheck(shape, beamShape, inputs, layout, phiMn_nc, phiV) {
+        const cfg = constructionStageConfig(inputs);
+        const Lg = inputs.geometry.Lg_ft;
+        const Lb = inputs.geometry.Lb_ft;
+        const spacing = layout.spacing_ft;
+        const slab = slabWeightPsfConstruction(inputs, cfg);
+        const dlAdd = inputs.loads.DL_add_psf * (cfg.dl_add_pct / 100);
+        const sdl = cfg.include_sdl ? inputs.loads.SDL_psf : 0;
+        const D_area_psf = slab.psf + dlAdd + sdl;
+
+        const wBeamD_noGirder = D_area_psf * spacing / 1000 + beamShape.W / 1000;
+        const R_D = wBeamD_noGirder * Lb / 2;
+        const R_CLL = (inputs.loads.CLL_psf * spacing / 1000) * Lb / 2;
+
+        const mk = (R) => layout.positions_interior_ft.map(x => ({ x, P: R }));
+        const pointD = mk(R_D);
+        const pointCLL = mk(R_CLL);
+        const out = [];
+        let maxUtil = 0, controlling = "";
+        for (const c of constructionCombos()) {
+          const pts = mergePointLoads([scaleLoads(pointD, c.D), scaleLoads(pointCLL, c.CLL)]);
+          const w = c.D * (shape.W / 1000);
+          const a = analyzePointUniform(Lg, pts, w);
+          const utilM = phiMn_nc > 0 ? a.maxM / phiMn_nc : 999;
+          const utilV = phiV > 0 ? a.maxV / phiV : 999;
+          const util = Math.max(utilM, utilV);
+          if (util > maxUtil) { maxUtil = util; controlling = c.name; }
+          out.push({ name:c.name, Mu:a.maxM, Vu:a.maxV, utilM, utilV, util });
+        }
+        return {
+          maxUtil, controlling, combos: out,
+          slab_psf_used: slab.psf,
+          slab_note: slab.note,
+          D_area_psf_components: { slab_psf: slab.psf, dl_add_psf_used: dlAdd, sdl_psf_used: sdl },
+          cll_psf: inputs.loads.CLL_psf
+        };
       }
 
       function uniformDefl(w_kft, L_ft, I_in4) {
@@ -3014,11 +3250,16 @@
         }
 
         const cambers = camberList(inputs.member_criteria.beam.camber_allowed, L, cls, inputs);
+        const constrCfg = constructionStageConfig(inputs);
         let best = null;
         for (const v of variants) {
           const strength = calcStrengthUniform(L, wComp, v.phiMn, phiV);
           if (strength.maxUtil > 1.0) continue;
           if (strength.maxUtil > 1.2 && v.kind === "NONCOMP" && !inputs.member_criteria.beam.composite_allowed) continue;
+
+          const precompApplied = constrCfg.enabled && (constrCfg.apply_mode === "all" || (constrCfg.apply_mode === "composite_only" && v.composite.enabled));
+          const precomp = precompApplied ? precompBeamStrengthCheck(shape, inputs, layout, phiMn_nc, phiV) : null;
+          if (precompApplied && precomp.maxUtil > 1.0) continue;
 
           const Iserv = v.composite.enabled
             ? (inputs.deflection.inertia_method === "I_TRANS" ? v.composite.I_trans_in4 : v.composite.I_eff_in4)
@@ -3046,12 +3287,15 @@
                 camber_in: c,
                 camber_cost: cCost,
                 localScore,
+                precomp,
+                precompApplied,
                 notes: [
                   `Beam ${shape.name}: class flange=${cls.flange_class}, web=${cls.web_class}`,
                   `wDL=${r(wComp.DL,4)} k/ft, wSDL=${r(wComp.SDL,4)} k/ft, wLL=${r(wComp.LL,4)} k/ft`,
                   `Camber=${r(c,3)} in, camber offset=${r(offset,3)} in`,
                   `Deflection control=${defl.controlling}, util=${r(defl.maxUtil,4)}`,
-                  `Strength control=${strength.controlling}, util=${r(strength.maxUtil,4)}`
+                  `Strength control=${strength.controlling}, util=${r(strength.maxUtil,4)}`,
+                  `Pre-composite check uses NONCOMPOSITE φMn/φVn regardless of final composite selection.`
                 ].concat(v.trace)
               };
             }
@@ -3085,6 +3329,21 @@
           deflection: {
             cases: best.defl.cases,
             net_total_case: best.defl.cases.find(c => c.name === "TOTAL") || null
+          },
+          construction_stage: {
+            enabled: constrCfg.enabled,
+            applied: !!best.precompApplied,
+            shored: !!inputs.slab.shored,
+            force_unshored_if_shored: !!constrCfg.force_unshored_if_shored,
+            dl_add_pct: constrCfg.dl_add_pct,
+            include_sdl: !!constrCfg.include_sdl,
+            slab_psf_used: best.precomp?.slab_psf_used ?? null,
+            D_area_psf_components: best.precomp?.D_area_psf_components || null,
+            cll_psf: best.precomp?.cll_psf ?? null,
+            combos: best.precomp?.combos || [],
+            maxUtil: best.precomp?.maxUtil ?? null,
+            controlling: best.precomp?.controlling ?? null,
+            note: best.precomp?.slab_note || null
           },
           notes: best.notes
         };
@@ -3205,11 +3464,16 @@
         }
 
         const cambers = camberList(inputs.member_criteria.girder.camber_allowed, Lg, cls, inputs);
+        const constrCfg = constructionStageConfig(inputs);
         let best = null;
 
         for (const v of variants) {
           const strength = calcStrengthPoint(Lg, compLoads, v.phiMn, phiV);
           if (strength.maxUtil > 1) continue;
+
+          const precompApplied = constrCfg.enabled && (constrCfg.apply_mode === "all" || (constrCfg.apply_mode === "composite_only" && v.composite.enabled));
+          const precomp = precompApplied ? precompGirderStrengthCheck(shape, beamShape, inputs, layout, phiMn_nc, phiV) : null;
+          if (precompApplied && precomp.maxUtil > 1.0) continue;
 
           const Iserv = v.composite.enabled
             ? (inputs.deflection.inertia_method === "I_TRANS" ? v.composite.I_trans_in4 : v.composite.I_eff_in4)
@@ -3237,12 +3501,15 @@
                 camber_in: c,
                 camber_cost: cCost,
                 localScore,
+                precomp,
+                precompApplied,
                 notes: [
                   `Girder ${shape.name}: class flange=${cls.flange_class}, web=${cls.web_class}`,
                   `Point loads per beam line: DL=${r(R_DL,3)}k, SDL=${r(R_SDL,3)}k, LL=${r(R_LL,3)}k, CLL=${r(R_CLL,3)}k`,
                   `Camber=${r(c,3)} in, camber offset=${r(offset,3)} in`,
                   `Deflection control=${defl.controlling}, util=${r(defl.maxUtil,4)}`,
-                  `Strength control=${strength.controlling}, util=${r(strength.maxUtil,4)}`
+                  `Strength control=${strength.controlling}, util=${r(strength.maxUtil,4)}`,
+                  `Pre-composite check uses NONCOMPOSITE φMn/φVn regardless of final composite selection.`
                 ].concat(v.trace)
               };
             }
@@ -3282,6 +3549,21 @@
           deflection: {
             cases: best.defl.cases,
             net_total_case: best.defl.cases.find(c => c.name === "TOTAL") || null
+          },
+          construction_stage: {
+            enabled: constrCfg.enabled,
+            applied: !!best.precompApplied,
+            shored: !!inputs.slab.shored,
+            force_unshored_if_shored: !!constrCfg.force_unshored_if_shored,
+            dl_add_pct: constrCfg.dl_add_pct,
+            include_sdl: !!constrCfg.include_sdl,
+            slab_psf_used: best.precomp?.slab_psf_used ?? null,
+            D_area_psf_components: best.precomp?.D_area_psf_components || null,
+            cll_psf: best.precomp?.cll_psf ?? null,
+            combos: best.precomp?.combos || [],
+            maxUtil: best.precomp?.maxUtil ?? null,
+            controlling: best.precomp?.controlling ?? null,
+            note: best.precomp?.slab_note || null
           },
           notes: best.notes
         };
@@ -3324,6 +3606,15 @@
 
         const sMax = Math.max(beam.strengthUtil, girder.strengthUtil);
         const dMax = Math.max(beam.deflUtil, girder.deflUtil);
+        const bpc = beam.report.construction_stage;
+        const gpc = girder.report.construction_stage;
+        const bpcU = bpc?.applied ? (bpc.maxUtil ?? 0) : 0;
+        const gpcU = gpc?.applied ? (gpc.maxUtil ?? 0) : 0;
+        const precomp_strength_util_max = Math.max(bpcU, gpcU);
+        const precomp_controlling_case_str = precomp_strength_util_max > 0
+          ? (bpcU >= gpcU ? `Beam ${bpc?.controlling || ""}` : `Girder ${gpc?.controlling || ""}`)
+          : null;
+
         const control = sMax >= dMax
           ? `Strength: ${beam.strengthUtil >= girder.strengthUtil ? `Beam ${beam.controlStrength}` : `Girder ${girder.controlStrength}`}`
           : `Deflection: ${beam.deflUtil >= girder.deflUtil ? `Beam ${beam.controlDefl}` : `Girder ${girder.controlDefl}`}`;
@@ -3345,6 +3636,8 @@
             pass: true,
             governing: {
               strength_util_max: sMax,
+              precomp_strength_util_max: precomp_strength_util_max > 0 ? precomp_strength_util_max : null,
+              precomp_controlling_case_str: precomp_controlling_case_str,
               deflection_util_max: dMax,
               controlling_case_str: control
             },
@@ -3358,7 +3651,7 @@
               total_usd
             },
             layout: layout,
-            calc_trace: `Beam utils: strength=${r(beam.strengthUtil,4)}, defl=${r(beam.deflUtil,4)} | Girder utils: strength=${r(girder.strengthUtil,4)}, defl=${r(girder.deflUtil,4)}`
+            calc_trace: `Beam utils: strength=${r(beam.strengthUtil,4)}, defl=${r(beam.deflUtil,4)}, precomp=${r(bpcU,4)} | Girder utils: strength=${r(girder.strengthUtil,4)}, defl=${r(girder.deflUtil,4)}, precomp=${r(gpcU,4)}`
           },
           beam: beam.report,
           girder: girder.report
