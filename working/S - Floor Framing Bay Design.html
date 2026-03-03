@@ -1,0 +1,2679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Floor Framing (AISC 360-22) — MVP</title>
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --card:#ffffff;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --line:#d1d5db;
+      --blue:#1d4ed8;
+      --blue2:#2563eb;
+      --green:#15803d;
+      --red:#b91c1c;
+      --orange:#c2410c;
+      --shadow:0 2px 6px rgba(0,0,0,.06);
+      --radius:10px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
+    h1,h2,h3,h4{margin:.2rem 0 .5rem}
+    .small{font-size:12px;color:var(--muted)}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    .pill{display:inline-block;padding:2px 8px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:12px}
+    .hint{color:var(--muted);font-size:12px}
+    .ok{color:var(--green)}
+    .warn{color:var(--orange)}
+    .bad{color:var(--red)}
+
+    #appRoot{min-height:100vh;display:flex;flex-direction:column}
+    .topbar{
+      position:sticky;top:0;z-index:10;
+      background:#0f172a;color:#fff;border-bottom:1px solid #111827;
+      padding:.55rem .75rem;display:flex;gap:.75rem;align-items:center;flex-wrap:wrap
+    }
+    .brand{font-weight:700;letter-spacing:.2px}
+    .tabs{display:flex;gap:.4rem;flex-wrap:wrap}
+    .tab-btn{
+      background:#1e293b;color:#dbeafe;border:1px solid #334155;padding:.35rem .6rem;
+      border-radius:8px;cursor:pointer
+    }
+    .tab-btn.active{background:var(--blue2);border-color:var(--blue2);color:#fff}
+    .actions{margin-left:auto;display:flex;gap:.4rem;align-items:center;flex-wrap:wrap}
+    .btn{
+      border:1px solid #cbd5e1;background:#fff;color:#111827;border-radius:8px;
+      padding:.35rem .65rem;cursor:pointer
+    }
+    .btn:hover{filter:brightness(0.98)}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+    .btn.primary{background:var(--blue2);color:#fff;border-color:var(--blue2)}
+    .btn.danger{background:#ef4444;color:#fff;border-color:#ef4444}
+    .btn.ghost{background:transparent;color:#fff;border-color:#475569}
+    .statusbar{
+      display:grid;grid-template-columns:1fr 200px;gap:.7rem;
+      background:#e5e7eb;border-bottom:1px solid #cbd5e1;padding:.35rem .75rem;align-items:center
+    }
+    #runProgress{width:100%}
+    #errorBox{
+      margin:.4rem .75rem 0;padding:.4rem .6rem;border-radius:8px;border:1px solid #fecaca;background:#fef2f2;
+      color:#7f1d1d;display:none
+    }
+
+    .app-grid{
+      display:grid;grid-template-columns:320px 1fr 360px;gap:.75rem;
+      padding:.75rem;flex:1
+    }
+    .col{display:flex;flex-direction:column;gap:.75rem;min-height:0}
+    .card{
+      background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+      padding:.7rem
+    }
+    .card h3{font-size:15px}
+    .card h4{font-size:13px;color:#111827;margin-top:.6rem}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:.45rem .6rem}
+    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.45rem .6rem}
+    .field{display:flex;flex-direction:column;gap:.22rem}
+    .field label{font-size:12px;color:#374151}
+    .field input,.field select,.field textarea{
+      width:100%;padding:.36rem .45rem;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#111827
+    }
+    .inline{display:flex;align-items:center;gap:.4rem}
+    .inline > label{margin:0}
+    .hr{height:1px;background:#e5e7eb;margin:.45rem 0}
+    .muted-box{
+      background:#f9fafb;border:1px dashed #d1d5db;border-radius:8px;padding:.45rem .55rem
+    }
+
+    .tab-panel{display:none}
+    .tab-panel.active{display:block}
+    .table-scroll{overflow:auto;max-width:100%}
+    table{border-collapse:collapse;width:100%;min-width:680px}
+    th,td{border:1px solid #d1d5db;padding:.35rem .4rem;text-align:left;vertical-align:top}
+    th{background:#f3f4f6;font-weight:600}
+    tr.sel{background:#eff6ff}
+    .clickable{cursor:pointer}
+
+    #rightCol .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:.35rem .5rem}
+    .kpi{
+      border:1px solid #dbeafe;background:#eff6ff;border-radius:8px;padding:.4rem .5rem
+    }
+    .kpi .v{font-weight:700}
+    .btn-row{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.5rem}
+    details{border:1px solid #e5e7eb;border-radius:8px;padding:.4rem .55rem;background:#fff}
+    details summary{cursor:pointer;font-weight:600}
+
+    .footer{
+      border-top:1px solid #cbd5e1;background:#fff;padding:.45rem .75rem;
+      display:flex;justify-content:space-between;gap:.5rem;align-items:center;flex-wrap:wrap
+    }
+    #devPanel{display:none}
+    #devPanel.active{display:block}
+    pre{
+      white-space:pre-wrap;word-break:break-word;background:#0b1020;color:#e5e7eb;
+      padding:.6rem;border-radius:8px;max-height:240px;overflow:auto
+    }
+
+    /* Modal */
+    .modal{
+      position:fixed;inset:0;background:rgba(15,23,42,.48);display:none;align-items:center;justify-content:center;z-index:50
+    }
+    .modal.active{display:flex}
+    .modal-card{
+      width:min(1000px,94vw);max-height:92vh;overflow:auto;background:#fff;border-radius:12px;
+      border:1px solid #cbd5e1;box-shadow:0 20px 50px rgba(0,0,0,.25)
+    }
+    .modal-head{display:flex;justify-content:space-between;align-items:center;padding:.6rem .8rem;border-bottom:1px solid #e5e7eb}
+    .modal-body{padding:.8rem}
+    .xbtn{border:none;background:transparent;font-size:20px;cursor:pointer}
+
+    /* Print pack */
+    #reportPack{display:none}
+    .print-page{
+      background:#fff;color:#000;padding:18px 16px 12px;page-break-after:always
+    }
+    .report-title{font-size:20px;font-weight:700;margin-bottom:4px}
+    .report-sub{font-size:12px;color:#333;margin-bottom:8px}
+    .report-footer{
+      margin-top:10px;padding-top:6px;border-top:1px solid #999;font-size:11px;color:#222
+    }
+
+    /* Responsive */
+    @media (max-width:1280px){
+      .app-grid{grid-template-columns:300px 1fr}
+      #rightCol{grid-column:1 / -1}
+    }
+    @media (max-width:900px){
+      .statusbar{grid-template-columns:1fr}
+      .app-grid{grid-template-columns:1fr}
+      .grid2,.grid3{grid-template-columns:1fr}
+      table{min-width:760px}
+    }
+
+    @media print{
+      body{background:#fff}
+      #appRoot{display:none !important}
+      #reportPack{display:block !important}
+      .print-page{page-break-after:always}
+      .print-page:last-child{page-break-after:auto}
+      table{min-width:0}
+      th,td{border:1px solid #000}
+      .report-sub,.small,.hint{color:#000}
+    }
+  </style>
+</head>
+<body>
+  <div id="appRoot">
+    <header class="topbar">
+      <div class="brand">Floor Framing (AISC 360-22) — MVP</div>
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="loads">Loads</button>
+        <button class="tab-btn" data-tab="slab">Floor Slab</button>
+        <button class="tab-btn" data-tab="member">Member Criteria</button>
+        <button class="tab-btn" data-tab="defl">Deflection + Camber</button>
+        <button class="tab-btn" data-tab="cost">Cost</button>
+        <button class="tab-btn" data-tab="results">Results</button>
+      </nav>
+      <div class="actions">
+        <button id="btnRun" class="btn primary">Run Analysis</button>
+        <button id="btnCancel" class="btn danger" disabled>Stop</button>
+        <button id="btnSaveRun" class="btn ghost">Save Run JSON</button>
+        <button id="btnLoadRun" class="btn ghost">Load Run JSON</button>
+        <input id="fileLoadRun" type="file" accept=".json" hidden />
+      </div>
+    </header>
+
+    <div class="statusbar">
+      <div id="runStatus" class="small">Idle</div>
+      <progress id="runProgress" value="0" max="100"></progress>
+    </div>
+    <div id="errorBox"></div>
+
+    <div class="app-grid">
+      <!-- Left -->
+      <aside class="col" id="leftCol">
+        <section class="card">
+          <h3>Global Settings</h3>
+          <div class="grid2">
+            <div class="field">
+              <label title="Design basis is fixed for MVP.">Design Method</label>
+              <input id="designMethod" value="AISC 360-22 LRFD" disabled />
+            </div>
+            <div class="field">
+              <label title="US customary only in MVP.">Units</label>
+              <select id="unitsSystem" disabled>
+                <option value="US" selected>US Customary</option>
+              </select>
+            </div>
+            <div class="field">
+              <label title="Enable ASCE 7-22 live load reduction calc.">Live Load Reduction (ASCE 7-22)</label>
+              <select id="globalLLReduction">
+                <option value="true" selected>On</option>
+                <option value="false">Off</option>
+              </select>
+            </div>
+            <div class="field">
+              <label title="Objective metric for ranking.">Optimize By</label>
+              <select id="optimizeBy">
+                <option value="cost" selected>Relative Cost</option>
+                <option value="weight">Weight</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h3>Geometry</h3>
+          <div class="grid2">
+            <div class="field">
+              <label title="Beam span between girders.">Bay Length Lb (ft)</label>
+              <input id="geoLb" type="number" step="0.01" min="1" />
+            </div>
+            <div class="field">
+              <label title="Girder span between columns.">Bay Width Lg (ft)</label>
+              <input id="geoLg" type="number" step="0.01" min="1" />
+            </div>
+            <div class="field">
+              <label title="Nominal beam spacing along girder.">Beam Spacing s (ft)</label>
+              <input id="geoSpacing" type="number" step="0.01" min="0.1" />
+            </div>
+            <div class="field">
+              <label title="Optional advanced override. If set, spacing is recomputed as Lg/(n+1)."># Interior Beam Lines (optional override)</label>
+              <input id="geoNBeamOverride" type="number" min="1" step="1" placeholder="auto" />
+            </div>
+            <div class="field">
+              <label title="Optional accounting switch for interior bay cost/weight allocation.">
+                <input id="geoShareHalfGirders" type="checkbox" />
+                Interior bay sharing (½ girders)
+              </label>
+            </div>
+          </div>
+          <div class="muted-box small" id="layoutInfo"></div>
+          <div id="planDiagram" style="margin-top:.45rem"></div>
+        </section>
+
+        <section class="card">
+          <details open>
+            <summary>Assumptions (MVP)</summary>
+            <ul class="small" style="margin:.4rem 0 .2rem 1rem;padding:0">
+              <li>Interior bay, one-way framing.</li>
+              <li>Beams and girders modeled as simply supported.</li>
+              <li>Beam loads converted from tributary width; girder loaded by beam end reactions as point loads.</li>
+              <li>Composite checks are approximate conceptual implementations for schematic sizing.</li>
+              <li>Shored option minimally affects construction-stage deflection assumption (documented in notes).</li>
+              <li>No vibration checks in MVP (coming later).</li>
+            </ul>
+          </details>
+        </section>
+      </aside>
+
+      <!-- Main -->
+      <main class="col" id="mainCol">
+        <!-- LOADS TAB -->
+        <section class="card tab-panel active" data-panel="loads">
+          <h3>Loads</h3>
+          <div class="grid3">
+            <div class="field">
+              <label title="Dead load add-on excluding slab/deck self-weight.">DL add-on (psf)</label>
+              <input id="loadDLadd" type="number" step="0.01" />
+            </div>
+            <div class="field">
+              <label title="Unreduced nominal live load.">LL (psf)</label>
+              <input id="loadLL" type="number" step="0.01" />
+            </div>
+            <div class="field inline" style="align-self:end">
+              <input id="loadLLReducible" type="checkbox" />
+              <label title="If checked and global reduction is On, ASCE 7-22 reduction is applied.">LL is reducible</label>
+            </div>
+            <div class="field">
+              <label title="Superimposed dead load.">SDL (psf)</label>
+              <input id="loadSDL" type="number" step="0.01" />
+            </div>
+            <div class="field">
+              <label title="Construction live load for construction stage combo.">CLL (psf)</label>
+              <input id="loadCLL" type="number" step="0.01" />
+            </div>
+          </div>
+          <div class="hr"></div>
+          <h4>Live Load Reduction Preview</h4>
+          <div id="llReductionInfo" class="small muted-box"></div>
+        </section>
+
+        <!-- FLOOR SLAB TAB -->
+        <section class="card tab-panel" data-panel="slab">
+          <h3>Floor Slab</h3>
+          <div class="field" style="max-width:340px">
+            <label>Slab Type</label>
+            <input value="Metal Deck with Concrete Topping (MVP only)" disabled />
+          </div>
+          <div class="inline" style="margin-top:.3rem">
+            <input id="slabShored" type="checkbox" />
+            <label title="Minimal implementation: reduces construction-stage slab dead deflection demand assumption.">Shored construction</label>
+          </div>
+          <div class="hr"></div>
+
+          <h4>Deck</h4>
+          <div class="grid2">
+            <div class="field"><label>Deck height hd (in)</label><input id="deckHd" type="number" step="0.01" /></div>
+            <div class="field"><label>Deck weight (psf)</label><input id="deckWt" type="number" step="0.01" /></div>
+            <div class="field"><label>Rib width wr (in)</label><input id="deckRibW" type="number" step="0.01" /></div>
+            <div class="field"><label>Rib spacing sr (in)</label><input id="deckRibS" type="number" step="0.01" /></div>
+          </div>
+
+          <h4>Concrete</h4>
+          <div class="grid2">
+            <div class="field"><label>Topping thickness t_top (in)</label><input id="concTop" type="number" step="0.01" /></div>
+            <div class="field"><label>f’c (ksi)</label><input id="concFc" type="number" step="0.01" /></div>
+            <div class="field"><label>Unit weight (pcf)</label><input id="concUw" type="number" step="0.01" /></div>
+          </div>
+
+          <h4>Studs</h4>
+          <div class="grid3">
+            <div class="field"><label>Diameter (in)</label><input id="studDia" type="number" step="0.01" /></div>
+            <div class="field"><label>Installed height (in)</label><input id="studH" type="number" step="0.01" /></div>
+            <div class="field"><label>Fu (ksi)</label><input id="studFu" type="number" step="0.01" /></div>
+            <div class="field"><label>Min composite (%)</label><input id="studMinComp" type="number" step="0.01" min="0" max="100" /></div>
+            <div class="field"><label>Max composite (%)</label><input id="studMaxComp" type="number" step="0.01" min="0" max="100" /></div>
+          </div>
+
+          <h4>Stud Spacing Limits (MVP editable)</h4>
+          <div class="grid3">
+            <div class="field"><label>Edge dist (in)</label><input id="studEdgeDist" type="number" step="0.01" /></div>
+            <div class="field"><label>End dist (in)</label><input id="studEndDist" type="number" step="0.01" /></div>
+            <div class="field"><label>Long min parallel (in)</label><input id="studLongMinPar" type="number" step="0.01" /></div>
+            <div class="field"><label>Long min perp (in)</label><input id="studLongMinPerp" type="number" step="0.01" /></div>
+            <div class="field"><label>Long max parallel (in)</label><input id="studLongMaxPar" type="number" step="0.01" /></div>
+            <div class="field"><label>Long max perp (in)</label><input id="studLongMaxPerp" type="number" step="0.01" /></div>
+            <div class="field"><label>Trans min parallel (in)</label><input id="studTransMinPar" type="number" step="0.01" /></div>
+            <div class="field"><label>Trans min perp (in)</label><input id="studTransMinPerp" type="number" step="0.01" /></div>
+          </div>
+        </section>
+
+        <!-- MEMBER TAB -->
+        <section class="card tab-panel" data-panel="member">
+          <h3>Member Design Criteria</h3>
+          <div class="grid3">
+            <div class="field">
+              <label>Steel Fy (ksi)</label>
+              <input id="Fy" type="number" step="0.01" />
+            </div>
+            <div class="field inline" style="align-self:end">
+              <input id="beamCompositeAllowed" type="checkbox" />
+              <label>Beam composite allowed</label>
+            </div>
+            <div class="field inline" style="align-self:end">
+              <input id="girderCompositeAllowed" type="checkbox" />
+              <label>Girder composite allowed</label>
+            </div>
+            <div class="field inline" style="align-self:end">
+              <input id="beamCamberAllowed" type="checkbox" />
+              <label>Beam camber allowed</label>
+            </div>
+            <div class="field inline" style="align-self:end">
+              <input id="girderCamberAllowed" type="checkbox" />
+              <label>Girder camber allowed</label>
+            </div>
+          </div>
+
+          <div class="hr"></div>
+          <h4>Beam Shape Filters</h4>
+          <div class="grid3">
+            <div class="field"><label>d min (in)</label><input id="beamDMin" type="number" step="0.01" /></div>
+            <div class="field"><label>d max (in)</label><input id="beamDMax" type="number" step="0.01" /></div>
+            <div class="field"><label>bf min (in)</label><input id="beamBfMin" type="number" step="0.01" /></div>
+            <div class="field"><label>bf max (in)</label><input id="beamBfMax" type="number" step="0.01" /></div>
+            <div class="field"><label>tw min (in)</label><input id="beamTwMin" type="number" step="0.01" /></div>
+            <div class="field"><label>tw max (in)</label><input id="beamTwMax" type="number" step="0.01" /></div>
+          </div>
+
+          <h4>Girder Shape Filters</h4>
+          <div class="grid3">
+            <div class="field"><label>d min (in)</label><input id="girderDMin" type="number" step="0.01" /></div>
+            <div class="field"><label>d max (in)</label><input id="girderDMax" type="number" step="0.01" /></div>
+            <div class="field"><label>bf min (in)</label><input id="girderBfMin" type="number" step="0.01" /></div>
+            <div class="field"><label>bf max (in)</label><input id="girderBfMax" type="number" step="0.01" /></div>
+            <div class="field"><label>tw min (in)</label><input id="girderTwMin" type="number" step="0.01" /></div>
+            <div class="field"><label>tw max (in)</label><input id="girderTwMax" type="number" step="0.01" /></div>
+          </div>
+
+          <div class="hr"></div>
+          <h4>Shape Selection</h4>
+          <div class="grid2">
+            <div class="field">
+              <label>Shapes Source</label>
+              <div class="inline">
+                <label><input type="radio" name="shapeSource" value="demo" checked /> Built-in DEMO W subset</label>
+              </div>
+              <div class="inline">
+                <label><input type="radio" name="shapeSource" value="upload" /> Upload Shapes File (CSV/XLSX)</label>
+              </div>
+            </div>
+            <div class="field">
+              <label>Upload file</label>
+              <input id="shapesUpload" type="file" accept=".csv,.xlsx,.xls" />
+              <div class="hint">CSV preferred for MVP. XLSX uses SheetJS from jsDelivr at runtime.</div>
+            </div>
+          </div>
+          <div id="shapesStatus" class="muted-box small" style="margin-top:.45rem"></div>
+
+          <div class="hr"></div>
+          <div class="muted-box">
+            <strong>Vibration</strong>:
+            <span class="small">DG11 vibration checks are out of scope for MVP — coming later.</span>
+          </div>
+        </section>
+
+        <!-- DEFLECTION TAB -->
+        <section class="card tab-panel" data-panel="defl">
+          <h3>Deflection + Camber</h3>
+          <div class="grid2">
+            <div class="field">
+              <label>Composite deflection inertia method</label>
+              <select id="inertiaMethod">
+                <option value="I_TRANS">Use Transformed I (short-term)</option>
+                <option value="I_EFF">Use Effective I (I_eff)</option>
+              </select>
+            </div>
+          </div>
+
+          <h4>Deflection Criteria (set both absolute and ratio as needed)</h4>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr><th>Case</th><th>Δ max (in)</th><th>Ratio limit L/</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>DL</td><td><input id="limDLMax" type="number" step="0.01" /></td><td><input id="limDLRatio" type="number" step="1" /></td></tr>
+                <tr><td>LL</td><td><input id="limLLMax" type="number" step="0.01" /></td><td><input id="limLLRatio" type="number" step="1" /></td></tr>
+                <tr><td>SDL</td><td><input id="limSDLMax" type="number" step="0.01" /></td><td><input id="limSDLRatio" type="number" step="1" /></td></tr>
+                <tr><td>LL + SDL</td><td><input id="limLLSDLMax" type="number" step="0.01" /></td><td><input id="limLLSDLRatio" type="number" step="1" /></td></tr>
+                <tr><td>Total (DL − Camber + SDL + LL)</td><td><input id="limTOTALMax" type="number" step="0.01" /></td><td><input id="limTOTALRatio" type="number" step="1" /></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4>Camber Criteria</h4>
+          <div class="grid3">
+            <div class="field"><label>Min camber (in)</label><input id="camberMin" type="number" step="0.01" /></div>
+            <div class="field"><label>Max camber (in)</label><input id="camberMax" type="number" step="0.01" /></div>
+            <div class="field"><label>Increment (in)</label><input id="camberInc" type="number" step="0.01" /></div>
+            <div class="field"><label>Minimum member length to camber (ft)</label><input id="camberMinLen" type="number" step="0.01" /></div>
+            <div class="field"><label>Camber % of dead load (%)</label><input id="camberPctDead" type="number" step="0.01" min="0" max="100" /></div>
+            <div class="field inline" style="align-self:end">
+              <input id="camberDisallowNoncompact" type="checkbox" />
+              <label>Do not camber non-compact web members</label>
+            </div>
+          </div>
+        </section>
+
+        <!-- COST TAB -->
+        <section class="card tab-panel" data-panel="cost">
+          <h3>Cost</h3>
+          <div class="grid3">
+            <div class="field"><label>Steel cost ($/lb)</label><input id="costSteel" type="number" step="0.001" /></div>
+            <div class="field"><label>Installed stud cost ($/stud)</label><input id="costStud" type="number" step="0.01" /></div>
+            <div class="field">
+              <label>Camber cost model</label>
+              <select id="camberModel">
+                <option value="ranges">Cost depends on camber (ranges)</option>
+                <option value="flat">Flat cost per cambered member</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="camberRangesBox">
+            <h4>Camber Cost Ranges</h4>
+            <div class="grid3">
+              <div class="field"><label>Range 1 max camber (in)</label><input id="range1Max" type="number" step="0.01" /></div>
+              <div class="field"><label>Range 1 cost/member ($)</label><input id="range1Cost" type="number" step="0.01" /></div>
+              <div></div>
+              <div class="field"><label>Range 2 max camber (in)</label><input id="range2Max" type="number" step="0.01" /></div>
+              <div class="field"><label>Range 2 cost/member ($)</label><input id="range2Cost" type="number" step="0.01" /></div>
+              <div></div>
+              <div class="field"><label>Beyond range 2 cost/member ($)</label><input id="range3Cost" type="number" step="0.01" /></div>
+            </div>
+          </div>
+
+          <div id="camberFlatBox">
+            <h4>Flat Camber Cost</h4>
+            <div class="field" style="max-width:260px">
+              <label>Cost per cambered member ($)</label>
+              <input id="flatCamberCost" type="number" step="0.01" />
+            </div>
+          </div>
+        </section>
+
+        <!-- RESULTS TAB -->
+        <section class="card tab-panel" data-panel="results">
+          <h3>Adequate Beam/Girder Combinations</h3>
+          <div class="small" id="resultsMeta">No analysis run yet.</div>
+          <div class="table-scroll" style="margin-top:.4rem">
+            <table id="resultsTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Beam</th>
+                  <th>Girder</th>
+                  <th>Cost ($/sf)</th>
+                  <th>Weight (psf)</th>
+                  <th>Strength Util</th>
+                  <th>Deflection Util</th>
+                  <th>Control</th>
+                </tr>
+              </thead>
+              <tbody id="resultsTbody"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+
+      <!-- Right -->
+      <aside class="col" id="rightCol">
+        <section class="card">
+          <h3>Selected Solution Preview</h3>
+          <div id="bayPreview"></div>
+          <div id="selectedSummary" class="small" style="margin-top:.4rem">No selection.</div>
+
+          <div class="btn-row">
+            <button id="btnViewBeam" class="btn" disabled>View Beam Report</button>
+            <button id="btnViewGirder" class="btn" disabled>View Girder Report</button>
+            <button id="btnPrintPack" class="btn" disabled>Print Report Pack</button>
+            <button id="btnExportJSON" class="btn" disabled>Export JSON</button>
+            <button id="btnExportCSV" class="btn" disabled>Export CSV</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <details id="calcTraceBox">
+            <summary>Calc Trace</summary>
+            <pre id="calcTraceText">No selection.</pre>
+          </details>
+        </section>
+      </aside>
+    </div>
+
+    <footer class="footer">
+      <div class="small">
+        <strong>Disclaimer:</strong> Conceptual/schematic tool. Not for final design. Verify results independently.
+      </div>
+      <button id="devToggle" class="btn">Dev</button>
+    </footer>
+
+    <section id="devPanel" class="card" style="margin:.75rem">
+      <h3>Dev Panel</h3>
+      <button id="btnSanity" class="btn">Run Reference Case Sanity Check</button>
+      <pre id="sanityOut" style="margin-top:.5rem"></pre>
+    </section>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="modalTitle">Report</h3>
+        <button class="xbtn" id="modalClose" aria-label="Close">&times;</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Report pack for print -->
+  <div id="reportPack"></div>
+
+  <script>
+    /**
+     * @typedef {Object} InputModel
+     * @property {{design_method:string,live_load_reduction:boolean,optimize_by:'cost'|'weight'}} basis
+     * @property {{Lb_ft:number,Lg_ft:number,spacing_ft:number,nBeamLines_override:number|null,share_half_girders:boolean}} geometry
+     * @property {{DL_add_psf:number,LL_psf:number,LL_reducible:boolean,SDL_psf:number,CLL_psf:number}} loads
+     * @property {{
+     *   shored:boolean,
+     *   deck:{hd_in:number,deck_weight_psf:number,rib_width_in:number,rib_spacing_in:number},
+     *   concrete:{topping_in:number,fc_ksi:number,unit_weight_pcf:number},
+     *   studs:{dia_in:number,height_in:number,Fu_ksi:number,min_comp_pct:number,max_comp_pct:number}
+     * }} slab
+     * @property {{
+     *   Fy_ksi:number,
+     *   beam:{composite_allowed:boolean,camber_allowed:boolean,shape_filters:{d_min:number,d_max:number,bf_min:number,bf_max:number,tw_min:number,tw_max:number}},
+     *   girder:{composite_allowed:boolean,camber_allowed:boolean,shape_filters:{d_min:number,d_max:number,bf_min:number,bf_max:number,tw_min:number,tw_max:number}},
+     *   shapes_source:{mode:'demo'|'upload',file_name:string|null,dataset_label:string}
+     * }} member_criteria
+     * @property {{
+     *   inertia_method:'I_TRANS'|'I_EFF',
+     *   limits:{
+     *     DL:{delta_max_in:number|null,ratio_L_over:number|null},
+     *     LL:{delta_max_in:number|null,ratio_L_over:number|null},
+     *     SDL:{delta_max_in:number|null,ratio_L_over:number|null},
+     *     LL_SDL:{delta_max_in:number|null,ratio_L_over:number|null},
+     *     TOTAL:{delta_max_in:number|null,ratio_L_over:number|null}
+     *   }
+     * }} deflection
+     * @property {{min_in:number,max_in:number,inc_in:number,min_length_ft:number,pct_of_dead:number,disallow_noncompact_web:boolean}} camber
+     * @property {{edge_dist_in:number,end_dist_in:number,long_min_parallel_in:number,long_min_perp_in:number,long_max_parallel_in:number,long_max_perp_in:number,trans_min_parallel_in:number,trans_min_perp_in:number}} stud_spacing_limits
+     * @property {{steel_per_lb:number,stud_per_each:number,camber_model:'ranges'|'flat',flat_cost_per_member:number,ranges:Array<{max_in:number|null,cost_per_member:number}>}} cost
+     */
+
+    const APP_VERSION = "0.1.0-mvp";
+    const MAX_RESULTS = 80;
+
+    const DEMO_SHAPES = [
+      {name:"W12x26",d:12.22,bf:6.49,tf:0.38,tw:0.23,A:7.65,W:26,Ix:204,Sx:33.4,Zx:37.3,ry:1.71},
+      {name:"W12x30",d:12.34,bf:6.56,tf:0.44,tw:0.26,A:8.82,W:30,Ix:238,Sx:38.5,Zx:43.1,ry:1.71},
+      {name:"W14x26",d:13.90,bf:6.73,tf:0.36,tw:0.23,A:7.65,W:26,Ix:291,Sx:41.9,Zx:46.7,ry:1.95},
+      {name:"W14x34",d:14.00,bf:6.75,tf:0.50,tw:0.31,A:10.00,W:34,Ix:385,Sx:55.0,Zx:61.5,ry:1.96},
+      {name:"W16x31",d:15.90,bf:6.50,tf:0.40,tw:0.27,A:9.12,W:31,Ix:421,Sx:53.0,Zx:59.0,ry:2.15},
+      {name:"W18x35",d:17.70,bf:6.00,tf:0.43,tw:0.30,A:10.30,W:35,Ix:612,Sx:69.0,Zx:77.0,ry:2.44},
+      {name:"W18x40",d:18.00,bf:6.20,tf:0.49,tw:0.33,A:11.80,W:40,Ix:707,Sx:78.6,Zx:88.0,ry:2.45},
+      {name:"W21x44",d:20.70,bf:6.50,tf:0.52,tw:0.35,A:12.90,W:44,Ix:1020,Sx:98.6,Zx:110.0,ry:2.81},
+      {name:"W21x50",d:21.00,bf:6.60,tf:0.59,tw:0.38,A:14.70,W:50,Ix:1160,Sx:110.0,Zx:124.0,ry:2.81},
+      {name:"W24x55",d:23.60,bf:7.00,tf:0.56,tw:0.40,A:16.20,W:55,Ix:1590,Sx:135.0,Zx:152.0,ry:3.13},
+      {name:"W24x62",d:24.00,bf:7.10,tf:0.65,tw:0.43,A:18.20,W:62,Ix:1810,Sx:151.0,Zx:170.0,ry:3.15},
+      {name:"W24x68",d:24.30,bf:7.30,tf:0.72,tw:0.47,A:20.00,W:68,Ix:2040,Sx:168.0,Zx:189.0,ry:3.19},
+      {name:"W27x84",d:26.70,bf:10.00,tf:0.64,tw:0.43,A:24.70,W:84,Ix:3360,Sx:252.0,Zx:283.0,ry:3.69},
+      {name:"W27x94",d:27.10,bf:10.10,tf:0.72,tw:0.47,A:27.60,W:94,Ix:3770,Sx:278.0,Zx:314.0,ry:3.69},
+      {name:"W30x90",d:29.70,bf:10.00,tf:0.71,tw:0.47,A:26.40,W:90,Ix:4210,Sx:284.0,Zx:322.0,ry:3.98},
+      {name:"W30x108",d:30.30,bf:10.20,tf:0.86,tw:0.55,A:31.80,W:108,Ix:5000,Sx:330.0,Zx:377.0,ry:3.97},
+      {name:"W33x118",d:32.90,bf:11.50,tf:0.78,tw:0.51,A:34.70,W:118,Ix:6430,Sx:391.0,Zx:447.0,ry:4.30},
+      {name:"W36x135",d:35.60,bf:12.00,tf:0.86,tw:0.56,A:39.70,W:135,Ix:8660,Sx:487.0,Zx:560.0,ry:4.67},
+      {name:"W36x150",d:36.10,bf:12.20,tf:0.97,tw:0.62,A:44.10,W:150,Ix:9570,Sx:530.0,Zx:612.0,ry:4.66},
+      {name:"W40x167",d:39.80,bf:12.20,tf:1.03,tw:0.65,A:49.10,W:167,Ix:12600,Sx:632.0,Zx:734.0,ry:5.06},
+      {name:"W40x183",d:40.30,bf:12.40,tf:1.13,tw:0.71,A:53.80,W:183,Ix:13700,Sx:680.0,Zx:790.0,ry:5.05}
+    ];
+
+    const state = {
+      running: false,
+      worker: null,
+      inputs: null,
+      results: [],
+      selectedSolutionId: null,
+      uploadedShapes: [],
+      shapeDatasetLabel: "DEMO W-shapes subset",
+      shapeFileName: null
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const fmt = (v, d = 2) => Number.isFinite(v) ? Number(v).toFixed(d) : "—";
+    const fmtI = (v) => Number.isFinite(v) ? String(Math.round(v)) : "—";
+    const deepClone = (o) => JSON.parse(JSON.stringify(o));
+    const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+    const parseNum = (v, fallback = 0) => {
+      const n = Number.parseFloat(v);
+      return Number.isFinite(n) ? n : fallback;
+    };
+    const parseOptionalNum = (v) => {
+      if (v === "" || v == null) return null;
+      const n = Number.parseFloat(v);
+      return Number.isFinite(n) ? n : null;
+    };
+    const safeStr = (s) => String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    function defaultInputs() {
+      return {
+        basis: {
+          design_method: "AISC_360_22_LRFD",
+          live_load_reduction: true,
+          optimize_by: "cost"
+        },
+        geometry: {
+          Lb_ft: 40,
+          Lg_ft: 30,
+          spacing_ft: 15,
+          nBeamLines_override: null,
+          share_half_girders: false
+        },
+        loads: {
+          DL_add_psf: 0.5,
+          LL_psf: 50,
+          LL_reducible: true,
+          SDL_psf: 20,
+          CLL_psf: 20
+        },
+        slab: {
+          shored: false,
+          deck: {
+            hd_in: 2,
+            deck_weight_psf: 2.5,
+            rib_width_in: 6,
+            rib_spacing_in: 12
+          },
+          concrete: {
+            topping_in: 3.25,
+            fc_ksi: 3.5,
+            unit_weight_pcf: 110
+          },
+          studs: {
+            dia_in: 0.75,
+            height_in: 4,
+            Fu_ksi: 60,
+            min_comp_pct: 25,
+            max_comp_pct: 100
+          }
+        },
+        member_criteria: {
+          Fy_ksi: 50,
+          beam: {
+            composite_allowed: true,
+            camber_allowed: true,
+            shape_filters: { d_min: 8, d_max: 42, bf_min: 4, bf_max: 14, tw_min: 0.2, tw_max: 1.2 }
+          },
+          girder: {
+            composite_allowed: true,
+            camber_allowed: true,
+            shape_filters: { d_min: 10, d_max: 48, bf_min: 4, bf_max: 16, tw_min: 0.2, tw_max: 1.5 }
+          },
+          shapes_source: {
+            mode: "demo",
+            file_name: null,
+            dataset_label: "DEMO W-shapes subset"
+          }
+        },
+        deflection: {
+          inertia_method: "I_TRANS",
+          limits: {
+            DL: { delta_max_in: 3, ratio_L_over: 240 },
+            LL: { delta_max_in: 3, ratio_L_over: 360 },
+            SDL: { delta_max_in: 3, ratio_L_over: 360 },
+            LL_SDL: { delta_max_in: 3, ratio_L_over: 240 },
+            TOTAL: { delta_max_in: 3, ratio_L_over: 240 }
+          }
+        },
+        camber: {
+          min_in: 0.75,
+          max_in: 3.0,
+          inc_in: 0.25,
+          min_length_ft: 23,
+          pct_of_dead: 0.75,
+          disallow_noncompact_web: true
+        },
+        stud_spacing_limits: {
+          edge_dist_in: 1.5,
+          end_dist_in: 6,
+          long_min_parallel_in: 4,
+          long_min_perp_in: 4,
+          long_max_parallel_in: 24,
+          long_max_perp_in: 24,
+          trans_min_parallel_in: 3,
+          trans_min_perp_in: 3
+        },
+        cost: {
+          steel_per_lb: 1.2,
+          stud_per_each: 3.5,
+          camber_model: "ranges",
+          flat_cost_per_member: 225,
+          ranges: [
+            { max_in: 1.5, cost_per_member: 180 },
+            { max_in: 2.5, cost_per_member: 260 },
+            { max_in: null, cost_per_member: 360 }
+          ]
+        }
+      };
+    }
+
+    function computeLayout(geometry) {
+      const Lg = Math.max(0.01, geometry.Lg_ft);
+      let nBeamLines, spacing_ft;
+      if (geometry.nBeamLines_override != null && Number.isFinite(geometry.nBeamLines_override)) {
+        nBeamLines = Math.max(1, Math.round(geometry.nBeamLines_override));
+        spacing_ft = Lg / (nBeamLines + 1);
+      } else {
+        const nSpaces = Math.max(2, Math.round(Lg / Math.max(0.1, geometry.spacing_ft)));
+        nBeamLines = Math.max(1, nSpaces - 1);
+        spacing_ft = Lg / nSpaces;
+      }
+      const nSpaces = nBeamLines + 1;
+      const positions_ft = [];
+      for (let i = 1; i <= nBeamLines; i++) positions_ft.push(i * spacing_ft);
+      return { nBeamLines, nSpaces, spacing_ft, positions_ft };
+    }
+
+    function llReduction(LL, reducible, globalOn, KLL, AT) {
+      if (!reducible || !globalOn) return { LL_used_psf: LL, factor: 1, reduction_pct: 0 };
+      const at = Math.max(1, AT);
+      let f = 0.25 + 15 / Math.sqrt(Math.max(1, KLL * at));
+      const minF = at >= 400 ? 0.40 : 0.50;
+      f = clamp(f, minF, 1);
+      return { LL_used_psf: LL * f, factor: f, reduction_pct: (1 - f) * 100 };
+    }
+
+    function makePlanSVG(geometry, layout, beamLabel = "", girderLabel = "") {
+      const W = 300, H = 200, m = 24;
+      const x0 = m, y0 = m, w = W - 2 * m, h = H - 2 * m;
+      const Lg = Math.max(0.01, geometry.Lg_ft);
+      let beams = "";
+      for (const xFt of layout.positions_ft) {
+        const x = x0 + (xFt / Lg) * w;
+        beams += `<line x1="${x}" y1="${y0}" x2="${x}" y2="${y0 + h}" stroke="#1d4ed8" stroke-width="2"/>`;
+      }
+      return `
+      <svg viewBox="0 0 ${W} ${H}" width="100%" height="190" role="img" aria-label="Bay plan diagram">
+        <rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="#f8fafc" stroke="#334155" stroke-width="1.4"/>
+        <line x1="${x0}" y1="${y0}" x2="${x0 + w}" y2="${y0}" stroke="#0f172a" stroke-width="4"/>
+        <line x1="${x0}" y1="${y0 + h}" x2="${x0 + w}" y2="${y0 + h}" stroke="#0f172a" stroke-width="4"/>
+        ${beams}
+        <text x="${x0 + w / 2}" y="${y0 - 7}" text-anchor="middle" fill="#111827" font-size="11">Lg = ${fmt(geometry.Lg_ft,2)} ft</text>
+        <text x="${x0 - 8}" y="${y0 + h / 2}" transform="rotate(-90 ${x0 - 8},${y0 + h / 2})" text-anchor="middle" fill="#111827" font-size="11">Lb = ${fmt(geometry.Lb_ft,2)} ft</text>
+        <text x="${x0 + 6}" y="${y0 + 14}" fill="#0f172a" font-size="10">${safeStr(girderLabel)}</text>
+        <text x="${x0 + 6}" y="${y0 + h - 6}" fill="#0f172a" font-size="10">${safeStr(girderLabel)}</text>
+        <text x="${x0 + 6}" y="${y0 + h/2}" fill="#1d4ed8" font-size="10">${safeStr(beamLabel)}</text>
+      </svg>`;
+    }
+
+    function setTab(tabName) {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tabName));
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.dataset.panel === tabName));
+    }
+
+    function populateForm(inputs) {
+      $("globalLLReduction").value = String(inputs.basis.live_load_reduction);
+      $("optimizeBy").value = inputs.basis.optimize_by;
+
+      $("geoLb").value = inputs.geometry.Lb_ft;
+      $("geoLg").value = inputs.geometry.Lg_ft;
+      $("geoSpacing").value = inputs.geometry.spacing_ft;
+      $("geoNBeamOverride").value = inputs.geometry.nBeamLines_override ?? "";
+      $("geoShareHalfGirders").checked = !!inputs.geometry.share_half_girders;
+
+      $("loadDLadd").value = inputs.loads.DL_add_psf;
+      $("loadLL").value = inputs.loads.LL_psf;
+      $("loadLLReducible").checked = !!inputs.loads.LL_reducible;
+      $("loadSDL").value = inputs.loads.SDL_psf;
+      $("loadCLL").value = inputs.loads.CLL_psf;
+
+      $("slabShored").checked = !!inputs.slab.shored;
+      $("deckHd").value = inputs.slab.deck.hd_in;
+      $("deckWt").value = inputs.slab.deck.deck_weight_psf;
+      $("deckRibW").value = inputs.slab.deck.rib_width_in;
+      $("deckRibS").value = inputs.slab.deck.rib_spacing_in;
+
+      $("concTop").value = inputs.slab.concrete.topping_in;
+      $("concFc").value = inputs.slab.concrete.fc_ksi;
+      $("concUw").value = inputs.slab.concrete.unit_weight_pcf;
+
+      $("studDia").value = inputs.slab.studs.dia_in;
+      $("studH").value = inputs.slab.studs.height_in;
+      $("studFu").value = inputs.slab.studs.Fu_ksi;
+      $("studMinComp").value = inputs.slab.studs.min_comp_pct;
+      $("studMaxComp").value = inputs.slab.studs.max_comp_pct;
+
+      $("studEdgeDist").value = inputs.stud_spacing_limits.edge_dist_in;
+      $("studEndDist").value = inputs.stud_spacing_limits.end_dist_in;
+      $("studLongMinPar").value = inputs.stud_spacing_limits.long_min_parallel_in;
+      $("studLongMinPerp").value = inputs.stud_spacing_limits.long_min_perp_in;
+      $("studLongMaxPar").value = inputs.stud_spacing_limits.long_max_parallel_in;
+      $("studLongMaxPerp").value = inputs.stud_spacing_limits.long_max_perp_in;
+      $("studTransMinPar").value = inputs.stud_spacing_limits.trans_min_parallel_in;
+      $("studTransMinPerp").value = inputs.stud_spacing_limits.trans_min_perp_in;
+
+      $("Fy").value = inputs.member_criteria.Fy_ksi;
+      $("beamCompositeAllowed").checked = !!inputs.member_criteria.beam.composite_allowed;
+      $("girderCompositeAllowed").checked = !!inputs.member_criteria.girder.composite_allowed;
+      $("beamCamberAllowed").checked = !!inputs.member_criteria.beam.camber_allowed;
+      $("girderCamberAllowed").checked = !!inputs.member_criteria.girder.camber_allowed;
+
+      $("beamDMin").value = inputs.member_criteria.beam.shape_filters.d_min;
+      $("beamDMax").value = inputs.member_criteria.beam.shape_filters.d_max;
+      $("beamBfMin").value = inputs.member_criteria.beam.shape_filters.bf_min;
+      $("beamBfMax").value = inputs.member_criteria.beam.shape_filters.bf_max;
+      $("beamTwMin").value = inputs.member_criteria.beam.shape_filters.tw_min;
+      $("beamTwMax").value = inputs.member_criteria.beam.shape_filters.tw_max;
+
+      $("girderDMin").value = inputs.member_criteria.girder.shape_filters.d_min;
+      $("girderDMax").value = inputs.member_criteria.girder.shape_filters.d_max;
+      $("girderBfMin").value = inputs.member_criteria.girder.shape_filters.bf_min;
+      $("girderBfMax").value = inputs.member_criteria.girder.shape_filters.bf_max;
+      $("girderTwMin").value = inputs.member_criteria.girder.shape_filters.tw_min;
+      $("girderTwMax").value = inputs.member_criteria.girder.shape_filters.tw_max;
+
+      document.querySelectorAll("input[name='shapeSource']").forEach(r => {
+        r.checked = r.value === inputs.member_criteria.shapes_source.mode;
+      });
+
+      $("inertiaMethod").value = inputs.deflection.inertia_method;
+      $("limDLMax").value = inputs.deflection.limits.DL.delta_max_in ?? "";
+      $("limDLRatio").value = inputs.deflection.limits.DL.ratio_L_over ?? "";
+      $("limLLMax").value = inputs.deflection.limits.LL.delta_max_in ?? "";
+      $("limLLRatio").value = inputs.deflection.limits.LL.ratio_L_over ?? "";
+      $("limSDLMax").value = inputs.deflection.limits.SDL.delta_max_in ?? "";
+      $("limSDLRatio").value = inputs.deflection.limits.SDL.ratio_L_over ?? "";
+      $("limLLSDLMax").value = inputs.deflection.limits.LL_SDL.delta_max_in ?? "";
+      $("limLLSDLRatio").value = inputs.deflection.limits.LL_SDL.ratio_L_over ?? "";
+      $("limTOTALMax").value = inputs.deflection.limits.TOTAL.delta_max_in ?? "";
+      $("limTOTALRatio").value = inputs.deflection.limits.TOTAL.ratio_L_over ?? "";
+
+      $("camberMin").value = inputs.camber.min_in;
+      $("camberMax").value = inputs.camber.max_in;
+      $("camberInc").value = inputs.camber.inc_in;
+      $("camberMinLen").value = inputs.camber.min_length_ft;
+      $("camberPctDead").value = inputs.camber.pct_of_dead * 100;
+      $("camberDisallowNoncompact").checked = !!inputs.camber.disallow_noncompact_web;
+
+      $("costSteel").value = inputs.cost.steel_per_lb;
+      $("costStud").value = inputs.cost.stud_per_each;
+      $("camberModel").value = inputs.cost.camber_model;
+      $("flatCamberCost").value = inputs.cost.flat_cost_per_member;
+      $("range1Max").value = inputs.cost.ranges[0].max_in ?? "";
+      $("range1Cost").value = inputs.cost.ranges[0].cost_per_member;
+      $("range2Max").value = inputs.cost.ranges[1].max_in ?? "";
+      $("range2Cost").value = inputs.cost.ranges[1].cost_per_member;
+      $("range3Cost").value = inputs.cost.ranges[2].cost_per_member;
+    }
+
+    function collectInputs() {
+      const shapeMode = document.querySelector("input[name='shapeSource']:checked")?.value ?? "demo";
+      return {
+        basis: {
+          design_method: "AISC_360_22_LRFD",
+          live_load_reduction: $("globalLLReduction").value === "true",
+          optimize_by: $("optimizeBy").value === "weight" ? "weight" : "cost"
+        },
+        geometry: {
+          Lb_ft: parseNum($("geoLb").value, 40),
+          Lg_ft: parseNum($("geoLg").value, 30),
+          spacing_ft: parseNum($("geoSpacing").value, 15),
+          nBeamLines_override: parseOptionalNum($("geoNBeamOverride").value),
+          share_half_girders: !!$("geoShareHalfGirders").checked
+        },
+        loads: {
+          DL_add_psf: parseNum($("loadDLadd").value, 0.5),
+          LL_psf: parseNum($("loadLL").value, 50),
+          LL_reducible: !!$("loadLLReducible").checked,
+          SDL_psf: parseNum($("loadSDL").value, 20),
+          CLL_psf: parseNum($("loadCLL").value, 20)
+        },
+        slab: {
+          shored: !!$("slabShored").checked,
+          deck: {
+            hd_in: parseNum($("deckHd").value, 2),
+            deck_weight_psf: parseNum($("deckWt").value, 2.5),
+            rib_width_in: parseNum($("deckRibW").value, 6),
+            rib_spacing_in: parseNum($("deckRibS").value, 12)
+          },
+          concrete: {
+            topping_in: parseNum($("concTop").value, 3.25),
+            fc_ksi: parseNum($("concFc").value, 3.5),
+            unit_weight_pcf: parseNum($("concUw").value, 110)
+          },
+          studs: {
+            dia_in: parseNum($("studDia").value, 0.75),
+            height_in: parseNum($("studH").value, 4),
+            Fu_ksi: parseNum($("studFu").value, 60),
+            min_comp_pct: parseNum($("studMinComp").value, 25),
+            max_comp_pct: parseNum($("studMaxComp").value, 100)
+          }
+        },
+        member_criteria: {
+          Fy_ksi: parseNum($("Fy").value, 50),
+          beam: {
+            composite_allowed: !!$("beamCompositeAllowed").checked,
+            camber_allowed: !!$("beamCamberAllowed").checked,
+            shape_filters: {
+              d_min: parseNum($("beamDMin").value, 0),
+              d_max: parseNum($("beamDMax").value, 999),
+              bf_min: parseNum($("beamBfMin").value, 0),
+              bf_max: parseNum($("beamBfMax").value, 999),
+              tw_min: parseNum($("beamTwMin").value, 0),
+              tw_max: parseNum($("beamTwMax").value, 999)
+            }
+          },
+          girder: {
+            composite_allowed: !!$("girderCompositeAllowed").checked,
+            camber_allowed: !!$("girderCamberAllowed").checked,
+            shape_filters: {
+              d_min: parseNum($("girderDMin").value, 0),
+              d_max: parseNum($("girderDMax").value, 999),
+              bf_min: parseNum($("girderBfMin").value, 0),
+              bf_max: parseNum($("girderBfMax").value, 999),
+              tw_min: parseNum($("girderTwMin").value, 0),
+              tw_max: parseNum($("girderTwMax").value, 999)
+            }
+          },
+          shapes_source: {
+            mode: shapeMode,
+            file_name: shapeMode === "upload" ? (state.shapeFileName ?? null) : null,
+            dataset_label: shapeMode === "upload" ? (state.shapeDatasetLabel || "Uploaded shapes") : "DEMO W-shapes subset"
+          }
+        },
+        deflection: {
+          inertia_method: $("inertiaMethod").value === "I_EFF" ? "I_EFF" : "I_TRANS",
+          limits: {
+            DL: { delta_max_in: parseOptionalNum($("limDLMax").value), ratio_L_over: parseOptionalNum($("limDLRatio").value) },
+            LL: { delta_max_in: parseOptionalNum($("limLLMax").value), ratio_L_over: parseOptionalNum($("limLLRatio").value) },
+            SDL: { delta_max_in: parseOptionalNum($("limSDLMax").value), ratio_L_over: parseOptionalNum($("limSDLRatio").value) },
+            LL_SDL: { delta_max_in: parseOptionalNum($("limLLSDLMax").value), ratio_L_over: parseOptionalNum($("limLLSDLRatio").value) },
+            TOTAL: { delta_max_in: parseOptionalNum($("limTOTALMax").value), ratio_L_over: parseOptionalNum($("limTOTALRatio").value) }
+          }
+        },
+        camber: {
+          min_in: parseNum($("camberMin").value, 0.75),
+          max_in: parseNum($("camberMax").value, 3),
+          inc_in: parseNum($("camberInc").value, 0.25),
+          min_length_ft: parseNum($("camberMinLen").value, 23),
+          pct_of_dead: parseNum($("camberPctDead").value, 75) / 100,
+          disallow_noncompact_web: !!$("camberDisallowNoncompact").checked
+        },
+        stud_spacing_limits: {
+          edge_dist_in: parseNum($("studEdgeDist").value, 1.5),
+          end_dist_in: parseNum($("studEndDist").value, 6),
+          long_min_parallel_in: parseNum($("studLongMinPar").value, 4),
+          long_min_perp_in: parseNum($("studLongMinPerp").value, 4),
+          long_max_parallel_in: parseNum($("studLongMaxPar").value, 24),
+          long_max_perp_in: parseNum($("studLongMaxPerp").value, 24),
+          trans_min_parallel_in: parseNum($("studTransMinPar").value, 3),
+          trans_min_perp_in: parseNum($("studTransMinPerp").value, 3)
+        },
+        cost: {
+          steel_per_lb: parseNum($("costSteel").value, 1.2),
+          stud_per_each: parseNum($("costStud").value, 3.5),
+          camber_model: $("camberModel").value === "flat" ? "flat" : "ranges",
+          flat_cost_per_member: parseNum($("flatCamberCost").value, 225),
+          ranges: [
+            { max_in: parseOptionalNum($("range1Max").value), cost_per_member: parseNum($("range1Cost").value, 180) },
+            { max_in: parseOptionalNum($("range2Max").value), cost_per_member: parseNum($("range2Cost").value, 260) },
+            { max_in: null, cost_per_member: parseNum($("range3Cost").value, 360) }
+          ]
+        }
+      };
+    }
+
+    function validateInputs(inp, shapes) {
+      const e = [];
+      if (inp.geometry.Lb_ft <= 0 || inp.geometry.Lg_ft <= 0 || inp.geometry.spacing_ft <= 0) e.push("Geometry dimensions/spacing must be positive.");
+      if (inp.geometry.nBeamLines_override != null && inp.geometry.nBeamLines_override < 1) e.push("Interior beam line override must be >= 1.");
+      if (inp.loads.LL_psf < 0 || inp.loads.SDL_psf < 0 || inp.loads.CLL_psf < 0 || inp.loads.DL_add_psf < 0) e.push("Loads must be nonnegative.");
+      if (inp.slab.studs.min_comp_pct < 0 || inp.slab.studs.max_comp_pct > 100 || inp.slab.studs.min_comp_pct > inp.slab.studs.max_comp_pct) e.push("Stud composite % limits are invalid.");
+      if (inp.member_criteria.Fy_ksi <= 0) e.push("Fy must be positive.");
+      if (inp.camber.min_in < 0 || inp.camber.max_in < 0 || inp.camber.inc_in <= 0 || inp.camber.min_in > inp.camber.max_in) e.push("Camber range/increment is invalid.");
+      if (inp.camber.pct_of_dead < 0 || inp.camber.pct_of_dead > 1) e.push("Camber dead-load percent must be between 0 and 100%.");
+      if (inp.cost.steel_per_lb < 0 || inp.cost.stud_per_each < 0) e.push("Cost inputs must be nonnegative.");
+      if (inp.member_criteria.beam.shape_filters.d_min > inp.member_criteria.beam.shape_filters.d_max) e.push("Beam filter d min > d max.");
+      if (inp.member_criteria.girder.shape_filters.d_min > inp.member_criteria.girder.shape_filters.d_max) e.push("Girder filter d min > d max.");
+      if (!shapes.length) e.push("No shapes available. Use demo shapes or upload a valid shapes file.");
+      return e;
+    }
+
+    function showErrors(errors) {
+      const box = $("errorBox");
+      if (!errors.length) {
+        box.style.display = "none";
+        box.innerHTML = "";
+        return;
+      }
+      box.style.display = "block";
+      box.innerHTML = `<strong>Input validation:</strong><ul style="margin:.3rem 0 .2rem 1.2rem;padding:0">${errors.map(x => `<li>${safeStr(x)}</li>`).join("")}</ul>`;
+    }
+
+    function updateCamberCostUI() {
+      const isFlat = $("camberModel").value === "flat";
+      $("camberRangesBox").style.display = isFlat ? "none" : "block";
+      $("camberFlatBox").style.display = isFlat ? "block" : "none";
+    }
+
+    function activeShapes() {
+      const mode = document.querySelector("input[name='shapeSource']:checked")?.value ?? "demo";
+      if (mode === "demo") return deepClone(DEMO_SHAPES);
+      return deepClone(state.uploadedShapes);
+    }
+
+    function updateShapeStatus() {
+      const mode = document.querySelector("input[name='shapeSource']:checked")?.value ?? "demo";
+      if (mode === "demo") {
+        $("shapesStatus").innerHTML = `
+          <div><strong>Source:</strong> DEMO W-shapes subset</div>
+          <div><strong>Count:</strong> ${DEMO_SHAPES.length}</div>`;
+      } else {
+        $("shapesStatus").innerHTML = `
+          <div><strong>Source:</strong> Upload</div>
+          <div><strong>Dataset label:</strong> ${safeStr(state.shapeDatasetLabel || "Uploaded")}</div>
+          <div><strong>File:</strong> ${safeStr(state.shapeFileName || "—")}</div>
+          <div><strong>Count:</strong> ${state.uploadedShapes.length}</div>`;
+      }
+    }
+
+    function updateGeometryPreview() {
+      const g = {
+        Lb_ft: parseNum($("geoLb").value, 40),
+        Lg_ft: parseNum($("geoLg").value, 30),
+        spacing_ft: parseNum($("geoSpacing").value, 15),
+        nBeamLines_override: parseOptionalNum($("geoNBeamOverride").value)
+      };
+      const lay = computeLayout(g);
+      $("layoutInfo").innerHTML = `
+        <div><strong>Computed interior beam lines:</strong> ${lay.nBeamLines}</div>
+        <div><strong>Actual spacing used:</strong> ${fmt(lay.spacing_ft,3)} ft</div>
+        <div><strong>Beam line positions xᵢ (ft):</strong> ${lay.positions_ft.map(v => fmt(v,2)).join(", ")}</div>
+      `;
+      $("planDiagram").innerHTML = makePlanSVG(g, lay);
+      updateLLPreview();
+    }
+
+    function updateLLPreview() {
+      const inp = collectInputs();
+      const lay = computeLayout(inp.geometry);
+      const AT_beam = lay.spacing_ft * inp.geometry.Lb_ft;
+      const AT_girder = inp.geometry.Lb_ft * inp.geometry.Lg_ft;
+      const beam = llReduction(inp.loads.LL_psf, inp.loads.LL_reducible, inp.basis.live_load_reduction, 2, AT_beam);
+      const girder = llReduction(inp.loads.LL_psf, inp.loads.LL_reducible, inp.basis.live_load_reduction, 1, AT_girder);
+      $("llReductionInfo").innerHTML = `
+        <div><strong>Beam:</strong> KLL=2, AT=${fmt(AT_beam,2)} sf, LL_used=${fmt(beam.LL_used_psf,2)} psf (${fmt(beam.reduction_pct,1)}% reduction)</div>
+        <div><strong>Girder:</strong> KLL=1, AT=${fmt(AT_girder,2)} sf, LL_used=${fmt(girder.LL_used_psf,2)} psf (${fmt(girder.reduction_pct,1)}% reduction)</div>
+      `;
+    }
+
+    function setRunStatus(text, progress = null, max = null) {
+      $("runStatus").textContent = text;
+      if (progress != null && max != null) {
+        $("runProgress").max = max;
+        $("runProgress").value = Math.min(progress, max);
+      }
+    }
+
+    function setRunningUI(running) {
+      state.running = running;
+      $("btnRun").disabled = running;
+      $("btnCancel").disabled = !running;
+    }
+
+    function createWorker() {
+      const code = `(${optimizationWorkerMain.toString()})();`;
+      const blob = new Blob([code], { type: "application/javascript" });
+      const url = URL.createObjectURL(blob);
+      return new Worker(url);
+    }
+
+    function startRun() {
+      const inputs = collectInputs();
+      const shapes = activeShapes();
+
+      const errs = validateInputs(inputs, shapes);
+      showErrors(errs);
+      if (errs.length) return;
+
+      setTab("results");
+      state.inputs = deepClone(inputs);
+      state.results = [];
+      state.selectedSolutionId = null;
+      renderResultsTable();
+      updateSelectedPane();
+
+      if (state.worker) {
+        state.worker.terminate();
+        state.worker = null;
+      }
+      const w = createWorker();
+      state.worker = w;
+      setRunningUI(true);
+      setRunStatus("Running optimization...", 0, 100);
+
+      w.onmessage = (ev) => {
+        const m = ev.data || {};
+        if (m.cmd === "started") {
+          setRunStatus(`Running... beams=${m.beamCount}, girders=${m.girderCount}`, 0, m.total || 100);
+          $("resultsMeta").textContent = `Running... total combos ${m.total ?? "—"}`;
+        } else if (m.cmd === "progress") {
+          setRunStatus(`Running... processed ${m.processed}/${m.total}, passing ${m.found}`, m.processed, m.total);
+          $("resultsMeta").textContent = `Running... processed ${m.processed}/${m.total}, passing ${m.found}`;
+        } else if (m.cmd === "candidate") {
+          insertCandidate(m.candidate);
+          setRunStatus(`Running... processed ${m.processed}/${m.total}, passing ${m.found}`, m.processed, m.total);
+          $("resultsMeta").textContent = `Running... processed ${m.processed}/${m.total}, passing ${m.found}`;
+        } else if (m.cmd === "done") {
+          setRunningUI(false);
+          state.results = Array.isArray(m.results) ? m.results : [];
+          sortResults();
+          state.selectedSolutionId = state.results[0]?.solution_id ?? null;
+          renderResultsTable();
+          updateSelectedPane();
+          setRunStatus(`Done. Processed ${m.processed}/${m.total}. Passing (top shown): ${state.results.length}`, m.total || 1, m.total || 1);
+          $("resultsMeta").textContent = `Done. Processed ${m.processed}/${m.total}. Passing (top shown): ${state.results.length}`;
+          state.worker?.terminate();
+          state.worker = null;
+        } else if (m.cmd === "error") {
+          setRunningUI(false);
+          showErrors([m.error || "Worker error"]);
+          setRunStatus("Run failed.");
+          state.worker?.terminate();
+          state.worker = null;
+        }
+      };
+
+      w.onerror = (err) => {
+        setRunningUI(false);
+        showErrors([err.message || "Worker crashed"]);
+        setRunStatus("Run failed.");
+        state.worker?.terminate();
+        state.worker = null;
+      };
+
+      w.postMessage({
+        cmd: "run",
+        payload: {
+          inputs,
+          shapes,
+          topN: MAX_RESULTS
+        }
+      });
+    }
+
+    function stopRun() {
+      if (state.worker) {
+        state.worker.terminate();
+        state.worker = null;
+      }
+      setRunningUI(false);
+      setRunStatus("Run cancelled.");
+      $("resultsMeta").textContent = "Cancelled. Partial streamed results retained.";
+    }
+
+    function metricValue(sol) {
+      const mode = state.inputs?.basis?.optimize_by ?? $("optimizeBy").value;
+      return mode === "weight" ? sol.panel.weight_psf : sol.panel.cost_per_sf;
+    }
+
+    function sortResults() {
+      state.results.sort((a, b) => metricValue(a) - metricValue(b));
+      if (state.results.length > MAX_RESULTS) state.results.length = MAX_RESULTS;
+    }
+
+    function insertCandidate(sol) {
+      const idx = state.results.findIndex(x => x.solution_id === sol.solution_id);
+      if (idx >= 0) state.results[idx] = sol;
+      else state.results.push(sol);
+      sortResults();
+      renderResultsTable();
+      if (!state.selectedSolutionId && state.results.length) {
+        state.selectedSolutionId = state.results[0].solution_id;
+        updateSelectedPane();
+      }
+    }
+
+    function selectedSolution() {
+      return state.results.find(r => r.solution_id === state.selectedSolutionId) || null;
+    }
+
+    function renderResultsTable() {
+      const tb = $("resultsTbody");
+      tb.innerHTML = "";
+      if (!state.results.length) {
+        tb.innerHTML = `<tr><td colspan="8" class="small">No results yet.</td></tr>`;
+      } else {
+        state.results.forEach((r, i) => {
+          const tr = document.createElement("tr");
+          tr.className = `clickable ${r.solution_id === state.selectedSolutionId ? "sel" : ""}`;
+          tr.innerHTML = `
+            <td>${i + 1}</td>
+            <td>${safeStr(r.panel.beam_shape)}</td>
+            <td>${safeStr(r.panel.girder_shape)}</td>
+            <td>${fmt(r.panel.cost_per_sf,3)}</td>
+            <td>${fmt(r.panel.weight_psf,3)}</td>
+            <td>${fmt(r.panel.governing.strength_util_max,3)}</td>
+            <td>${fmt(r.panel.governing.deflection_util_max,3)}</td>
+            <td>${safeStr(r.panel.governing.controlling_case_str)}</td>
+          `;
+          tr.addEventListener("click", () => {
+            state.selectedSolutionId = r.solution_id;
+            renderResultsTable();
+            updateSelectedPane();
+          });
+          tb.appendChild(tr);
+        });
+      }
+      const has = !!selectedSolution();
+      $("btnViewBeam").disabled = !has;
+      $("btnViewGirder").disabled = !has;
+      $("btnPrintPack").disabled = !has;
+      $("btnExportJSON").disabled = !has && !state.results.length;
+      $("btnExportCSV").disabled = !has && !state.results.length;
+    }
+
+    function updateSelectedPane() {
+      const sol = selectedSolution();
+      if (!sol) {
+        $("bayPreview").innerHTML = "";
+        $("selectedSummary").innerHTML = "No selection.";
+        $("calcTraceText").textContent = "No selection.";
+        return;
+      }
+      const runGeom = state.inputs?.geometry ?? collectInputs().geometry;
+      const layout = sol.panel.layout || computeLayout(runGeom);
+
+      $("bayPreview").innerHTML = makePlanSVG(
+        runGeom,
+        layout,
+        `${sol.beam.shape.name} | camber ${fmt(sol.beam.camber.used_in,2)} in`,
+        `${sol.girder.shape.name} | camber ${fmt(sol.girder.camber.used_in,2)} in`
+      );
+
+      const cb = sol.panel.cost_breakdown || {};
+      $("selectedSummary").innerHTML = `
+        <div class="summary-grid">
+          <div class="kpi"><div class="small">Cost</div><div class="v">$${fmt(sol.panel.cost_per_sf,3)}/sf</div></div>
+          <div class="kpi"><div class="small">Weight</div><div class="v">${fmt(sol.panel.weight_psf,3)} psf</div></div>
+          <div class="kpi"><div class="small">Strength Util</div><div class="v ${sol.panel.governing.strength_util_max>1?'bad':'ok'}">${fmt(sol.panel.governing.strength_util_max,3)}</div></div>
+          <div class="kpi"><div class="small">Deflection Util</div><div class="v ${sol.panel.governing.deflection_util_max>1?'bad':'ok'}">${fmt(sol.panel.governing.deflection_util_max,3)}</div></div>
+        </div>
+        <div style="margin-top:.45rem"><strong>Control:</strong> ${safeStr(sol.panel.governing.controlling_case_str)}</div>
+        <div style="margin-top:.35rem" class="small">
+          <strong>Cost Breakdown (bay):</strong><br/>
+          Steel: $${fmt(cb.steel_usd,2)} |
+          Studs: $${fmt(cb.stud_usd,2)} |
+          Camber: $${fmt(cb.camber_usd,2)} |
+          Total: $${fmt(cb.total_usd,2)}
+        </div>
+      `;
+
+      const trace = []
+        .concat(sol.beam.notes || [])
+        .concat(sol.girder.notes || [])
+        .concat(sol.panel.calc_trace ? [sol.panel.calc_trace] : []);
+      $("calcTraceText").textContent = trace.join("\n");
+    }
+
+    function caseLabel(c) {
+      if (c === "LL_SDL") return "LL + SDL";
+      return c;
+    }
+
+    function tableHTML(headers, rows) {
+      return `
+        <div class="table-scroll">
+          <table>
+            <thead><tr>${headers.map(h => `<th>${safeStr(h)}</th>`).join("")}</tr></thead>
+            <tbody>
+              ${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    function memberReportHTML(member, panel) {
+      const comp = member.composite || {};
+      const studs = comp.studs || {};
+      const strengthRows = (member.strength?.combos || []).map(c => [
+        safeStr(c.name), fmt(c.Mu,3), fmt(c.Vu,3), fmt(c.utilM,3), fmt(c.utilV,3)
+      ]);
+      const deflRows = (member.deflection?.cases || []).map(c => [
+        safeStr(caseLabel(c.name)),
+        fmt(c.defl_in,3),
+        c.ratio ? fmt(c.ratio,1) : "—",
+        c.limit_delta_in != null ? fmt(c.limit_delta_in,3) : "—",
+        c.limit_ratio != null ? `L/${fmt(c.limit_ratio,0)}` : "—",
+        fmt(c.util,3)
+      ]);
+      const loadRows = (member.loads?.components || []).map(c => [
+        safeStr(c.name),
+        safeStr(c.type),
+        fmt(c.value,4),
+        safeStr(c.note || "")
+      ]);
+
+      let pointLoadSection = "";
+      if (member.loads?.point_load_table) {
+        const comps = Object.keys(member.loads.point_load_table);
+        const allRows = [];
+        comps.forEach(k => {
+          const arr = member.loads.point_load_table[k] || [];
+          if (!arr.length) return;
+          arr.forEach((p, i) => {
+            allRows.push([i === 0 ? safeStr(k) : "", fmt(p.x_ft,3), fmt(p.P_k,3)]);
+          });
+        });
+        pointLoadSection = `
+          <h4>Point Loads (Girder)</h4>
+          ${tableHTML(["Component","x (ft)","P (k)"], allRows)}
+        `;
+      }
+
+      const html = `
+        <div>
+          <h3 style="margin-top:0;text-transform:capitalize">${safeStr(member.member_type)} Report</h3>
+          ${tableHTML(["Field","Value"], [
+            ["Shape", safeStr(member.shape?.name || "—")],
+            ["Length (ft)", fmt(member.length_ft,3)],
+            ["φMn (k-ft)", fmt(member.strength?.phiMn_kft,3)],
+            ["φVn (k)", fmt(member.strength?.phiVn_k,3)],
+            ["Live load reduction (%)", fmt(member.loads?.live_load_reduction_pct,2)],
+            ["Influence area (sf)", fmt(member.loads?.influence_area_ft2,3)]
+          ])}
+
+          <h4>Composite Summary</h4>
+          ${tableHTML(["Field","Value"], [
+            ["Composite enabled", comp.enabled ? "Yes" : "No"],
+            ["% composite", fmt(comp.percent_composite,2)],
+            ["be (in)", fmt(comp.be_in,3)],
+            ["Ac (in²)", fmt(comp.Ac_in2,3)],
+            ["PNA from bottom (in)", comp.PNA_from_bottom_in != null ? fmt(comp.PNA_from_bottom_in,3) : "—"],
+            ["ENA from bottom (in)", comp.ENA_from_bottom_in != null ? fmt(comp.ENA_from_bottom_in,3) : "—"],
+            ["Ec (ksi)", fmt(comp.Ec_ksi,2)],
+            ["Modular ratio n", fmt(comp.n_modular,3)],
+            ["I_trans (in⁴)", fmt(comp.I_trans_in4,3)],
+            ["I_eff (in⁴)", fmt(comp.I_eff_in4,3)],
+            ["Stud rows (1 per row)", fmtI(studs.rows_1)],
+            ["Stud rows (2 per row)", fmtI(studs.rows_2)],
+            ["Stud total", fmtI(studs.stud_count_total)],
+            ["Qn per stud (k)", fmt(studs.Qn_k,3)],
+            ["ΣQn (k)", fmt(studs.sumQn_k,3)]
+          ])}
+
+          <h4>Load Components</h4>
+          ${tableHTML(["Name","Type","Value","Note"], loadRows)}
+
+          ${pointLoadSection}
+
+          <h4>Strength Combos (LRFD)</h4>
+          ${tableHTML(["Combo","Mu (k-ft)","Vu (k)","Mu/(φMn)","Vu/(φVn)"], strengthRows)}
+
+          <h4>Deflections</h4>
+          ${tableHTML(["Case","Δ (in)","L/Δ","Δ limit (in)","Ratio limit","Util"], deflRows)}
+
+          <h4>Notes</h4>
+          <ul>${(member.notes || []).map(n => `<li>${safeStr(n)}</li>`).join("")}</ul>
+
+          <div class="report-footer"><strong>Disclaimer:</strong> Conceptual/schematic tool. Not for final design. Verify results independently.</div>
+        </div>
+      `;
+      return html;
+    }
+
+    function openModal(title, html) {
+      $("modalTitle").textContent = title;
+      $("modalBody").innerHTML = html;
+      $("modal").classList.add("active");
+      $("modal").setAttribute("aria-hidden", "false");
+    }
+
+    function closeModal() {
+      $("modal").classList.remove("active");
+      $("modal").setAttribute("aria-hidden", "true");
+    }
+
+    function buildRunObject() {
+      const inputs = state.inputs || collectInputs();
+      return {
+        run_meta: {
+          tool_version: APP_VERSION,
+          timestamp: new Date().toISOString()
+        },
+        basis: {
+          design_method: "AISC_360_22_LRFD",
+          load_standard: "ASCE_7_22",
+          shapes_dataset_label: inputs.member_criteria.shapes_source.dataset_label || state.shapeDatasetLabel
+        },
+        inputs: deepClone(inputs),
+        results: deepClone(state.results),
+        shapes_snapshot: {
+          mode: inputs.member_criteria.shapes_source.mode,
+          dataset_label: inputs.member_criteria.shapes_source.dataset_label,
+          file_name: inputs.member_criteria.shapes_source.file_name,
+          shapes: activeShapes()
+        }
+      };
+    }
+
+    function downloadText(filename, text, type = "text/plain") {
+      const blob = new Blob([text], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function toCSV(rows) {
+      return rows.map(r => r.map(v => {
+        const s = String(v ?? "");
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      }).join(",")).join("\n");
+    }
+
+    function exportJSON() {
+      const runObj = buildRunObject();
+      downloadText(`floor-framing-run-${Date.now()}.json`, JSON.stringify(runObj, null, 2), "application/json");
+    }
+
+    function exportCSV() {
+      if (!state.results.length) return;
+      const rows = [
+        ["Rank","Beam","Girder","Cost_per_sf","Weight_psf","StrengthUtilMax","DeflectionUtilMax","Control"]
+      ];
+      state.results.forEach((r, i) => {
+        rows.push([
+          i + 1,
+          r.panel.beam_shape,
+          r.panel.girder_shape,
+          fmt(r.panel.cost_per_sf, 4),
+          fmt(r.panel.weight_psf, 4),
+          fmt(r.panel.governing.strength_util_max, 4),
+          fmt(r.panel.governing.deflection_util_max, 4),
+          r.panel.governing.controlling_case_str
+        ]);
+      });
+      downloadText(`solutions-${Date.now()}.csv`, toCSV(rows), "text/csv");
+
+      const sel = selectedSolution() || state.results[0];
+      if (sel) {
+        const m = [
+          ["Field","Beam","Girder"],
+          ["Shape", sel.beam.shape.name, sel.girder.shape.name],
+          ["Length_ft", fmt(sel.beam.length_ft,3), fmt(sel.girder.length_ft,3)],
+          ["Composite_enabled", sel.beam.composite.enabled ? "Yes":"No", sel.girder.composite.enabled ? "Yes":"No"],
+          ["Composite_pct", fmt(sel.beam.composite.percent_composite,2), fmt(sel.girder.composite.percent_composite,2)],
+          ["Camber_in", fmt(sel.beam.camber.used_in,2), fmt(sel.girder.camber.used_in,2)],
+          ["Stud_count", fmtI(sel.beam.composite.studs.stud_count_total), fmtI(sel.girder.composite.studs.stud_count_total)],
+          ["phiMn_kft", fmt(sel.beam.strength.phiMn_kft,3), fmt(sel.girder.strength.phiMn_kft,3)],
+          ["phiVn_k", fmt(sel.beam.strength.phiVn_k,3), fmt(sel.girder.strength.phiVn_k,3)]
+        ];
+        downloadText(`selected-member-summary-${Date.now()}.csv`, toCSV(m), "text/csv");
+      }
+    }
+
+    function renderReportPackAndPrint() {
+      const sol = selectedSolution();
+      if (!sol) return;
+      const geom = state.inputs?.geometry ?? collectInputs().geometry;
+      const layout = sol.panel.layout || computeLayout(geom);
+
+      const panelSummary = tableHTML(["Field","Value"], [
+        ["Beam", safeStr(sol.panel.beam_shape)],
+        ["Girder", safeStr(sol.panel.girder_shape)],
+        ["Cost ($/sf)", fmt(sol.panel.cost_per_sf,3)],
+        ["Weight (psf)", fmt(sol.panel.weight_psf,3)],
+        ["Strength Util Max", fmt(sol.panel.governing.strength_util_max,3)],
+        ["Deflection Util Max", fmt(sol.panel.governing.deflection_util_max,3)],
+        ["Controlling", safeStr(sol.panel.governing.controlling_case_str)]
+      ]);
+
+      $("reportPack").innerHTML = `
+        <section class="print-page">
+          <div class="report-title">Panel Summary</div>
+          <div class="report-sub">Floor Framing (AISC 360-22) — MVP | ${new Date().toLocaleString()}</div>
+          ${makePlanSVG(geom, layout, sol.beam.shape.name, sol.girder.shape.name)}
+          ${panelSummary}
+          <div class="report-footer"><strong>Disclaimer:</strong> Conceptual/schematic tool. Not for final design. Verify results independently.</div>
+        </section>
+
+        <section class="print-page">
+          <div class="report-title">Beam Report</div>
+          <div class="report-sub">${safeStr(sol.beam.shape.name)}</div>
+          ${memberReportHTML(sol.beam, sol.panel)}
+        </section>
+
+        <section class="print-page">
+          <div class="report-title">Girder Report</div>
+          <div class="report-sub">${safeStr(sol.girder.shape.name)}</div>
+          ${memberReportHTML(sol.girder, sol.panel)}
+        </section>
+      `;
+      window.print();
+    }
+
+    function saveRunJSON() {
+      exportJSON();
+    }
+
+    function loadRunFromFile(file) {
+      const fr = new FileReader();
+      fr.onload = () => {
+        try {
+          const obj = JSON.parse(fr.result);
+          if (!obj || !obj.inputs) throw new Error("Invalid run JSON.");
+          state.inputs = deepClone(obj.inputs);
+          populateForm(state.inputs);
+
+          if (obj.shapes_snapshot?.mode === "upload" && Array.isArray(obj.shapes_snapshot.shapes)) {
+            state.uploadedShapes = obj.shapes_snapshot.shapes;
+            state.shapeDatasetLabel = obj.shapes_snapshot.dataset_label || "Uploaded (from run)";
+            state.shapeFileName = obj.shapes_snapshot.file_name || null;
+          }
+          updateShapeStatus();
+          updateCamberCostUI();
+          updateGeometryPreview();
+
+          state.results = Array.isArray(obj.results) ? obj.results : [];
+          state.selectedSolutionId = state.results[0]?.solution_id ?? null;
+          renderResultsTable();
+          updateSelectedPane();
+          setRunStatus("Run JSON loaded.");
+          showErrors([]);
+        } catch (err) {
+          showErrors([`Load run failed: ${err.message || err}`]);
+        }
+      };
+      fr.readAsText(file);
+    }
+
+    function normKey(k) {
+      return String(k || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
+    function numLike(v) {
+      if (v == null) return NaN;
+      const s = String(v).trim().replace(/,/g, "");
+      if (/^-?\d+(\.\d+)?\/-?\d+(\.\d+)?$/.test(s)) {
+        const [a, b] = s.split("/").map(Number);
+        if (b !== 0) return a / b;
+      }
+      const n = Number.parseFloat(s);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    function parseCSVText(text) {
+      const rows = [];
+      let row = [];
+      let cur = "";
+      let inQ = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (ch === '"') {
+          if (inQ && text[i + 1] === '"') { cur += '"'; i++; }
+          else inQ = !inQ;
+        } else if (ch === "," && !inQ) {
+          row.push(cur); cur = "";
+        } else if ((ch === "\n" || ch === "\r") && !inQ) {
+          if (ch === "\r" && text[i + 1] === "\n") i++;
+          row.push(cur); cur = "";
+          if (row.some(c => String(c).trim() !== "") || rows.length > 0) rows.push(row);
+          row = [];
+        } else {
+          cur += ch;
+        }
+      }
+      if (cur.length || row.length) { row.push(cur); rows.push(row); }
+      if (!rows.length) return [];
+      const hdr = rows[0].map(h => String(h).trim());
+      return rows.slice(1).filter(r => r.some(c => String(c).trim() !== "")).map(r => {
+        const o = {};
+        hdr.forEach((h, i) => o[h] = r[i] ?? "");
+        return o;
+      });
+    }
+
+    function normalizeShapeRecord(rec) {
+      const map = {};
+      Object.keys(rec).forEach(k => map[normKey(k)] = rec[k]);
+
+      const name = String(
+        map.aiscmanuallabel ?? map.shape ?? map.designation ?? map.name ?? map.section ?? ""
+      ).trim();
+      const out = {
+        name: name || "UNNAMED",
+        d: numLike(map.d),
+        bf: numLike(map.bf),
+        tf: numLike(map.tf),
+        tw: numLike(map.tw),
+        A: numLike(map.a),
+        W: numLike(map.w),
+        Ix: numLike(map.ix),
+        Sx: numLike(map.sx),
+        Zx: numLike(map.zx),
+        ry: numLike(map.ry)
+      };
+      const ok = ["d","bf","tf","tw","A","W","Ix","Sx","Zx"].every(k => Number.isFinite(out[k]));
+      return ok ? out : null;
+    }
+
+    function loadShapesFromCSV(file) {
+      const fr = new FileReader();
+      fr.onload = () => {
+        try {
+          const recs = parseCSVText(fr.result);
+          const shapes = recs.map(normalizeShapeRecord).filter(Boolean);
+          if (!shapes.length) throw new Error("No valid shape rows found.");
+          state.uploadedShapes = shapes;
+          state.shapeDatasetLabel = `Uploaded CSV (${shapes.length} shapes)`;
+          state.shapeFileName = file.name;
+          document.querySelector("input[name='shapeSource'][value='upload']").checked = true;
+          updateShapeStatus();
+          setRunStatus(`Loaded ${shapes.length} shapes from CSV.`);
+          showErrors([]);
+        } catch (err) {
+          showErrors([`CSV parse failed: ${err.message || err}`]);
+        }
+      };
+      fr.readAsText(file);
+    }
+
+    async function loadSheetJSScript() {
+      if (window.XLSX) return;
+      await new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    async function loadShapesFromXLSX(file) {
+      try {
+        await loadSheetJSScript();
+      } catch {
+        showErrors(["Could not load XLSX parser from jsDelivr. If blocked/offline, convert XLSX to CSV and upload CSV."]);
+        return;
+      }
+      const fr = new FileReader();
+      fr.onload = () => {
+        try {
+          const wb = XLSX.read(fr.result, { type: "array" });
+          const wsName = wb.SheetNames[0];
+          const rows = XLSX.utils.sheet_to_json(wb.Sheets[wsName], { defval: "" });
+          const shapes = rows.map(normalizeShapeRecord).filter(Boolean);
+          if (!shapes.length) throw new Error("No valid shape rows found in first worksheet.");
+          state.uploadedShapes = shapes;
+          state.shapeDatasetLabel = `Uploaded XLSX (${shapes.length} shapes)`;
+          state.shapeFileName = file.name;
+          document.querySelector("input[name='shapeSource'][value='upload']").checked = true;
+          updateShapeStatus();
+          setRunStatus(`Loaded ${shapes.length} shapes from XLSX.`);
+          showErrors([]);
+        } catch (err) {
+          showErrors([`XLSX parse failed: ${err.message || err}`]);
+        }
+      };
+      fr.readAsArrayBuffer(file);
+    }
+
+    function runSanityCheck() {
+      const inp = collectInputs();
+      const lay = computeLayout(inp.geometry);
+      const selfW = inp.slab.deck.deck_weight_psf + inp.slab.concrete.topping_in / 12 * inp.slab.concrete.unit_weight_pcf;
+      const w = (selfW + inp.loads.DL_add_psf + inp.loads.SDL_psf + inp.loads.LL_psf) * lay.spacing_ft / 1000;
+      const L = inp.geometry.Lb_ft;
+      const M = w * L * L / 8;
+      const V = w * L / 2;
+      const lines = [
+        "Reference Case Sanity Check (order-of-magnitude only)",
+        `Lb=${fmt(inp.geometry.Lb_ft,2)} ft, Lg=${fmt(inp.geometry.Lg_ft,2)} ft, spacing_used=${fmt(lay.spacing_ft,3)} ft`,
+        `Interior beam lines=${lay.nBeamLines}`,
+        `Computed slab self-weight=${fmt(selfW,3)} psf`,
+        `Approx beam service line load w≈${fmt(w,4)} k/ft`,
+        `Approx Mmax=wL²/8≈${fmt(M,3)} k-ft`,
+        `Approx Vmax=wL/2≈${fmt(V,3)} k`,
+        M > 30 && M < 2000 ? "M range check: PASS" : "M range check: WARN",
+        V > 5 && V < 500 ? "V range check: PASS" : "V range check: WARN",
+        "Note: This is not expected to exactly match FF14 due to basis/method differences."
+      ];
+      $("sanityOut").textContent = lines.join("\n");
+    }
+
+    function hookEvents() {
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => setTab(btn.dataset.tab));
+      });
+
+      $("btnRun").addEventListener("click", startRun);
+      $("btnCancel").addEventListener("click", stopRun);
+
+      $("btnViewBeam").addEventListener("click", () => {
+        const sol = selectedSolution();
+        if (!sol) return;
+        openModal("Beam Report", memberReportHTML(sol.beam, sol.panel));
+      });
+      $("btnViewGirder").addEventListener("click", () => {
+        const sol = selectedSolution();
+        if (!sol) return;
+        openModal("Girder Report", memberReportHTML(sol.girder, sol.panel));
+      });
+      $("btnPrintPack").addEventListener("click", renderReportPackAndPrint);
+      $("btnExportJSON").addEventListener("click", exportJSON);
+      $("btnExportCSV").addEventListener("click", exportCSV);
+
+      $("btnSaveRun").addEventListener("click", saveRunJSON);
+      $("btnLoadRun").addEventListener("click", () => $("fileLoadRun").click());
+      $("fileLoadRun").addEventListener("change", (e) => {
+        const f = e.target.files?.[0];
+        if (f) loadRunFromFile(f);
+        e.target.value = "";
+      });
+
+      $("modalClose").addEventListener("click", closeModal);
+      $("modal").addEventListener("click", (e) => {
+        if (e.target.id === "modal") closeModal();
+      });
+
+      $("camberModel").addEventListener("change", updateCamberCostUI);
+
+      document.querySelectorAll("input[name='shapeSource']").forEach(r => {
+        r.addEventListener("change", updateShapeStatus);
+      });
+
+      $("shapesUpload").addEventListener("change", async (e) => {
+        const f = e.target.files?.[0];
+        if (!f) return;
+        const n = f.name.toLowerCase();
+        if (n.endsWith(".csv")) loadShapesFromCSV(f);
+        else if (n.endsWith(".xlsx") || n.endsWith(".xls")) await loadShapesFromXLSX(f);
+        else showErrors(["Unsupported shape file extension. Use CSV or XLSX."]);
+        e.target.value = "";
+      });
+
+      const watchIds = [
+        "geoLb","geoLg","geoSpacing","geoNBeamOverride","globalLLReduction","loadLL","loadLLReducible",
+        "camberModel"
+      ];
+      watchIds.forEach(id => {
+        $(id).addEventListener("input", () => {
+          updateGeometryPreview();
+          updateCamberCostUI();
+        });
+        $(id).addEventListener("change", () => {
+          updateGeometryPreview();
+          updateCamberCostUI();
+        });
+      });
+
+      $("devToggle").addEventListener("click", () => {
+        $("devPanel").classList.toggle("active");
+      });
+      $("btnSanity").addEventListener("click", runSanityCheck);
+    }
+
+    function init() {
+      const d = defaultInputs();
+      state.inputs = deepClone(d);
+      populateForm(d);
+      updateCamberCostUI();
+      updateShapeStatus();
+      updateGeometryPreview();
+      updateLLPreview();
+      renderResultsTable();
+      updateSelectedPane();
+      hookEvents();
+      setRunStatus("Idle");
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
+
+    // ------------------------------ Worker ------------------------------
+    function optimizationWorkerMain() {
+      const E = 29000;
+      const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+      const toNum = (v, d = 0) => {
+        const n = Number.parseFloat(v);
+        return Number.isFinite(n) ? n : d;
+      };
+      const r = (v, d = 6) => Number(v.toFixed(d));
+
+      function computeLayout(geometry) {
+        const Lg = Math.max(0.01, toNum(geometry.Lg_ft, 1));
+        let nBeamLines, spacing_ft;
+        if (geometry.nBeamLines_override != null && Number.isFinite(geometry.nBeamLines_override)) {
+          nBeamLines = Math.max(1, Math.round(geometry.nBeamLines_override));
+          spacing_ft = Lg / (nBeamLines + 1);
+        } else {
+          const nSpaces = Math.max(2, Math.round(Lg / Math.max(0.1, toNum(geometry.spacing_ft, 1))));
+          nBeamLines = Math.max(1, nSpaces - 1);
+          spacing_ft = Lg / nSpaces;
+        }
+        const nSpaces = nBeamLines + 1;
+        const positions_ft = [];
+        for (let i = 1; i <= nBeamLines; i++) positions_ft.push(i * spacing_ft);
+        return { nBeamLines, nSpaces, spacing_ft, positions_ft };
+      }
+
+      function llReduction(LL, reducible, globalOn, KLL, AT) {
+        if (!reducible || !globalOn) return { LL_used_psf: LL, factor: 1, reduction_pct: 0 };
+        const at = Math.max(1, AT);
+        let f = 0.25 + 15 / Math.sqrt(Math.max(1, KLL * at));
+        const minF = at >= 400 ? 0.4 : 0.5;
+        f = clamp(f, minF, 1);
+        return { LL_used_psf: LL * f, factor: f, reduction_pct: (1 - f) * 100 };
+      }
+
+      function sectionClass(shape, Fy) {
+        const lambdaF = shape.bf / (2 * shape.tf);
+        const h = Math.max(0.01, shape.d - 2 * shape.tf);
+        const lambdaW = h / shape.tw;
+        const root = Math.sqrt(E / Fy);
+        const lpF = 0.38 * root;
+        const lrF = 1.0 * root;
+        const lpW = 3.76 * root;
+        const lrW = 5.70 * root;
+        const flange_class = lambdaF <= lpF ? "compact" : (lambdaF <= lrF ? "noncompact" : "slender");
+        const web_class = lambdaW <= lpW ? "compact" : (lambdaW <= lrW ? "noncompact" : "slender");
+        return { lambdaF, lambdaW, lpW, flange_class, web_class };
+      }
+
+      function phiMnNonComp(shape, Fy, cls) {
+        let Mn;
+        if (cls.flange_class === "compact" && cls.web_class !== "slender") Mn = Fy * shape.Zx / 12;
+        else if (cls.flange_class === "slender" || cls.web_class === "slender") Mn = 0.7 * Fy * shape.Sx / 12;
+        else Mn = Fy * shape.Sx / 12;
+        return 0.9 * Mn;
+      }
+
+      function phiVn(shape, Fy) {
+        const h = Math.max(0.01, shape.d - 2 * shape.tf);
+        const lambda = h / shape.tw;
+        const lambdaP = 2.24 * Math.sqrt(E / Fy);
+        const Cv = lambda <= lambdaP ? 1 : (lambdaP / lambda);
+        const Aw = h * shape.tw;
+        const Vn = 0.6 * Fy * Aw * Cv;
+        return Vn; // phi_v ~ 1.0 for this simplified MVP
+      }
+
+      function lrfdCombos() {
+        return [
+          { name: "1.4D", D: 1.4, SDL: 0, L: 0, CLL: 0 },
+          { name: "1.2D+1.6L+0.5SDL", D: 1.2, SDL: 0.5, L: 1.6, CLL: 0 },
+          { name: "1.2D+1.6L", D: 1.2, SDL: 0, L: 1.6, CLL: 0 },
+          { name: "1.2D+1.6CLL", D: 1.2, SDL: 0, L: 0, CLL: 1.6 },
+          { name: "1.2D+1.0SDL+1.0L", D: 1.2, SDL: 1.0, L: 1.0, CLL: 0 }
+        ];
+      }
+
+      function uniformDefl(w_kft, L_ft, I_in4) {
+        if (!Number.isFinite(I_in4) || I_in4 <= 0) return 1e12;
+        const w = w_kft / 12; // k/in
+        const L = L_ft * 12;  // in
+        return 5 * w * Math.pow(L, 4) / (384 * E * I_in4);
+      }
+
+      function calcStrengthUniform(L_ft, w, phiMn_kft, phiVn_k) {
+        const combos = lrfdCombos();
+        const out = [];
+        let maxUtil = 0, ctrl = "";
+        for (const c of combos) {
+          const wc = c.D * w.DL + c.SDL * w.SDL + c.L * w.LL + c.CLL * w.CLL;
+          const Mu = wc * L_ft * L_ft / 8;
+          const Vu = wc * L_ft / 2;
+          const utilM = phiMn_kft > 0 ? Mu / phiMn_kft : 999;
+          const utilV = phiVn_k > 0 ? Vu / phiVn_k : 999;
+          const util = Math.max(utilM, utilV);
+          if (util > maxUtil) { maxUtil = util; ctrl = c.name; }
+          out.push({ name: c.name, Mu, Vu, utilM, utilV });
+        }
+        return { combos: out, maxUtil, controlling: ctrl };
+      }
+
+      function sampleXs(L_ft, pointLoads, n = 140) {
+        const xs = new Set();
+        xs.add(0); xs.add(L_ft);
+        for (let i = 0; i <= n; i++) xs.add((L_ft * i) / n);
+        for (const p of pointLoads) xs.add(clamp(p.x, 0, L_ft));
+        return Array.from(xs).sort((a,b)=>a-b);
+      }
+
+      function reactionsPointUniform(L_ft, pointLoads, w_kft) {
+        let sumP = 0, sumPx = 0;
+        for (const p of pointLoads) { sumP += p.P; sumPx += p.P * p.x; }
+        const totalW = w_kft * L_ft;
+        const RB = (sumPx + totalW * (L_ft / 2)) / L_ft;
+        const RA = sumP + totalW - RB;
+        return { RA, RB };
+      }
+
+      function shearMomentAt(x_ft, L_ft, pointLoads, w_kft, RA) {
+        let V = RA - w_kft * x_ft;
+        let M = RA * x_ft - w_kft * x_ft * x_ft / 2;
+        for (const p of pointLoads) {
+          if (p.x <= x_ft + 1e-10) {
+            V -= p.P;
+            M -= p.P * (x_ft - p.x);
+          }
+        }
+        return { V, M };
+      }
+
+      function analyzePointUniform(L_ft, pointLoads, w_kft) {
+        const loads = pointLoads.slice().sort((a,b)=>a.x-b.x);
+        const { RA, RB } = reactionsPointUniform(L_ft, loads, w_kft);
+        const xs = sampleXs(L_ft, loads, 180);
+        let maxM = -1e18, maxV = 0;
+        for (const x of xs) {
+          const sm = shearMomentAt(x, L_ft, loads, w_kft, RA);
+          if (sm.M > maxM) maxM = sm.M;
+          if (Math.abs(sm.V) > maxV) maxV = Math.abs(sm.V);
+        }
+        return { RA, RB, maxM: Math.max(0, maxM), maxV };
+      }
+
+      function deflUniformAt(x_ft, L_ft, w_kft, I_in4) {
+        if (!Number.isFinite(I_in4) || I_in4 <= 0) return 1e12;
+        const x = x_ft * 12, L = L_ft * 12, w = w_kft / 12;
+        return w * x * (Math.pow(L,3) - 2 * L * Math.pow(x,2) + Math.pow(x,3)) / (24 * E * I_in4);
+      }
+
+      function deflPointAt(x_ft, L_ft, P_k, a_ft, I_in4) {
+        if (!Number.isFinite(I_in4) || I_in4 <= 0) return 1e12;
+        const x = x_ft * 12, L = L_ft * 12, a = a_ft * 12, b = L - a;
+        if (x <= a) {
+          return P_k * b * x * (L * L - b * b - x * x) / (6 * L * E * I_in4);
+        }
+        return P_k * a * (L - x) * (2 * L * x - x * x - a * a) / (6 * L * E * I_in4);
+      }
+
+      function maxDeflPointUniform(L_ft, pointLoads, w_kft, I_in4) {
+        const xs = sampleXs(L_ft, pointLoads, 180);
+        let maxD = 0;
+        for (const x of xs) {
+          let d = deflUniformAt(x, L_ft, w_kft, I_in4);
+          for (const p of pointLoads) d += deflPointAt(x, L_ft, p.P, p.x, I_in4);
+          if (d > maxD) maxD = d;
+        }
+        return maxD;
+      }
+
+      function studQn(inputs) {
+        const dia = inputs.slab.studs.dia_in;
+        const As = Math.PI * dia * dia / 4;
+        const fc = inputs.slab.concrete.fc_ksi * 1000;
+        const Ec = 57000 * Math.sqrt(Math.max(fc, 1));
+        const Fu = inputs.slab.studs.Fu_ksi;
+        const qConc = 0.5 * As * Math.sqrt(fc * Ec) / 1000;
+        const qSteel = As * Fu;
+        return Math.min(qConc, qSteel);
+      }
+
+      function generateStudLayouts(length_ft, inputs) {
+        const lim = inputs.stud_spacing_limits;
+        const L_in = length_ft * 12;
+        const usable = Math.max(0, L_in - 2 * lim.end_dist_in);
+        const sMin = Math.max(0.1, lim.long_min_parallel_in);
+        const sMax = Math.max(sMin, lim.long_max_parallel_in);
+        const rowsMin = Math.max(1, Math.ceil(usable / sMax) + 1);
+        const rowsMax = Math.max(rowsMin, Math.floor(usable / sMin) + 1);
+
+        const canTwo = inputs.slab.deck.rib_width_in >= (2 * inputs.slab.studs.dia_in + lim.trans_min_parallel_in);
+
+        const arr = [];
+        for (let rows = rowsMin; rows <= rowsMax; rows++) {
+          const sp = rows > 1 ? usable / (rows - 1) : usable;
+          if (rows > 1 && (sp < sMin - 1e-6 || sp > sMax + 1e-6)) continue;
+          arr.push({ rows_1: rows, rows_2: 0, stud_count_total: rows, spacing_in: sp, studs_per_row: 1 });
+          if (canTwo) arr.push({ rows_1: 0, rows_2: rows, stud_count_total: rows * 2, spacing_in: sp, studs_per_row: 2 });
+        }
+        arr.sort((a,b)=>a.stud_count_total - b.stud_count_total);
+        return arr.slice(0, 36);
+      }
+
+      function effectiveWidth(memberType, L_ft, trib_ft, inputs) {
+        const L_in = L_ft * 12;
+        if (memberType === "beam") return Math.max(1, Math.min(L_in / 4, trib_ft * 12));
+        const halfBeamSpan = inputs.geometry.Lb_ft * 12 / 2;
+        return Math.max(1, Math.min(L_in / 4, halfBeamSpan));
+      }
+
+      function buildCompositeVariant(shape, memberType, L_ft, trib_ft, layout, inputs, Fy, phiMn_nc) {
+        const be = effectiveWidth(memberType, L_ft, trib_ft, inputs);
+        const t_eff = inputs.slab.concrete.topping_in + 0.5 * inputs.slab.deck.hd_in;
+        const Ac = be * t_eff;
+        const fc = inputs.slab.concrete.fc_ksi;
+        const Ec_ksi = 57 * Math.sqrt(Math.max(fc * 1000, 1));
+        const n = E / Ec_ksi;
+
+        const Qn = studQn(inputs);
+        const sumQn = layout.stud_count_total * Qn;
+        const Tfull = shape.A * Fy;
+        const pct = 100 * (sumQn / Math.max(1e-9, Tfull));
+
+        if (pct < inputs.slab.studs.min_comp_pct - 1e-9) return null;
+        if (pct > inputs.slab.studs.max_comp_pct + 1e-9) return null;
+
+        const Aeq = Ac / n;
+        const ySteel = shape.d / 2;
+        const ySlab = shape.d + t_eff / 2;
+        const yBar = (shape.A * ySteel + Aeq * ySlab) / (shape.A + Aeq);
+        const Itrans = shape.Ix + shape.A * Math.pow(yBar - ySteel, 2) + Aeq * Math.pow(ySlab - yBar, 2);
+        const eta = clamp(sumQn / Math.max(1e-9, Tfull), 0, 1);
+        const Ieff = shape.Ix + 0.75 * eta * (Itrans - shape.Ix);
+
+        const Cc = 0.85 * fc * Ac;
+        const C = Math.min(Cc, sumQn, Tfull);
+        const a = C / Math.max(1e-9, (0.85 * fc * be));
+        const yComp = shape.d + t_eff - a / 2;
+        const z = Math.max(0.1, yComp - ySteel);
+        const Mn_comp_nom = Math.max(phiMn_nc / 0.9, C * z / 12);
+        const phiMn_comp = 0.9 * Mn_comp_nom;
+
+        return {
+          kind: "COMP",
+          phiMn: phiMn_comp,
+          composite: {
+            enabled: true,
+            percent_composite: pct,
+            be_in: be,
+            Ac_in2: Ac,
+            PNA_from_bottom_in: shape.d + t_eff - a,
+            ENA_from_bottom_in: yBar,
+            Ec_ksi,
+            n_modular: n,
+            I_eff_in4: Ieff,
+            I_trans_in4: Itrans,
+            studs: {
+              rows_1: layout.rows_1,
+              rows_2: layout.rows_2,
+              stud_count_total: layout.stud_count_total,
+              Qn_k: Qn,
+              sumQn_k: sumQn,
+              limits_used: Object.assign({}, inputs.stud_spacing_limits, {
+                min_comp_pct: inputs.slab.studs.min_comp_pct,
+                max_comp_pct: inputs.slab.studs.max_comp_pct
+              })
+            }
+          },
+          trace: [
+            `be=${r(be,3)} in, Ac=${r(Ac,3)} in²`,
+            `Qn=${r(Qn,3)} k, ΣQn=${r(sumQn,3)} k, %comp=${r(pct,2)}%`,
+            `Itrans=${r(Itrans,3)} in⁴, Ieff=${r(Ieff,3)} in⁴, φMn_comp=${r(phiMn_comp,3)} k-ft`
+          ]
+        };
+      }
+
+      function camberList(memberCamberAllowed, L_ft, cls, inputs) {
+        const out = [0];
+        if (!memberCamberAllowed) return out;
+        if (L_ft < inputs.camber.min_length_ft) return out;
+        if (inputs.camber.disallow_noncompact_web && cls.web_class !== "compact") return out;
+        const minC = inputs.camber.min_in, maxC = inputs.camber.max_in, inc = Math.max(0.01, inputs.camber.inc_in);
+        for (let c = minC; c <= maxC + 1e-9; c += inc) out.push(r(c,3));
+        return Array.from(new Set(out));
+      }
+
+      function camberCost(camber_in, cost) {
+        if (!camber_in || camber_in <= 0) return 0;
+        if (cost.camber_model === "flat") return Math.max(0, toNum(cost.flat_cost_per_member, 0));
+        const r1 = cost.ranges[0], r2 = cost.ranges[1], r3 = cost.ranges[2];
+        if (r1.max_in != null && camber_in <= r1.max_in) return Math.max(0, toNum(r1.cost_per_member, 0));
+        if (r2.max_in != null && camber_in <= r2.max_in) return Math.max(0, toNum(r2.cost_per_member, 0));
+        return Math.max(0, toNum(r3.cost_per_member, 0));
+      }
+
+      function checkDeflCases(defMap, L_ft, limits) {
+        const keys = ["DL","LL","SDL","LL_SDL","TOTAL"];
+        const rows = [];
+        let maxUtil = 0, ctrl = "DL";
+        for (const k of keys) {
+          const d = Math.max(0, toNum(defMap[k], 0));
+          const lim = limits[k] || {};
+          const limDelta = lim.delta_max_in == null ? null : toNum(lim.delta_max_in, null);
+          const limRatio = lim.ratio_L_over == null ? null : toNum(lim.ratio_L_over, null);
+          const util1 = (limDelta != null && limDelta > 0) ? d / limDelta : 0;
+          const allowByRatio = (limRatio != null && limRatio > 0) ? (L_ft * 12 / limRatio) : null;
+          const util2 = (allowByRatio != null && allowByRatio > 0) ? d / allowByRatio : 0;
+          const util = Math.max(util1, util2);
+          const ratio = d > 1e-9 ? (L_ft * 12 / d) : null;
+          if (util > maxUtil) { maxUtil = util; ctrl = k; }
+          rows.push({ name:k, defl_in:d, ratio, limit_delta_in:limDelta, limit_ratio:limRatio, util });
+        }
+        return { cases: rows, maxUtil, controlling: ctrl };
+      }
+
+      function fits(shape, f) {
+        return shape.d >= f.d_min && shape.d <= f.d_max &&
+               shape.bf >= f.bf_min && shape.bf <= f.bf_max &&
+               shape.tw >= f.tw_min && shape.tw <= f.tw_max;
+      }
+
+      function shapeReport(shape) {
+        return {
+          name: shape.name,
+          W_lbft: shape.W,
+          d_in: shape.d,
+          bf_in: shape.bf,
+          tw_in: shape.tw,
+          tf_in: shape.tf,
+          Ix_in4: shape.Ix,
+          Sx_in3: shape.Sx,
+          Zx_in3: shape.Zx
+        };
+      }
+
+      function designBeam(shape, inputs, layout, llBeamInfo) {
+        const Fy = inputs.member_criteria.Fy_ksi;
+        const L = inputs.geometry.Lb_ft;
+        const spacing = layout.spacing_ft;
+        const selfPsf = inputs.slab.deck.deck_weight_psf + (inputs.slab.concrete.topping_in / 12) * inputs.slab.concrete.unit_weight_pcf;
+
+        const wDL_area = (selfPsf + inputs.loads.DL_add_psf) * spacing / 1000;
+        const wDL_defl_area = ((inputs.slab.shored ? 0 : selfPsf) + inputs.loads.DL_add_psf) * spacing / 1000;
+        const wSelf = shape.W / 1000;
+        const wSDL = inputs.loads.SDL_psf * spacing / 1000;
+        const wLL = llBeamInfo.LL_used_psf * spacing / 1000;
+        const wCLL = inputs.loads.CLL_psf * spacing / 1000;
+        const wComp = { DL: wDL_area + wSelf, SDL: wSDL, LL: wLL, CLL: wCLL };
+
+        const cls = sectionClass(shape, Fy);
+        const phiMn_nc = phiMnNonComp(shape, Fy, cls);
+        const phiV = phiVn(shape, Fy);
+
+        const quick = calcStrengthUniform(L, wComp, phiMn_nc, phiV);
+        if (!inputs.member_criteria.beam.composite_allowed && quick.maxUtil > 1) return null;
+        if (!inputs.member_criteria.beam.composite_allowed && quick.maxUtil > 1.2) return null;
+
+        const variants = [];
+        variants.push({
+          kind: "NONCOMP",
+          phiMn: phiMn_nc,
+          composite: {
+            enabled: false,
+            percent_composite: 0,
+            be_in: 0,
+            Ac_in2: 0,
+            PNA_from_bottom_in: null,
+            ENA_from_bottom_in: shape.d / 2,
+            Ec_ksi: 0,
+            n_modular: 0,
+            I_eff_in4: shape.Ix,
+            I_trans_in4: shape.Ix,
+            studs: { rows_1:0, rows_2:0, stud_count_total:0, Qn_k:0, sumQn_k:0, limits_used:{} }
+          },
+          trace: [`Noncomposite φMn=${r(phiMn_nc,3)} k-ft`]
+        });
+
+        if (inputs.member_criteria.beam.composite_allowed) {
+          const layouts = generateStudLayouts(L, inputs);
+          for (const lay of layouts) {
+            const v = buildCompositeVariant(shape, "beam", L, spacing, lay, inputs, Fy, phiMn_nc);
+            if (v) variants.push(v);
+          }
+        }
+
+        const cambers = camberList(inputs.member_criteria.beam.camber_allowed, L, cls, inputs);
+        let best = null;
+        for (const v of variants) {
+          const strength = calcStrengthUniform(L, wComp, v.phiMn, phiV);
+          if (strength.maxUtil > 1.0) continue;
+          if (strength.maxUtil > 1.2 && v.kind === "NONCOMP" && !inputs.member_criteria.beam.composite_allowed) continue;
+
+          const Iserv = v.composite.enabled
+            ? (inputs.deflection.inertia_method === "I_TRANS" ? v.composite.I_trans_in4 : v.composite.I_eff_in4)
+            : shape.Ix;
+
+          const dDL = uniformDefl(wDL_defl_area + wSelf, L, shape.Ix);
+          const dLL = uniformDefl(wLL, L, Iserv);
+          const dSDL = uniformDefl(wSDL, L, Iserv);
+
+          for (const c of cambers) {
+            const offsetTarget = inputs.camber.pct_of_dead * dDL;
+            const offset = c > 0 ? Math.min(c, offsetTarget) : 0;
+            const dTOTAL = Math.max(0, dDL + dLL + dSDL - offset);
+            const defl = checkDeflCases({ DL:dDL, LL:dLL, SDL:dSDL, LL_SDL:dLL+dSDL, TOTAL:dTOTAL }, L, inputs.deflection.limits);
+            if (defl.maxUtil > 1) continue;
+
+            const cCost = camberCost(c, inputs.cost);
+            const localScore = (v.composite.studs.stud_count_total || 0) * inputs.cost.stud_per_each + cCost + 100 * (strength.maxUtil + defl.maxUtil);
+
+            if (!best || localScore < best.localScore) {
+              best = {
+                variant: v,
+                strength,
+                defl,
+                camber_in: c,
+                camber_cost: cCost,
+                localScore,
+                notes: [
+                  `Beam ${shape.name}: class flange=${cls.flange_class}, web=${cls.web_class}`,
+                  `wDL=${r(wComp.DL,4)} k/ft, wSDL=${r(wComp.SDL,4)} k/ft, wLL=${r(wComp.LL,4)} k/ft`,
+                  `Camber=${r(c,3)} in, camber offset=${r(offset,3)} in`,
+                  `Deflection control=${defl.controlling}, util=${r(defl.maxUtil,4)}`,
+                  `Strength control=${strength.controlling}, util=${r(strength.maxUtil,4)}`
+                ].concat(v.trace)
+              };
+            }
+          }
+        }
+
+        if (!best) return null;
+
+        const report = {
+          member_type: "beam",
+          shape: shapeReport(shape),
+          length_ft: L,
+          composite: best.variant.composite,
+          camber: { used_in: best.camber_in, cost_usd: best.camber_cost },
+          loads: {
+            influence_area_ft2: spacing * L,
+            live_load_reduction_pct: llBeamInfo.reduction_pct,
+            components: [
+              {name:"DL", type:"uniform_kft", value:wComp.DL, note:"Includes slab/deck, DL_add, beam self-weight"},
+              {name:"SDL", type:"uniform_kft", value:wComp.SDL, note:"Superimposed dead load"},
+              {name:"LL", type:"uniform_kft", value:wComp.LL, note:"Reduced live load"},
+              {name:"CLL", type:"uniform_kft", value:wComp.CLL, note:"Construction live load"}
+            ],
+            cases: best.strength.combos.map(c => ({name:c.name, Mu_kft:c.Mu, Vu_k:c.Vu, defl_in:null, ratio:null, util_M:c.utilM, util_V:c.utilV}))
+          },
+          strength: {
+            phiMn_kft: best.variant.phiMn,
+            phiVn_k: phiV,
+            combos: best.strength.combos.map(c => ({name:c.name, Mu:c.Mu, Vu:c.Vu, utilM:c.utilM, utilV:c.utilV}))
+          },
+          deflection: {
+            cases: best.defl.cases,
+            net_total_case: best.defl.cases.find(c => c.name === "TOTAL") || null
+          },
+          notes: best.notes
+        };
+
+        return {
+          report,
+          strengthUtil: best.strength.maxUtil,
+          deflUtil: best.defl.maxUtil,
+          controlStrength: best.strength.controlling,
+          controlDefl: best.defl.controlling
+        };
+      }
+
+      function mergePointLoads(arrays) {
+        const m = new Map();
+        for (const arr of arrays) {
+          for (const p of arr) {
+            const key = p.x.toFixed(6);
+            if (!m.has(key)) m.set(key, { x: p.x, P: 0 });
+            m.get(key).P += p.P;
+          }
+        }
+        return Array.from(m.values()).filter(p => Math.abs(p.P) > 1e-12).sort((a,b)=>a.x-b.x);
+      }
+
+      function scaleLoads(arr, fac) {
+        if (!fac) return [];
+        return arr.map(p => ({ x: p.x, P: p.P * fac }));
+      }
+
+      function calcStrengthPoint(L_ft, comp, phiMn_kft, phiVn_k) {
+        const combos = lrfdCombos();
+        const out = [];
+        let maxUtil = 0, ctrl = "";
+        for (const c of combos) {
+          const pts = mergePointLoads([
+            scaleLoads(comp.DL.point, c.D),
+            scaleLoads(comp.SDL.point, c.SDL),
+            scaleLoads(comp.LL.point, c.L),
+            scaleLoads(comp.CLL.point, c.CLL)
+          ]);
+          const w = c.D * comp.DL.w + c.SDL * comp.SDL.w + c.L * comp.LL.w + c.CLL * comp.CLL.w;
+          const a = analyzePointUniform(L_ft, pts, w);
+          const utilM = phiMn_kft > 0 ? a.maxM / phiMn_kft : 999;
+          const utilV = phiVn_k > 0 ? a.maxV / phiVn_k : 999;
+          const util = Math.max(utilM, utilV);
+          if (util > maxUtil) { maxUtil = util; ctrl = c.name; }
+          out.push({ name:c.name, Mu:a.maxM, Vu:a.maxV, utilM, utilV });
+        }
+        return { combos: out, maxUtil, controlling: ctrl };
+      }
+
+      function designGirder(shape, beamShape, inputs, layout, llGirderInfo) {
+        const Fy = inputs.member_criteria.Fy_ksi;
+        const Lg = inputs.geometry.Lg_ft;
+        const Lb = inputs.geometry.Lb_ft;
+        const spacing = layout.spacing_ft;
+        const selfPsf = inputs.slab.deck.deck_weight_psf + (inputs.slab.concrete.topping_in / 12) * inputs.slab.concrete.unit_weight_pcf;
+
+        const wBeamDL_area = (selfPsf + inputs.loads.DL_add_psf) * spacing / 1000;
+        const wBeamDL_defl_area = ((inputs.slab.shored ? 0 : selfPsf) + inputs.loads.DL_add_psf) * spacing / 1000;
+        const wBeamSelf = beamShape.W / 1000;
+
+        const R_DL = (wBeamDL_area + wBeamSelf) * Lb / 2;
+        const R_DL_defl = (wBeamDL_defl_area + wBeamSelf) * Lb / 2;
+        const R_SDL = (inputs.loads.SDL_psf * spacing / 1000) * Lb / 2;
+        const R_LL = (llGirderInfo.LL_used_psf * spacing / 1000) * Lb / 2;
+        const R_CLL = (inputs.loads.CLL_psf * spacing / 1000) * Lb / 2;
+
+        const mk = (R) => layout.positions_ft.map(x => ({ x, P: R }));
+        const pointDL = mk(R_DL);
+        const pointDLdefl = mk(R_DL_defl);
+        const pointSDL = mk(R_SDL);
+        const pointLL = mk(R_LL);
+        const pointCLL = mk(R_CLL);
+
+        const compLoads = {
+          DL: { point: pointDL, w: shape.W / 1000 },
+          SDL: { point: pointSDL, w: 0 },
+          LL: { point: pointLL, w: 0 },
+          CLL: { point: pointCLL, w: 0 }
+        };
+
+        const cls = sectionClass(shape, Fy);
+        const phiMn_nc = phiMnNonComp(shape, Fy, cls);
+        const phiV = phiVn(shape, Fy);
+
+        const quick = calcStrengthPoint(Lg, compLoads, phiMn_nc, phiV);
+        if (!inputs.member_criteria.girder.composite_allowed && quick.maxUtil > 1) return null;
+        if (!inputs.member_criteria.girder.composite_allowed && quick.maxUtil > 1.2) return null;
+
+        const variants = [{
+          kind: "NONCOMP",
+          phiMn: phiMn_nc,
+          composite: {
+            enabled: false,
+            percent_composite: 0,
+            be_in: 0,
+            Ac_in2: 0,
+            PNA_from_bottom_in: null,
+            ENA_from_bottom_in: shape.d / 2,
+            Ec_ksi: 0,
+            n_modular: 0,
+            I_eff_in4: shape.Ix,
+            I_trans_in4: shape.Ix,
+            studs: { rows_1:0, rows_2:0, stud_count_total:0, Qn_k:0, sumQn_k:0, limits_used:{} }
+          },
+          trace: [`Noncomposite φMn=${r(phiMn_nc,3)} k-ft`]
+        }];
+
+        if (inputs.member_criteria.girder.composite_allowed) {
+          const lays = generateStudLayouts(Lg, inputs);
+          for (const lay of lays) {
+            const v = buildCompositeVariant(shape, "girder", Lg, inputs.geometry.Lb_ft / 2, lay, inputs, Fy, phiMn_nc);
+            if (v) variants.push(v);
+          }
+        }
+
+        const cambers = camberList(inputs.member_criteria.girder.camber_allowed, Lg, cls, inputs);
+        let best = null;
+
+        for (const v of variants) {
+          const strength = calcStrengthPoint(Lg, compLoads, v.phiMn, phiV);
+          if (strength.maxUtil > 1) continue;
+
+          const Iserv = v.composite.enabled
+            ? (inputs.deflection.inertia_method === "I_TRANS" ? v.composite.I_trans_in4 : v.composite.I_eff_in4)
+            : shape.Ix;
+
+          const dDL = maxDeflPointUniform(Lg, pointDLdefl, shape.W / 1000, shape.Ix);
+          const dLL = maxDeflPointUniform(Lg, pointLL, 0, Iserv);
+          const dSDL = maxDeflPointUniform(Lg, pointSDL, 0, Iserv);
+
+          for (const c of cambers) {
+            const offsetTarget = inputs.camber.pct_of_dead * dDL;
+            const offset = c > 0 ? Math.min(c, offsetTarget) : 0;
+            const dTOTAL = Math.max(0, dDL + dLL + dSDL - offset);
+            const defl = checkDeflCases({ DL:dDL, LL:dLL, SDL:dSDL, LL_SDL:dLL+dSDL, TOTAL:dTOTAL }, Lg, inputs.deflection.limits);
+            if (defl.maxUtil > 1) continue;
+
+            const cCost = camberCost(c, inputs.cost);
+            const localScore = (v.composite.studs.stud_count_total || 0) * inputs.cost.stud_per_each + cCost + 100 * (strength.maxUtil + defl.maxUtil);
+
+            if (!best || localScore < best.localScore) {
+              best = {
+                variant: v,
+                strength,
+                defl,
+                camber_in: c,
+                camber_cost: cCost,
+                localScore,
+                notes: [
+                  `Girder ${shape.name}: class flange=${cls.flange_class}, web=${cls.web_class}`,
+                  `Point loads per beam line: DL=${r(R_DL,3)}k, SDL=${r(R_SDL,3)}k, LL=${r(R_LL,3)}k, CLL=${r(R_CLL,3)}k`,
+                  `Camber=${r(c,3)} in, camber offset=${r(offset,3)} in`,
+                  `Deflection control=${defl.controlling}, util=${r(defl.maxUtil,4)}`,
+                  `Strength control=${strength.controlling}, util=${r(strength.maxUtil,4)}`
+                ].concat(v.trace)
+              };
+            }
+          }
+        }
+
+        if (!best) return null;
+
+        const report = {
+          member_type: "girder",
+          shape: shapeReport(shape),
+          length_ft: Lg,
+          composite: best.variant.composite,
+          camber: { used_in: best.camber_in, cost_usd: best.camber_cost },
+          loads: {
+            influence_area_ft2: inputs.geometry.Lb_ft * inputs.geometry.Lg_ft,
+            live_load_reduction_pct: llGirderInfo.reduction_pct,
+            components: [
+              {name:"DL", type:"point_k", value:R_DL, note:`${layout.nBeamLines} point loads + girder self-weight ${r(shape.W/1000,4)} k/ft`},
+              {name:"SDL", type:"point_k", value:R_SDL, note:`${layout.nBeamLines} point loads`},
+              {name:"LL", type:"point_k", value:R_LL, note:`${layout.nBeamLines} point loads (reduced)`},
+              {name:"CLL", type:"point_k", value:R_CLL, note:`${layout.nBeamLines} point loads`}
+            ],
+            point_load_table: {
+              DL: pointDL.map(p => ({ x_ft:p.x, P_k:p.P })),
+              SDL: pointSDL.map(p => ({ x_ft:p.x, P_k:p.P })),
+              LL: pointLL.map(p => ({ x_ft:p.x, P_k:p.P })),
+              CLL: pointCLL.map(p => ({ x_ft:p.x, P_k:p.P }))
+            },
+            cases: best.strength.combos.map(c => ({name:c.name, Mu_kft:c.Mu, Vu_k:c.Vu, defl_in:null, ratio:null, util_M:c.utilM, util_V:c.utilV}))
+          },
+          strength: {
+            phiMn_kft: best.variant.phiMn,
+            phiVn_k: phiV,
+            combos: best.strength.combos.map(c => ({name:c.name, Mu:c.Mu, Vu:c.Vu, utilM:c.utilM, utilV:c.utilV}))
+          },
+          deflection: {
+            cases: best.defl.cases,
+            net_total_case: best.defl.cases.find(c => c.name === "TOTAL") || null
+          },
+          notes: best.notes
+        };
+
+        return {
+          report,
+          strengthUtil: best.strength.maxUtil,
+          deflUtil: best.defl.maxUtil,
+          controlStrength: best.strength.controlling,
+          controlDefl: best.defl.controlling
+        };
+      }
+
+      function pairSolution(beamShape, girderShape, inputs, layout, llBeamInfo, llGirderInfo) {
+        const beam = designBeam(beamShape, inputs, layout, llBeamInfo);
+        if (!beam) return null;
+
+        const girder = designGirder(girderShape, beamShape, inputs, layout, llGirderInfo);
+        if (!girder) return null;
+
+        const bayArea = inputs.geometry.Lb_ft * inputs.geometry.Lg_ft;
+        const girderCount = inputs.geometry.share_half_girders ? 1 : 2;
+        const beamWeightLb = beamShape.W * inputs.geometry.Lb_ft * layout.nBeamLines;
+        const girderWeightLb = girderShape.W * inputs.geometry.Lg_ft * girderCount;
+        const totalWeightLb = beamWeightLb + girderWeightLb;
+        const weight_psf = totalWeightLb / bayArea;
+
+        const beamStudsTotal = (beam.report.composite.studs.stud_count_total || 0) * layout.nBeamLines;
+        const girderStudsTotal = (girder.report.composite.studs.stud_count_total || 0) * girderCount;
+        const totalStuds = beamStudsTotal + girderStudsTotal;
+
+        const steel_usd = totalWeightLb * inputs.cost.steel_per_lb;
+        const stud_usd = totalStuds * inputs.cost.stud_per_each;
+        const camber_usd = beam.report.camber.cost_usd * layout.nBeamLines + girder.report.camber.cost_usd * girderCount;
+        const total_usd = steel_usd + stud_usd + camber_usd;
+        const cost_per_sf = total_usd / bayArea;
+
+        const sMax = Math.max(beam.strengthUtil, girder.strengthUtil);
+        const dMax = Math.max(beam.deflUtil, girder.deflUtil);
+        const control = sMax >= dMax
+          ? `Strength: ${beam.strengthUtil >= girder.strengthUtil ? `Beam ${beam.controlStrength}` : `Girder ${girder.controlStrength}`}`
+          : `Deflection: ${beam.deflUtil >= girder.deflUtil ? `Beam ${beam.controlDefl}` : `Girder ${girder.controlDefl}`}`;
+
+        const beamStudStr = beam.report.composite.enabled
+          ? `${r(beam.report.composite.percent_composite,0)}% comp, ${beam.report.composite.studs.stud_count_total} studs`
+          : "noncomp";
+        const girderStudStr = girder.report.composite.enabled
+          ? `${r(girder.report.composite.percent_composite,0)}% comp, ${girder.report.composite.studs.stud_count_total} studs`
+          : "noncomp";
+
+        return {
+          solution_id: `${beamShape.name}|${girderShape.name}|B${beam.report.camber.used_in}|G${girder.report.camber.used_in}|Bs${beam.report.composite.studs.stud_count_total}|Gs${girder.report.composite.studs.stud_count_total}`,
+          panel: {
+            beam_shape: `${beamShape.name} (${beamStudStr}, camber ${r(beam.report.camber.used_in,2)} in)`,
+            girder_shape: `${girderShape.name} (${girderStudStr}, camber ${r(girder.report.camber.used_in,2)} in)`,
+            weight_psf,
+            cost_per_sf,
+            pass: true,
+            governing: {
+              strength_util_max: sMax,
+              deflection_util_max: dMax,
+              controlling_case_str: control
+            },
+            cost_breakdown: {
+              bay_area_sf: bayArea,
+              steel_usd,
+              stud_usd,
+              camber_usd,
+              total_usd
+            },
+            layout: layout,
+            calc_trace: `Beam utils: strength=${r(beam.strengthUtil,4)}, defl=${r(beam.deflUtil,4)} | Girder utils: strength=${r(girder.strengthUtil,4)}, defl=${r(girder.deflUtil,4)}`
+          },
+          beam: beam.report,
+          girder: girder.report
+        };
+      }
+
+      function metric(sol, optimizeBy) {
+        return optimizeBy === "weight" ? sol.panel.weight_psf : sol.panel.cost_per_sf;
+      }
+
+      function normalizeShape(s) {
+        const out = {
+          name: String(s.name ?? s.Shape ?? "UNNAMED"),
+          d: toNum(s.d, NaN),
+          bf: toNum(s.bf, NaN),
+          tf: toNum(s.tf, NaN),
+          tw: toNum(s.tw, NaN),
+          A: toNum(s.A, NaN),
+          W: toNum(s.W, NaN),
+          Ix: toNum(s.Ix, NaN),
+          Sx: toNum(s.Sx, NaN),
+          Zx: toNum(s.Zx, NaN),
+          ry: toNum(s.ry, NaN)
+        };
+        const req = ["d","bf","tf","tw","A","W","Ix","Sx","Zx"];
+        if (!req.every(k => Number.isFinite(out[k]))) return null;
+        return out;
+      }
+
+      function run(payload) {
+        const inputs = payload.inputs;
+        const topN = Math.max(1, Math.min(200, payload.topN || 80));
+        const optimizeBy = inputs.basis.optimize_by === "weight" ? "weight" : "cost";
+
+        const allShapes = (payload.shapes || []).map(normalizeShape).filter(Boolean);
+        const bFilter = inputs.member_criteria.beam.shape_filters;
+        const gFilter = inputs.member_criteria.girder.shape_filters;
+        const beamShapes = allShapes.filter(s => fits(s, bFilter));
+        const girderShapes = allShapes.filter(s => fits(s, gFilter));
+
+        if (!beamShapes.length) {
+          self.postMessage({ cmd: "error", error: "No beam shapes after filters." });
+          return;
+        }
+        if (!girderShapes.length) {
+          self.postMessage({ cmd: "error", error: "No girder shapes after filters." });
+          return;
+        }
+
+        const layout = computeLayout(inputs.geometry);
+        const AT_beam = layout.spacing_ft * inputs.geometry.Lb_ft;
+        const AT_girder = inputs.geometry.Lb_ft * inputs.geometry.Lg_ft;
+        const llBeamInfo = llReduction(inputs.loads.LL_psf, inputs.loads.LL_reducible, inputs.basis.live_load_reduction, 2, AT_beam);
+        const llGirderInfo = llReduction(inputs.loads.LL_psf, inputs.loads.LL_reducible, inputs.basis.live_load_reduction, 1, AT_girder);
+
+        const total = beamShapes.length * girderShapes.length;
+        self.postMessage({ cmd: "started", total, beamCount: beamShapes.length, girderCount: girderShapes.length });
+
+        let processed = 0, found = 0;
+        const top = [];
+
+        for (let gi = 0; gi < girderShapes.length; gi++) {
+          for (let bi = 0; bi < beamShapes.length; bi++) {
+            processed++;
+            try {
+              const sol = pairSolution(beamShapes[bi], girderShapes[gi], inputs, layout, llBeamInfo, llGirderInfo);
+              if (sol) {
+                found++;
+                top.push(sol);
+                top.sort((a,b) => metric(a, optimizeBy) - metric(b, optimizeBy));
+                if (top.length > topN) top.length = topN;
+                self.postMessage({ cmd:"candidate", candidate: sol, processed, total, found });
+              }
+            } catch (e) {
+              // ignore single-candidate failure
+            }
+
+            if (processed % 10 === 0) {
+              self.postMessage({ cmd: "progress", processed, total, found });
+            }
+          }
+        }
+
+        top.sort((a,b) => metric(a, optimizeBy) - metric(b, optimizeBy));
+        self.postMessage({ cmd: "done", results: top, processed, total, found });
+      }
+
+      self.onmessage = (ev) => {
+        const m = ev.data || {};
+        if (m.cmd !== "run") return;
+        try {
+          run(m.payload || {});
+        } catch (err) {
+          self.postMessage({ cmd: "error", error: err?.message || String(err) });
+        }
+      };
+    }
+  </script>
+</body>
+</html>
