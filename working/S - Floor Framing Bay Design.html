@@ -117,6 +117,65 @@
       padding:.6rem;border-radius:8px;max-height:240px;overflow:auto
     }
 
+
+    body[data-theme="dark"]{
+      --bg:#0b1220;
+      --card:#111827;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --line:#374151;
+      --blue:#3b82f6;
+      --blue2:#3b82f6;
+      --green:#22c55e;
+      --red:#f87171;
+      --orange:#fb923c;
+      --shadow:0 2px 12px rgba(0,0,0,.45);
+    }
+    body[data-theme="dark"] .topbar{background:#020617;border-bottom-color:#1f2937}
+    body[data-theme="dark"] .tab-btn{background:#0f172a;color:#c7d2fe;border-color:#334155}
+    body[data-theme="dark"] .tab-btn.active{color:#fff}
+    body[data-theme="dark"] .btn{background:#111827;color:#e5e7eb;border-color:#4b5563}
+    body[data-theme="dark"] .btn.primary{background:var(--blue2);border-color:var(--blue2);color:#fff}
+    body[data-theme="dark"] .btn.danger{background:#dc2626;border-color:#dc2626;color:#fff}
+    body[data-theme="dark"] .btn.ghost{background:transparent;color:#e5e7eb;border-color:#64748b}
+    body[data-theme="dark"] .statusbar{background:#111827;border-bottom-color:#374151}
+    body[data-theme="dark"] #errorBox{background:#3f1d1d;color:#fecaca;border-color:#7f1d1d}
+    body[data-theme="dark"] .card h4{color:#e5e7eb}
+    body[data-theme="dark"] .field label{color:#d1d5db}
+    body[data-theme="dark"] .field input,
+    body[data-theme="dark"] .field select,
+    body[data-theme="dark"] .field textarea{background:#0f172a;color:#e5e7eb;border-color:#4b5563}
+    body[data-theme="dark"] .hr{background:#374151}
+    body[data-theme="dark"] .muted-box{background:#0f172a;border-color:#4b5563}
+    body[data-theme="dark"] th,
+    body[data-theme="dark"] td{border-color:#4b5563}
+    body[data-theme="dark"] th{background:#1f2937}
+    body[data-theme="dark"] tr.sel{background:#172554}
+    body[data-theme="dark"] .kpi{border-color:#1d4ed8;background:#172554}
+    body[data-theme="dark"] details{border-color:#374151;background:#0f172a}
+    body[data-theme="dark"] .footer{background:#0b1220;border-top-color:#374151}
+    body[data-theme="dark"] .pill{background:#0f172a}
+    .inputs-toolbar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.45rem;margin:.25rem 0 .55rem}
+    .pill-row{display:flex;align-items:center;gap:.35rem;flex-wrap:wrap}
+    .pill-row .small{margin-right:.15rem}
+    details.accordion{border:1px solid var(--line);border-radius:12px;padding:.35rem .6rem;margin:.55rem 0;background:var(--card)}
+    details.accordion summary{font-weight:700;cursor:pointer}
+    details.accordion[open] summary{margin-bottom:.35rem}
+    .gfx-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+    .bay-svg{width:100%;height:190px;display:block}
+    .bay-svg *{vector-effect:non-scaling-stroke}
+    .gfx-note{margin-top:.35rem}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-weight:700;font-size:12px;line-height:18px}
+    .badge.ok{background:rgba(34,197,94,.15);color:#166534;border:1px solid rgba(34,197,94,.35)}
+    .badge.fail{background:rgba(239,68,68,.15);color:#991b1b;border:1px solid rgba(239,68,68,.35)}
+    .catalog-card{background:#fff;color:#111827;border:1px solid #d1d5db;border-radius:10px;padding:.45rem}
+    .catalog-card .table-scroll table{background:#fff}
+    .catalog-card .table-scroll th,.catalog-card .table-scroll td{border-color:#cbd5e1}
+    .catalog-card .hl-col{background:#fef3c7 !important;font-weight:700}
+    .catalog-card .hl-depth{background:#ecfccb;font-weight:700}
+    body[data-theme="dark"] .gfx-card{background:#fff;border-color:#2b2f36}
+    body.dark .gfx-card{background:#fff;border-color:#2b2f36}
+
     /* Modal */
     .modal{
       position:fixed;inset:0;background:rgba(15,23,42,.48);display:none;align-items:center;justify-content:center;z-index:50
@@ -170,18 +229,16 @@
     <header class="topbar">
       <div class="brand">Floor Framing (AISC 360-22) — MVP</div>
       <nav class="tabs">
-        <button class="tab-btn active" data-tab="loads">Loads</button>
-        <button class="tab-btn" data-tab="slab">Floor Slab</button>
-        <button class="tab-btn" data-tab="member">Member Criteria</button>
-        <button class="tab-btn" data-tab="defl">Deflection + Camber</button>
-        <button class="tab-btn" data-tab="cost">Cost</button>
+        <button class="tab-btn active" data-tab="inputs">Inputs</button>
         <button class="tab-btn" data-tab="results">Results</button>
+        <button class="tab-btn" data-tab="reports">Reports</button>
       </nav>
       <div class="actions">
         <button id="btnRun" class="btn primary">Run Analysis</button>
         <button id="btnCancel" class="btn danger" disabled>Stop</button>
         <button id="btnSaveRun" class="btn ghost">Save Run JSON</button>
         <button id="btnLoadRun" class="btn ghost">Load Run JSON</button>
+        <button id="btnTheme" class="btn ghost" title="Toggle dark mode">Dark Mode</button>
         <input id="fileLoadRun" type="file" accept=".json" hidden />
       </div>
     </header>
@@ -209,16 +266,9 @@
               </select>
             </div>
             <div class="field">
-              <label title="Enable ASCE 7-22 live load reduction calc.">Live Load Reduction (ASCE 7-22)</label>
-              <select id="globalLLReduction">
-                <option value="true" selected>On</option>
-                <option value="false">Off</option>
-              </select>
-            </div>
-            <div class="field">
               <label title="Objective metric for ranking.">Optimize By</label>
               <select id="optimizeBy">
-                <option value="cost" selected>Relative Cost</option>
+                <option value="cost" selected>Cost</option>
                 <option value="weight">Weight</option>
               </select>
             </div>
@@ -237,12 +287,14 @@
               <input id="geoLg" type="number" step="0.01" min="1" />
             </div>
             <div class="field">
-              <label title="Nominal beam spacing along girder.">Beam Spacing s (ft)</label>
+              <label title="Nominal beam spacing along girder.">Max Beam Spacing</label>
               <input id="geoSpacing" type="number" step="0.01" min="0.1" />
             </div>
             <div class="field">
-              <label title="Optional advanced override. If set, spacing is recomputed as Lg/(n+1)."># Interior Beam Lines (optional override)</label>
-              <input id="geoNBeamOverride" type="number" min="1" step="1" placeholder="auto" />
+              <label title="Interior bay accounting: count edge beams as 1/2 each (½ + interior + ½).">
+                <input id="geoShareHalfBeams" type="checkbox" />
+                Interior bay sharing (½ edge beams)
+              </label>
             </div>
             <div class="field">
               <label title="Optional accounting switch for interior bay cost/weight allocation.">
@@ -272,21 +324,35 @@
 
       <!-- Main -->
       <main class="col" id="mainCol">
-        <!-- LOADS TAB -->
-        <section class="card tab-panel active" data-panel="loads">
-          <h3>Loads</h3>
+        <section class="card tab-panel active" data-panel="inputs">
+          <h3>Inputs</h3>
+          <div class="inputs-toolbar">
+            <div class="pill-row">
+              <span class="small muted">Jump to:</span>
+              <button class="pill" data-jump="secLoads" type="button">Loads</button>
+              <button class="pill" data-jump="secSlab" type="button">Floor Slab</button>
+              <button class="pill" data-jump="secMember" type="button">Member Criteria</button>
+              <button class="pill" data-jump="secDefl" type="button">Deflection + Camber</button>
+              <button class="pill" data-jump="secCost" type="button">Cost</button>
+            </div>
+            <div class="btn-row" style="margin-top:0">
+              <button id="btnExpandAll" class="btn" type="button">Expand all</button>
+              <button id="btnCollapseAll" class="btn" type="button">Collapse all</button>
+              <span id="inputsDirtyPill" class="pill" style="display:none">Inputs changed — rerun analysis</span>
+            </div>
+          </div>
+
+          <div id="secLoads"></div>
+          <details class="accordion" open>
+            <summary>Loads</summary>
           <div class="grid3">
             <div class="field">
-              <label title="Dead load add-on excluding slab/deck self-weight.">DL add-on (psf)</label>
-              <input id="loadDLadd" type="number" step="0.01" />
+              <label title="Permanent self-weight add-on excluding slab/deck self-weight (load-only, e.g., ponding allowance).">Self Weight Add-On (psf)</label>
+              <input id="loadSWadd" type="number" step="0.01" />
             </div>
             <div class="field">
               <label title="Unreduced nominal live load.">LL (psf)</label>
               <input id="loadLL" type="number" step="0.01" />
-            </div>
-            <div class="field inline" style="align-self:end">
-              <input id="loadLLReducible" type="checkbox" />
-              <label title="If checked and global reduction is On, ASCE 7-22 reduction is applied.">LL is reducible</label>
             </div>
             <div class="field">
               <label title="Superimposed dead load.">SDL (psf)</label>
@@ -296,31 +362,114 @@
               <label title="Construction live load for construction stage combo.">CLL (psf)</label>
               <input id="loadCLL" type="number" step="0.01" />
             </div>
+            <div class="field">
+              <label>Live Load Reduction</label>
+              <select id="loadLLReductionMode">
+                <option value="none">None (no reduction)</option>
+                <option value="asce" selected>ASCE 7-22 (per code)</option>
+                <option value="asce_cap20">ASCE 7-22 (cap reduction at 20%)</option>
+              </select>
+            </div>
           </div>
           <div class="hr"></div>
           <h4>Live Load Reduction Preview</h4>
           <div id="llReductionInfo" class="small muted-box"></div>
-        </section>
 
-        <!-- FLOOR SLAB TAB -->
-        <section class="card tab-panel" data-panel="slab">
-          <h3>Floor Slab</h3>
+          <div class="hr"></div>
+          <h4>Construction Stage (Pre-Composite) Checks</h4>
+          <div class="grid3">
+            <div class="field inline" style="align-self:end">
+              <input id="constrEnable" type="checkbox" />
+              <label title="Checks steel beam/girder for construction stage before composite action develops (e.g., during pour). Uses noncomposite φMn and φVn.">Enforce pre-composite (bare steel) strength checks</label>
+            </div>
+            <div class="field">
+              <label title="If final design is already noncomposite, this check can be redundant, but keeping it ON for all solutions is conservative.">Apply mode</label>
+              <select id="constrApplyMode">
+                <option value="composite_only">Composite solutions only</option>
+                <option value="all">All solutions</option>
+              </select>
+            </div>
+            <div class="field">
+              <label title="Self Weight Add-On may represent permanent load not fully present during pour. Use 0–100%.">% of SWadd present during pour</label>
+              <input id="constrSWaddPct" type="number" step="0.1" min="0" max="100" />
+            </div>
+          </div>
+          <div class="small muted-box" style="margin-top:.35rem">Note: If Shored construction is selected (Floor Slab tab), pre-composite checks are automatically skipped.</div>
+          <div id="constructionPreview" class="small muted-box"></div>
+          </details>
+
+          <div id="secSlab"></div>
+          <details class="accordion" open>
+            <summary>Floor Slab</summary>
           <div class="field" style="max-width:340px">
             <label>Slab Type</label>
             <input value="Metal Deck with Concrete Topping (MVP only)" disabled />
           </div>
-          <div class="inline" style="margin-top:.3rem">
-            <input id="slabShored" type="checkbox" />
-            <label title="Minimal implementation: reduces construction-stage slab dead deflection demand assumption.">Shored construction</label>
-          </div>
-          <div class="hr"></div>
+          <section class="card" style="margin:.5rem 0">
+            <h4>Deck Selection + Checks (Vulcraft 2VLI / 3VLI — LRFD)</h4>
+            <div class="grid3">
+              <div class="field">
+                <label title="Uses embedded Vulcraft LRFD tables for 2VLI/3VLI (GR50).">Deck profile</label>
+                <select id="deckProfile">
+                  <option value="None">None (manual deck inputs)</option>
+                  <option value="2VLI">2VLI-36 (GR50)</option>
+                  <option value="3VLI">3VLI-36 (GR50)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label title="Used for Vulcraft table lookups only.">Deck gage</label>
+                <select id="deckGage">
+                  <option value="22">22</option><option value="20">20</option><option value="19">19</option><option value="18">18</option><option value="16">16</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Concrete Topping Density</label>
+                <select id="deckTableDensity">
+                  <option value="LWC" selected>LWC (110 pcf tables)</option>
+                  <option value="NWC">NWC (145 pcf tables)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label title="Continuity assumption for construction-stage unshored span table.">Construction span condition</label>
+                <select id="deckSpanCond">
+                  <option value="1">1-span (simple)</option>
+                  <option value="2">2-span</option>
+                  <option value="3" selected>3+ spans</option>
+                </select>
+              </div>
+              <div class="field inline" style="align-self:end">
+                <input id="slabShored" type="checkbox" />
+                <label title="Shored = deck is supported by temporary shores during concrete placement; deck construction span is shore spacing (not beam spacing).">Shored construction</label>
+              </div>
+              <div class="field" id="shoreSpacingBox" style="display:none">
+                <label title="Temporary shores reduce construction span to shore spacing.">Shore spacing (ft)</label>
+                <input id="shoreSpacing" type="number" step="0.01" min="0.1" />
+              </div>
+            </div>
+            <div id="deckChecksInfo" class="small muted-box" style="margin-top:.45rem"></div>
+            <div class="small muted-box" style="margin-top:.35rem">Note: max unshored span tables do not address bearing/web-crippling; verify separately.</div>
+            <details class="accordion" style="margin-top:.45rem">
+              <summary>Vulcraft Catalog Table (highlighted cells used for checks)</summary>
+              <div id="deckCatalogView" class="catalog-card" style="margin-top:.4rem"></div>
+            </details>
+          </section>
 
-          <h4>Deck</h4>
-          <div class="grid2">
+          <div class="hr"></div>
+          <h4>Deck <span id="deckLockTag" class="badge" style="display:none">Locked by profile</span></h4>
+          <div class="grid2" id="deckGeometryGrid">
             <div class="field"><label>Deck height hd (in)</label><input id="deckHd" type="number" step="0.01" /></div>
             <div class="field"><label>Deck weight (psf)</label><input id="deckWt" type="number" step="0.01" /></div>
             <div class="field"><label>Rib width wr (in)</label><input id="deckRibW" type="number" step="0.01" /></div>
             <div class="field"><label>Rib spacing sr (in)</label><input id="deckRibS" type="number" step="0.01" /></div>
+          </div>
+          <div id="slabSelfWeightInfo" class="small muted-box" style="margin-top:.35rem"></div>
+          <div id="deckLockHelp" class="small muted-box" style="margin-top:.35rem;display:none">Locked by profile (switch to Manual deck to edit).</div>
+          <div id="deckOverrideBadge" class="small muted-box" style="margin-top:.35rem;display:none">Self-weight override active (used in design).</div>
+          <div id="deckGeomNote" class="small muted-box" style="margin-top:.35rem">If you need to override slab/deck weight, use the slab/deck self-weight override (psf). Beam self-weight remains computed automatically.</div>
+          <div class="field" style="max-width:420px;margin-top:.35rem">
+            <label>Override slab/deck self-weight (psf)</label>
+            <input id="slabSelfWeightOverride" type="number" step="0.01" placeholder="(blank = use computed)" />
+            <div class="small">If provided, replaces computed slab/deck self-weight (does not include beam self-weight).</div>
           </div>
 
           <h4>Concrete</h4>
@@ -333,28 +482,23 @@
           <h4>Studs</h4>
           <div class="grid3">
             <div class="field"><label>Diameter (in)</label><input id="studDia" type="number" step="0.01" /></div>
-            <div class="field"><label>Installed height (in)</label><input id="studH" type="number" step="0.01" /></div>
             <div class="field"><label>Fu (ksi)</label><input id="studFu" type="number" step="0.01" /></div>
             <div class="field"><label>Min composite (%)</label><input id="studMinComp" type="number" step="0.01" min="0" max="100" /></div>
             <div class="field"><label>Max composite (%)</label><input id="studMaxComp" type="number" step="0.01" min="0" max="100" /></div>
           </div>
 
           <h4>Stud Spacing Limits (MVP editable)</h4>
-          <div class="grid3">
-            <div class="field"><label>Edge dist (in)</label><input id="studEdgeDist" type="number" step="0.01" /></div>
+          <div class="grid2">
             <div class="field"><label>End dist (in)</label><input id="studEndDist" type="number" step="0.01" /></div>
             <div class="field"><label>Long min parallel (in)</label><input id="studLongMinPar" type="number" step="0.01" /></div>
-            <div class="field"><label>Long min perp (in)</label><input id="studLongMinPerp" type="number" step="0.01" /></div>
             <div class="field"><label>Long max parallel (in)</label><input id="studLongMaxPar" type="number" step="0.01" /></div>
-            <div class="field"><label>Long max perp (in)</label><input id="studLongMaxPerp" type="number" step="0.01" /></div>
             <div class="field"><label>Trans min parallel (in)</label><input id="studTransMinPar" type="number" step="0.01" /></div>
-            <div class="field"><label>Trans min perp (in)</label><input id="studTransMinPerp" type="number" step="0.01" /></div>
           </div>
-        </section>
+          </details>
 
-        <!-- MEMBER TAB -->
-        <section class="card tab-panel" data-panel="member">
-          <h3>Member Design Criteria</h3>
+          <div id="secMember"></div>
+          <details class="accordion">
+            <summary>Member Criteria</summary>
           <div class="grid3">
             <div class="field">
               <label>Steel Fy (ksi)</label>
@@ -424,11 +568,11 @@
             <strong>Vibration</strong>:
             <span class="small">DG11 vibration checks are out of scope for MVP — coming later.</span>
           </div>
-        </section>
+          </details>
 
-        <!-- DEFLECTION TAB -->
-        <section class="card tab-panel" data-panel="defl">
-          <h3>Deflection + Camber</h3>
+          <div id="secDefl"></div>
+          <details class="accordion">
+            <summary>Deflection + Camber</summary>
           <div class="grid2">
             <div class="field">
               <label>Composite deflection inertia method</label>
@@ -467,49 +611,49 @@
               <label>Do not camber non-compact web members</label>
             </div>
           </div>
-        </section>
+          </details>
 
-        <!-- COST TAB -->
-        <section class="card tab-panel" data-panel="cost">
-          <h3>Cost</h3>
+          <div id="secCost"></div>
+          <details class="accordion">
+            <summary>Cost</summary>
           <div class="grid3">
-            <div class="field"><label>Steel cost ($/lb)</label><input id="costSteel" type="number" step="0.001" /></div>
-            <div class="field"><label>Installed stud cost ($/stud)</label><input id="costStud" type="number" step="0.01" /></div>
+            <div class="field"><label title="Total installed cost per pound of steel. Should reflect your typical fabricated + erected steel package (not mill price). If you only know $/ton: divide by 2000 to get $/lb.">Steel Cost ($/lb)</label><input id="costSteelTIC" type="number" step="0.001" /></div>
+            <div class="field"><label title="Total installed cost per stud (stud + welding labor + QA). If you only know material cost, installed cost is typically higher.">Stud Cost ($/stud)</label><input id="costStudTIC" type="number" step="0.01" /></div>
             <div class="field">
-              <label>Camber cost model</label>
+              <label title="Camber is modeled as an installed-cost adder. Equivalent steel lbs/ft is recommended because it scales with member length and Steel Cost.">Camber cost model</label>
               <select id="camberModel">
-                <option value="ranges">Cost depends on camber (ranges)</option>
-                <option value="flat">Flat cost per cambered member</option>
+                <option value="eq_lbs_per_ft">Equivalent Steel (lbs/ft)</option>
+                <option value="flat_per_member">Flat $ per cambered member</option>
               </select>
             </div>
           </div>
 
-          <div id="camberRangesBox">
-            <h4>Camber Cost Ranges</h4>
-            <div class="grid3">
-              <div class="field"><label>Range 1 max camber (in)</label><input id="range1Max" type="number" step="0.01" /></div>
-              <div class="field"><label>Range 1 cost/member ($)</label><input id="range1Cost" type="number" step="0.01" /></div>
-              <div></div>
-              <div class="field"><label>Range 2 max camber (in)</label><input id="range2Max" type="number" step="0.01" /></div>
-              <div class="field"><label>Range 2 cost/member ($)</label><input id="range2Cost" type="number" step="0.01" /></div>
-              <div></div>
-              <div class="field"><label>Beyond range 2 cost/member ($)</label><input id="range3Cost" type="number" step="0.01" /></div>
+          <div id="camberEqBox">
+            <h4>Equivalent Steel (lbs/ft)</h4>
+            <div class="grid2">
+              <div class="field"><label title="These represent additional ‘equivalent steel weight’ attributed to cambering. Increase girder value if cambering deeper/heavier girders costs more at your fabricator.">Beam camber add (lbs/ft)</label><input id="camberEqBeam" type="number" step="0.01" /></div>
+              <div class="field"><label title="These represent additional ‘equivalent steel weight’ attributed to cambering. Increase girder value if cambering deeper/heavier girders costs more at your fabricator.">Girder camber add (lbs/ft)</label><input id="camberEqGirder" type="number" step="0.01" /></div>
             </div>
+            <div class="small muted-box">Camber cost modeled as added equivalent weight × Steel Cost. Defaults are conceptual and should be calibrated to local standards.</div>
           </div>
 
           <div id="camberFlatBox">
-            <h4>Flat Camber Cost</h4>
-            <div class="field" style="max-width:260px">
-              <label>Cost per cambered member ($)</label>
-              <input id="flatCamberCost" type="number" step="0.01" />
+            <h4>Flat $ per cambered member (Legacy)</h4>
+            <div class="grid2">
+              <div class="field"><label title="Legacy mode. Use if your fabricator quotes camber as a flat adder per member.">Beam camber cost ($/member)</label><input id="camberFlatBeam" type="number" step="0.01" /></div>
+              <div class="field"><label title="Legacy mode. Use if your fabricator quotes camber as a flat adder per member.">Girder camber cost ($/member)</label><input id="camberFlatGirder" type="number" step="0.01" /></div>
             </div>
           </div>
+
+          <div class="small muted-box" style="margin-top:.45rem">Tip: Calibrate these values against a recent project. The optimizer ranks options by Cost (estimated Total Installed Cost), which depends on your assumptions in Cost Inputs.</div>
+          </details>
         </section>
 
-        <!-- RESULTS TAB -->
         <section class="card tab-panel" data-panel="results">
           <h3>Adequate Beam/Girder Combinations</h3>
           <div class="small" id="resultsMeta">No analysis run yet.</div>
+          <div class="small muted-box" id="diagnosticsInfo" style="margin-top:.35rem">Worker candidate errors: 0</div>
+          <div class="small muted-box" style="margin-top:.35rem">Cost shown is estimated Total Installed Cost and depends on your assumptions in Cost Inputs.</div>
           <div class="table-scroll" style="margin-top:.4rem">
             <table id="resultsTable">
               <thead>
@@ -520,12 +664,26 @@
                   <th>Cost ($/sf)</th>
                   <th>Weight (psf)</th>
                   <th>Strength Util</th>
+                  <th>Pre-Comp Util</th>
                   <th>Deflection Util</th>
+                  <th>Deck</th>
                   <th>Control</th>
                 </tr>
               </thead>
               <tbody id="resultsTbody"></tbody>
             </table>
+          </div>
+        </section>
+
+        <section class="card tab-panel" data-panel="reports">
+          <h3>Reports</h3>
+          <div class="small muted-box">Select a solution in Results to enable report actions.</div>
+          <div class="btn-row">
+            <button id="btnViewBeam" class="btn" disabled>View Beam Report</button>
+            <button id="btnViewGirder" class="btn" disabled>View Girder Report</button>
+            <button id="btnPrintPack" class="btn" disabled>View Report Packet</button>
+            <button id="btnExportJSON" class="btn" disabled>Export JSON</button>
+            <button id="btnExportCSV" class="btn" disabled>Export CSV</button>
           </div>
         </section>
       </main>
@@ -536,14 +694,8 @@
           <h3>Selected Solution Preview</h3>
           <div id="bayPreview"></div>
           <div id="selectedSummary" class="small" style="margin-top:.4rem">No selection.</div>
+          <div id="deckDesignSummary" class="small muted-box" style="margin-top:.4rem">Deck Design Summary: No selection.</div>
 
-          <div class="btn-row">
-            <button id="btnViewBeam" class="btn" disabled>View Beam Report</button>
-            <button id="btnViewGirder" class="btn" disabled>View Girder Report</button>
-            <button id="btnPrintPack" class="btn" disabled>Print Report Pack</button>
-            <button id="btnExportJSON" class="btn" disabled>Export JSON</button>
-            <button id="btnExportCSV" class="btn" disabled>Export CSV</button>
-          </div>
         </section>
 
         <section class="card">
@@ -586,14 +738,15 @@
   <script>
     /**
      * @typedef {Object} InputModel
-     * @property {{design_method:string,live_load_reduction:boolean,optimize_by:'cost'|'weight'}} basis
-     * @property {{Lb_ft:number,Lg_ft:number,spacing_ft:number,nBeamLines_override:number|null,share_half_girders:boolean}} geometry
-     * @property {{DL_add_psf:number,LL_psf:number,LL_reducible:boolean,SDL_psf:number,CLL_psf:number}} loads
+     * @property {{design_method:string,optimize_by:'cost'|'weight'}} basis
+     * @property {{Lb_ft:number,Lg_ft:number,spacing_ft:number,nBeamLines_override:number|null,share_half_beams:boolean,share_half_girders:boolean}} geometry
+     * @property {{SWadd_psf:number,LL_psf:number,LL_reduction_mode:'none'|'asce'|'asce_cap20',SDL_psf:number,CLL_psf:number}} loads
+     * @property {{enabled:boolean,apply_mode:'composite_only'|'all',swadd_pct:number}} construction_stage
      * @property {{
-     *   shored:boolean,
+     *   shored:boolean,shore_spacing_ft:number|null,deck_profile:'None'|'2VLI'|'3VLI',deck_gage:number,deck_span_condition:1|2|3,deck_table_density:'LWC'|'NWC',self_weight_override_psf:number|null,
      *   deck:{hd_in:number,deck_weight_psf:number,rib_width_in:number,rib_spacing_in:number},
      *   concrete:{topping_in:number,fc_ksi:number,unit_weight_pcf:number},
-     *   studs:{dia_in:number,height_in:number,Fu_ksi:number,min_comp_pct:number,max_comp_pct:number}
+     *   studs:{dia_in:number,Fu_ksi:number,min_comp_pct:number,max_comp_pct:number}
      * }} slab
      * @property {{
      *   Fy_ksi:number,
@@ -612,35 +765,170 @@
      *   }
      * }} deflection
      * @property {{min_in:number,max_in:number,inc_in:number,min_length_ft:number,pct_of_dead:number,disallow_noncompact_web:boolean}} camber
-     * @property {{edge_dist_in:number,end_dist_in:number,long_min_parallel_in:number,long_min_perp_in:number,long_max_parallel_in:number,long_max_perp_in:number,trans_min_parallel_in:number,trans_min_perp_in:number}} stud_spacing_limits
-     * @property {{steel_per_lb:number,stud_per_each:number,camber_model:'ranges'|'flat',flat_cost_per_member:number,ranges:Array<{max_in:number|null,cost_per_member:number}>}} cost
+     * @property {{end_dist_in:number,long_min_parallel_in:number,long_max_parallel_in:number,trans_min_parallel_in:number}} stud_spacing_limits
+     * @property {{steel_tic_per_lb:number,stud_tic_per_each:number,camber_model:'eq_lbs_per_ft'|'flat_per_member',camber_eq:{beam_lbs_per_ft:number,girder_lbs_per_ft:number},camber_flat:{beam_cost_per_member:number,girder_cost_per_member:number}}} cost
      */
 
-    const APP_VERSION = "0.1.0-mvp";
+    const APP_VERSION = "0.1.1";
     const MAX_RESULTS = 80;
 
-    const DEMO_SHAPES = [
-      {name:"W12x26",d:12.22,bf:6.49,tf:0.38,tw:0.23,A:7.65,W:26,Ix:204,Sx:33.4,Zx:37.3,ry:1.71},
-      {name:"W12x30",d:12.34,bf:6.56,tf:0.44,tw:0.26,A:8.82,W:30,Ix:238,Sx:38.5,Zx:43.1,ry:1.71},
-      {name:"W14x26",d:13.90,bf:6.73,tf:0.36,tw:0.23,A:7.65,W:26,Ix:291,Sx:41.9,Zx:46.7,ry:1.95},
-      {name:"W14x34",d:14.00,bf:6.75,tf:0.50,tw:0.31,A:10.00,W:34,Ix:385,Sx:55.0,Zx:61.5,ry:1.96},
-      {name:"W16x31",d:15.90,bf:6.50,tf:0.40,tw:0.27,A:9.12,W:31,Ix:421,Sx:53.0,Zx:59.0,ry:2.15},
-      {name:"W18x35",d:17.70,bf:6.00,tf:0.43,tw:0.30,A:10.30,W:35,Ix:612,Sx:69.0,Zx:77.0,ry:2.44},
-      {name:"W18x40",d:18.00,bf:6.20,tf:0.49,tw:0.33,A:11.80,W:40,Ix:707,Sx:78.6,Zx:88.0,ry:2.45},
-      {name:"W21x44",d:20.70,bf:6.50,tf:0.52,tw:0.35,A:12.90,W:44,Ix:1020,Sx:98.6,Zx:110.0,ry:2.81},
-      {name:"W21x50",d:21.00,bf:6.60,tf:0.59,tw:0.38,A:14.70,W:50,Ix:1160,Sx:110.0,Zx:124.0,ry:2.81},
-      {name:"W24x55",d:23.60,bf:7.00,tf:0.56,tw:0.40,A:16.20,W:55,Ix:1590,Sx:135.0,Zx:152.0,ry:3.13},
-      {name:"W24x62",d:24.00,bf:7.10,tf:0.65,tw:0.43,A:18.20,W:62,Ix:1810,Sx:151.0,Zx:170.0,ry:3.15},
-      {name:"W24x68",d:24.30,bf:7.30,tf:0.72,tw:0.47,A:20.00,W:68,Ix:2040,Sx:168.0,Zx:189.0,ry:3.19},
-      {name:"W27x84",d:26.70,bf:10.00,tf:0.64,tw:0.43,A:24.70,W:84,Ix:3360,Sx:252.0,Zx:283.0,ry:3.69},
-      {name:"W27x94",d:27.10,bf:10.10,tf:0.72,tw:0.47,A:27.60,W:94,Ix:3770,Sx:278.0,Zx:314.0,ry:3.69},
-      {name:"W30x90",d:29.70,bf:10.00,tf:0.71,tw:0.47,A:26.40,W:90,Ix:4210,Sx:284.0,Zx:322.0,ry:3.98},
-      {name:"W30x108",d:30.30,bf:10.20,tf:0.86,tw:0.55,A:31.80,W:108,Ix:5000,Sx:330.0,Zx:377.0,ry:3.97},
-      {name:"W33x118",d:32.90,bf:11.50,tf:0.78,tw:0.51,A:34.70,W:118,Ix:6430,Sx:391.0,Zx:447.0,ry:4.30},
-      {name:"W36x135",d:35.60,bf:12.00,tf:0.86,tw:0.56,A:39.70,W:135,Ix:8660,Sx:487.0,Zx:560.0,ry:4.67},
-      {name:"W36x150",d:36.10,bf:12.20,tf:0.97,tw:0.62,A:44.10,W:150,Ix:9570,Sx:530.0,Zx:612.0,ry:4.66},
-      {name:"W40x167",d:39.80,bf:12.20,tf:1.03,tw:0.65,A:49.10,W:167,Ix:12600,Sx:632.0,Zx:734.0,ry:5.06},
-      {name:"W40x183",d:40.30,bf:12.40,tf:1.13,tw:0.71,A:53.80,W:183,Ix:13700,Sx:680.0,Zx:790.0,ry:5.05}
+    const VULCRAFT_DECK_DB = {
+      "2VLI": {
+        deckDepth_in: 2.0,
+        deckWeight_psf_by_gage: {22:1.6, 20:1.9, 19:2.2, 18:2.5, 16:3.2},
+        spanCols_superimposed_ft: [6,7,8,9,10,11,12,14],
+        "NWC": {
+          "4.0": { topping_in: 2.0,
+            maxUnshored_ft: {22:{1:7.8333,2:9.0000,3:9.2500},20:{1:9.4167,2:10.3333,3:10.6667},19:{1:10.0833,2:11.5833,3:11.9167},18:{1:10.5000,2:12.5833,3:12.5833},16:{1:11.3333,2:14.0833,3:13.2500}},
+            concPlusDeck_psf: {22:37.9,20:38.2,19:38.5,18:38.8,16:39.5},
+            superimposed_phiWn_L360_psf: {22:[[752,837],[540,527],[403,353],[309,248],[241,180],[192,135],[154,104],[101,65]],20:[[899,895],[648,563],[485,377],[374,265],[294,193],[235,145],[190,111],[127,70]],19:[[1034,947],[747,596],[561,399],[434,280],[342,204],[275,153],[224,118],[152,74]],18:[[1157,994],[837,626],[630,419],[488,294],[386,214],[311,161],[254,124],[174,78]],16:[[1417,1090],[1029,686],[776,459],[603,323],[480,235],[388,176],[318,136],[221,85]]}
+          },
+          "5.5": { topping_in: 3.5,
+            maxUnshored_ft: {22:{1:6.8333,2:7.8333,3:8.0833},20:{1:8.1667,2:9.0000,3:9.3333},19:{1:9.0000,2:10.0833,3:10.4167},18:{1:9.3333,2:11.0000,3:11.3333},16:{1:10.0833,2:12.5000,3:12.0833}},
+            concPlusDeck_psf: {22:56.0,20:56.3,19:56.6,18:56.9,16:57.6},
+            superimposed_phiWn_L360_psf: {22:[[1077,2088],[774,1315],[576,881],[441,618],[345,451],[273,338],[219,261],[143,164]],20:[[1294,2224],[933,1401],[698,938],[537,659],[422,480],[337,361],[272,278],[182,175]],19:[[1494,2347],[1080,1478],[811,990],[626,695],[494,507],[397,380],[322,293],[219,184]],18:[[1677,2456],[1214,1546],[913,1036],[707,727],[560,530],[451,398],[368,307],[252,193]],16:[[2068,2681],[1501,1688],[1133,1131],[881,794],[700,579],[566,435],[465,335],[323,211]]}
+          },
+          "6.5": { topping_in: 4.5,
+            maxUnshored_ft: {22:{1:6.4167,2:7.2500,3:7.5000},20:{1:7.5833,2:8.3333,3:8.6667},19:{1:8.4167,2:9.3333,3:9.6667},18:{1:8.7500,2:10.1667,3:10.5000},16:{1:9.5000,2:11.5833,3:11.5833}},
+            concPlusDeck_psf: {22:68.1,20:68.4,19:68.7,18:69.0,16:69.7},
+            superimposed_phiWn_L360_psf: {22:[[1373,3395],[987,2138],[737,1432],[565,1006],[442,733],[351,551],[282,424],[185,267]],20:[[1655,3607],[1194,2271],[895,1521],[690,1068],[543,779],[434,585],[352,450],[237,283]],19:[[1916,3798],[1385,2391],[1041,1602],[805,1125],[637,820],[512,616],[417,474],[284,298]],18:[[2155,3968],[1561,2498],[1176,1674],[911,1175],[722,857],[583,643],[476,496],[328,312]],16:[[2532,4321],[1838,2721],[1387,1823],[1078,1280],[858,933],[694,701],[570,540],[396,340]]}
+          }
+        },
+        "LWC": {
+          "4.0": { topping_in: 2.0,
+            maxUnshored_ft: {22:{1:8.6667,2:9.8333,3:10.1667},20:{1:10.4167,2:11.3333,3:11.7500},19:{1:11.0833,2:12.6667,3:13.0000},18:{1:11.4167,2:13.7500,3:13.4167},16:{1:12.0833,2:15.0000,3:14.1667}},
+            concPlusDeck_psf: {22:29.1,20:29.4,19:29.7,18:30.0,16:30.7},
+            superimposed_phiWn_L360_psf: {22:[[727,644],[525,405],[394,271],[304,190],[239,139],[191,104],[155,80],[105,50]],20:[[864,695],[625,437],[470,293],[364,205],[288,150],[232,112],[189,86],[129,54]],19:[[989,740],[717,466],[541,312],[420,219],[333,159],[269,120],[220,92],[152,58]],18:[[1103,779],[801,491],[604,329],[470,231],[374,168],[302,126],[248,97],[173,61]],16:[[1342,860],[976,542],[739,363],[576,255],[459,185],[373,139],[308,107],[216,67]]}
+          },
+          "4.5": { topping_in: 2.5,
+            maxUnshored_ft: {22:{1:8.2500,2:9.4167,3:9.7500},20:{1:9.9167,2:10.8333,3:11.2500},19:{1:10.5833,2:12.0833,3:12.5000},18:{1:11.0000,2:13.1667,3:13.0000},16:{1:11.6667,2:14.5000,3:13.6667}},
+            concPlusDeck_psf: {22:33.7,20:34.0,19:34.3,18:34.6,16:35.3},
+            superimposed_phiWn_L360_psf: {22:[[830,898],[599,565],[449,378],[346,266],[273,194],[218,145],[177,112],[119,70]],20:[[988,967],[715,609],[538,408],[416,286],[329,208],[265,156],[216,120],[148,76]],19:[[1133,1028],[821,647],[619,433],[480,304],[381,222],[308,166],[252,128],[174,80]],18:[[1264,1082],[918,681],[693,456],[539,320],[428,233],[347,175],[285,135],[198,85]],16:[[1541,1192],[1121,750],[848,503],[661,353],[528,257],[429,193],[353,149],[248,93]]}
+          },
+          "5.25": { topping_in: 3.25,
+            maxUnshored_ft: {22:{1:7.7500,2:8.8333,3:9.1667},20:{1:9.3333,2:10.1667,3:10.5000},19:{1:10.0000,2:11.4167,3:11.7500},18:{1:10.4167,2:12.4167,3:12.4167},16:{1:11.1667,2:13.9167,3:13.0833}},
+            concPlusDeck_psf: {22:40.6,20:40.9,19:41.2,18:41.5,16:42.2},
+            superimposed_phiWn_L360_psf: {22:[[994,1393],[717,877],[538,587],[414,412],[326,300],[261,226],[212,174],[142,109]],20:[[1186,1497],[858,943],[645,631],[500,443],[395,323],[318,243],[259,187],[177,117]],19:[[1363,1590],[988,1001],[745,671],[578,471],[459,343],[370,258],[303,198],[210,125]],18:[[1523,1672],[1105,1053],[835,705],[649,495],[516,361],[418,271],[343,209],[239,131]],16:[[1863,1839],[1355,1158],[1026,775],[800,545],[638,397],[518,298],[427,229],[300,144]]}
+          }
+        }
+      },
+      "3VLI": {
+        deckDepth_in: 3.0,
+        deckWeight_psf_by_gage: {22:1.7, 20:2.1, 19:2.4, 18:2.7, 16:3.5},
+        spanCols_superimposed_ft: [8,9,10,11,12,13,14,16],
+        "NWC": {
+          "5.0": { topping_in: 2.0,
+            maxUnshored_ft: {22:{1:10.0000,2:10.5833,3:11.0000},20:{1:11.7500,2:12.4167,3:12.8333},19:{1:12.2500,2:13.8333,3:14.2500},18:{1:12.6667,2:15.0833,3:14.8333},16:{1:13.3333,2:16.6667,3:15.6667}},
+            concPlusDeck_psf: {22:44.0,20:44.4,19:44.7,18:45.0,16:45.8},
+            superimposed_phiWn_L360_psf: {22:[[592,643],[456,451],[360,329],[288,247],[233,190],[191,149],[157,120],[108,80]],20:[[713,686],[552,481],[437,351],[352,263],[287,203],[237,159],[197,128],[138,85]],19:[[825,724],[641,508],[509,370],[411,278],[337,214],[279,168],[233,135],[166,90]],18:[[927,758],[721,533],[574,388],[465,291],[382,224],[317,176],[266,141],[191,94]],16:[[1144,829],[893,582],[713,424],[579,319],[478,245],[399,193],[336,154],[245,103]]}
+          },
+          "6.5": { topping_in: 3.5,
+            maxUnshored_ft: {22:{1:8.7500,2:8.2500,3:9.3333},20:{1:10.3333,2:10.9167,3:11.2500},19:{1:11.3333,2:12.1667,3:12.5833},18:{1:11.6667,2:13.3333,3:13.6667},16:{1:12.3333,2:15.0000,3:14.5000}},
+            concPlusDeck_psf: {22:62.1,20:62.5,19:62.8,18:63.1,16:63.9},
+            superimposed_phiWn_L360_psf: {22:[[775,1360],[597,955],[469,696],[375,523],[303,403],[247,317],[203,253],[138,170]],20:[[938,1445],[725,1014],[573,739],[461,555],[375,428],[308,336],[255,269],[178,180]],19:[[1088,1521],[843,1068],[669,778],[540,585],[441,450],[365,354],[304,283],[215,190]],18:[[1225,1589],[952,1116],[756,813],[612,611],[502,470],[416,370],[349,296],[249,198]],16:[[1517,1729],[1182,1214],[943,885],[766,665],[631,512],[527,403],[443,322],[321,216]]}
+          },
+          "7.5": { topping_in: 4.5,
+            maxUnshored_ft: {22:{1:8.1667,2:7.1667,3:8.1667},20:{1:9.5833,2:10.1667,3:10.5000},19:{1:10.7500,2:11.4167,3:11.7500},18:{1:11.1667,2:12.4167,3:12.8333},16:{1:11.8333,2:14.0000,3:13.9167}},
+            concPlusDeck_psf: {22:74.2,20:74.6,19:74.9,18:75.2,16:76.0},
+            superimposed_phiWn_L360_psf: {22:[[907,2059],[698,1446],[548,1054],[438,792],[354,610],[288,479],[236,384],[160,257]],20:[[1100,2182],[850,1533],[672,1117],[540,839],[439,646],[361,508],[299,407],[208,272]],19:[[1278,2293],[991,1611],[785,1174],[633,882],[518,679],[428,534],[356,428],[252,286]],18:[[1441,2393],[1120,1681],[890,1225],[720,920],[590,709],[489,557],[410,446],[292,299]],16:[[1791,2600],[1396,1826],[1113,1331],[904,1000],[745,770],[621,606],[523,485],[379,325]]}
+          }
+        },
+        "LWC": {
+          "5.0": { topping_in: 2.0,
+            maxUnshored_ft: {22:{1:11.0833,2:11.8333,3:12.1667},20:{1:12.5833,2:13.6667,3:14.0833},19:{1:13.0833,2:15.2500,3:15.4167},18:{1:13.5000,2:16.5833,3:15.8333},16:{1:14.2500,2:17.7500,3:16.7500}},
+            concPlusDeck_psf: {22:33.8,20:34.2,19:34.5,18:34.8,16:35.6},
+            superimposed_phiWn_L360_psf: {22:[[577,491],[448,344],[355,251],[286,188],[234,145],[193,114],[161,91],[114,61]],20:[[691,528],[538,371],[428,270],[346,203],[284,156],[236,123],[198,98],[142,66]],19:[[796,562],[620,395],[494,287],[401,216],[331,166],[275,131],[232,104],[168,70]],18:[[891,592],[695,416],[555,303],[452,227],[373,175],[311,138],[263,110],[191,74]],16:[[1093,654],[854,459],[684,334],[558,251],[462,193],[387,152],[328,122],[241,81]]}
+          },
+          "5.5": { topping_in: 2.5,
+            maxUnshored_ft: {22:{1:10.5833,2:11.3333,3:11.6667},20:{1:12.1667,2:13.0833,3:13.5000},19:{1:12.7500,2:14.5833,3:14.9167},18:{1:13.1667,2:15.9167,3:15.4167},16:{1:13.8333,2:17.2500,3:16.2500}},
+            concPlusDeck_psf: {22:38.4,20:38.8,19:39.1,18:39.4,16:40.2},
+            superimposed_phiWn_L360_psf: {22:[[635,641],[492,450],[390,328],[314,246],[256,189],[211,149],[176,119],[124,80]],20:[[761,689],[591,483],[470,352],[380,265],[312,204],[259,160],[217,128],[155,86]],19:[[876,731],[682,513],[544,374],[441,281],[363,216],[302,170],[254,136],[184,91]],18:[[981,769],[765,540],[611,394],[497,296],[410,228],[342,179],[288,143],[210,96]],16:[[1204,847],[941,595],[753,433],[614,325],[508,251],[426,197],[360,158],[264,105]]}
+          },
+          "6.25": { topping_in: 3.25,
+            maxUnshored_ft: {22:{1:9.9167,2:10.5000,3:11.0000},20:{1:11.7500,2:12.3333,3:12.7500},19:{1:12.2500,2:13.8333,3:14.2500},18:{1:12.6667,2:15.0833,3:14.8333},16:{1:13.3333,2:16.5833,3:15.6667}},
+            concPlusDeck_psf: {22:45.2,20:45.6,19:45.9,18:46.2,16:47.0},
+            superimposed_phiWn_L360_psf: {22:[[728,920],[564,646],[446,471],[359,354],[293,272],[242,214],[201,171],[141,115]],20:[[874,987],[679,693],[540,505],[436,379],[358,292],[297,230],[248,184],[177,123]],19:[[1008,1047],[785,735],[625,536],[507,402],[417,310],[347,244],[292,195],[210,130]],18:[[1130,1100],[881,772],[703,563],[571,423],[471,325],[393,256],[331,205],[240,137]],16:[[1388,1208],[1085,848],[868,618],[707,464],[585,358],[490,281],[415,225],[304,151]]}
+          }
+        }
+      }
+    };
+
+
+    const DECK_PROFILE_GEOMETRY = {
+      "2VLI": { hd_in: 2.0, rib_width_in: 6.0, rib_spacing_in: 12.0 },
+      "3VLI": { hd_in: 3.0, rib_width_in: 6.0, rib_spacing_in: 12.0 }
+    };
+
+    function catalogDeckWeightPsf(profile, gage, density = "LWC") {
+      const db = VULCRAFT_DECK_DB?.[profile];
+      if (!db || !DECK_PROFILE_GEOMETRY[profile]) return null;
+      const fam = db[density] || db.LWC || db.NWC;
+      if (!fam) return null;
+      const keys = Object.keys(fam).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+      if (!keys.length) return null;
+      const row = fam[String(keys[0])];
+      const concPlus = row?.concPlusDeck_psf?.[gage];
+      if (!Number.isFinite(concPlus)) return null;
+      const geom = DECK_PROFILE_GEOMETRY[profile];
+      const uw = density === "NWC" ? 145 : 110;
+      const topping_psf = (row.topping_in / 12) * uw;
+      const flute_psf = (0.5 * geom.hd_in * (geom.rib_width_in / geom.rib_spacing_in) / 12) * uw;
+      const wt = concPlus - topping_psf - flute_psf;
+      return Number.isFinite(wt) ? Math.max(0, wt) : null;
+    }
+
+    const DEMO_SHAPES =
+    [
+      {name:"W12x19",d:12.2,bf:6.5,tf:0.35,tw:0.26,A:5.59,W:19,Ix:125,Sx:20.5,Zx:22.9,ry:1.44},
+      {name:"W12x26",d:12.2,bf:6.49,tf:0.38,tw:0.23,A:7.65,W:26,Ix:204,Sx:33.4,Zx:37.2,ry:1.51},
+      {name:"W12x30",d:12.3,bf:6.56,tf:0.44,tw:0.26,A:8.82,W:30,Ix:238,Sx:38.6,Zx:43.1,ry:1.52},
+      {name:"W14x22",d:13.7,bf:5,tf:0.335,tw:0.23,A:6.49,W:22,Ix:199,Sx:29,Zx:33.2,ry:1.04},
+      {name:"W14x26",d:13.9,bf:5.03,tf:0.42,tw:0.255,A:7.69,W:26,Ix:245,Sx:35.3,Zx:40.2,ry:1.08},
+      {name:"W14x30",d:13.8,bf:6.73,tf:0.385,tw:0.27,A:8.85,W:30,Ix:291,Sx:42,Zx:47.3,ry:1.49},
+      {name:"W16x26",d:15.7,bf:5.5,tf:0.345,tw:0.25,A:7.68,W:26,Ix:301,Sx:38.4,Zx:44.2,ry:1.12},
+      {name:"W16x31",d:15.9,bf:5.53,tf:0.44,tw:0.275,A:9.13,W:31,Ix:375,Sx:47.2,Zx:54,ry:1.17},
+      {name:"W16x40",d:16,bf:7,tf:0.505,tw:0.305,A:11.8,W:40,Ix:518,Sx:64.7,Zx:73,ry:1.57},
+      {name:"W16x50",d:16.3,bf:7.07,tf:0.63,tw:0.38,A:14.7,W:50,Ix:659,Sx:81,Zx:92,ry:1.59},
+      {name:"W18x35",d:17.7,bf:6,tf:0.425,tw:0.3,A:10.3,W:35,Ix:510,Sx:57.6,Zx:66.5,ry:1.22},
+      {name:"W18x40",d:17.9,bf:6.02,tf:0.525,tw:0.315,A:11.8,W:40,Ix:612,Sx:68.4,Zx:78.4,ry:1.27},
+      {name:"W18x46",d:18.1,bf:6.06,tf:0.605,tw:0.36,A:13.5,W:46,Ix:712,Sx:78.8,Zx:90.7,ry:1.29},
+      {name:"W18x50",d:18,bf:7.5,tf:0.57,tw:0.355,A:14.7,W:50,Ix:800,Sx:88.9,Zx:101,ry:1.65},
+      {name:"W18x55",d:18.1,bf:7.53,tf:0.63,tw:0.39,A:16.2,W:55,Ix:890,Sx:98.3,Zx:112,ry:1.67},
+      {name:"W18x65",d:18.4,bf:7.59,tf:0.75,tw:0.45,A:19.1,W:65,Ix:1070,Sx:117,Zx:133,ry:1.69},
+      {name:"W21x44",d:20.7,bf:6.5,tf:0.45,tw:0.35,A:13,W:44,Ix:843,Sx:81.6,Zx:95.4,ry:1.26},
+      {name:"W21x50",d:20.8,bf:6.53,tf:0.535,tw:0.38,A:14.7,W:50,Ix:984,Sx:94.5,Zx:110,ry:1.3},
+      {name:"W21x55",d:20.8,bf:8.22,tf:0.522,tw:0.375,A:16.2,W:55,Ix:1140,Sx:110,Zx:126,ry:1.73},
+      {name:"W21x62",d:21,bf:8.24,tf:0.615,tw:0.4,A:18.3,W:62,Ix:1330,Sx:127,Zx:144,ry:1.77},
+      {name:"W21x68",d:21.1,bf:8.27,tf:0.685,tw:0.43,A:20,W:68,Ix:1480,Sx:140,Zx:160,ry:1.8},
+      {name:"W24x55",d:23.6,bf:7.01,tf:0.505,tw:0.395,A:16.2,W:55,Ix:1350,Sx:114,Zx:134,ry:1.34},
+      {name:"W24x62",d:23.7,bf:7.04,tf:0.59,tw:0.43,A:18.2,W:62,Ix:1550,Sx:131,Zx:153,ry:1.38},
+      {name:"W24x68",d:23.7,bf:8.97,tf:0.585,tw:0.415,A:20.1,W:68,Ix:1830,Sx:154,Zx:177,ry:1.87},
+      {name:"W24x76",d:23.9,bf:8.99,tf:0.68,tw:0.44,A:22.4,W:76,Ix:2100,Sx:176,Zx:200,ry:1.92},
+      {name:"W24x84",d:24.1,bf:9.02,tf:0.77,tw:0.47,A:24.7,W:84,Ix:2370,Sx:196,Zx:224,ry:1.95},
+      {name:"W24x94",d:24.3,bf:9.07,tf:0.875,tw:0.515,A:27.7,W:94,Ix:2700,Sx:222,Zx:254,ry:1.98},
+      {name:"W27x84",d:26.7,bf:10,tf:0.64,tw:0.46,A:24.7,W:84,Ix:2850,Sx:213,Zx:244,ry:2.07},
+      {name:"W27x94",d:26.9,bf:10,tf:0.745,tw:0.49,A:27.6,W:94,Ix:3270,Sx:243,Zx:278,ry:2.12},
+      {name:"W27x102",d:27.1,bf:10,tf:0.83,tw:0.515,A:30,W:102,Ix:3620,Sx:267,Zx:305,ry:2.15},
+      {name:"W27x114",d:27.3,bf:10.1,tf:0.93,tw:0.57,A:33.6,W:114,Ix:4080,Sx:299,Zx:343,ry:2.18},
+      {name:"W30x90",d:29.5,bf:10.4,tf:0.61,tw:0.47,A:26.3,W:90,Ix:3610,Sx:245,Zx:283,ry:2.09},
+      {name:"W30x99",d:29.7,bf:10.5,tf:0.67,tw:0.52,A:29,W:99,Ix:3990,Sx:269,Zx:312,ry:2.1},
+      {name:"W30x108",d:29.8,bf:10.5,tf:0.76,tw:0.545,A:31.7,W:108,Ix:4470,Sx:299,Zx:346,ry:2.15},
+      {name:"W30x116",d:30,bf:10.5,tf:0.85,tw:0.565,A:34.2,W:116,Ix:4930,Sx:329,Zx:378,ry:2.19},
+      {name:"W30x124",d:30.2,bf:10.5,tf:0.93,tw:0.585,A:36.5,W:124,Ix:5360,Sx:355,Zx:408,ry:2.23},
+      {name:"W30x132",d:30.3,bf:10.5,tf:1,tw:0.615,A:38.8,W:132,Ix:5770,Sx:380,Zx:437,ry:2.27},
+      {name:"W33x118",d:32.9,bf:11.5,tf:0.74,tw:0.55,A:34.7,W:118,Ix:5900,Sx:359,Zx:415,ry:2.35},
+      {name:"W33x130",d:33.1,bf:11.5,tf:0.855,tw:0.58,A:38.3,W:130,Ix:6710,Sx:406,Zx:467,ry:2.39},
+      {name:"W33x141",d:33.3,bf:11.5,tf:0.96,tw:0.605,A:41.5,W:141,Ix:7450,Sx:448,Zx:514,ry:2.43},
+      {name:"W33x152",d:33.5,bf:11.6,tf:1.06,tw:0.635,A:44.9,W:152,Ix:8160,Sx:487,Zx:559,ry:2.47},
+      {name:"W33x169",d:33.8,bf:11.5,tf:1.22,tw:0.67,A:49.5,W:169,Ix:9290,Sx:549,Zx:629,ry:2.53},
+      {name:"W36x135",d:35.6,bf:12,tf:0.86,tw:0.56,A:39.7,W:135,Ix:8660,Sx:487,Zx:560,ry:NaN},
+      {name:"W36x150",d:36.1,bf:12.2,tf:0.97,tw:0.62,A:44.1,W:150,Ix:9570,Sx:530,Zx:612,ry:NaN},
+      {name:"W36x160",d:36.43,bf:12.33,tf:1.043,tw:0.66,A:47.02,W:160,Ix:10174,Sx:558.5,Zx:646.5,ry:NaN},
+      {name:"W36x170",d:36.77,bf:12.47,tf:1.117,tw:0.7,A:49.96,W:170,Ix:10782,Sx:587.3,Zx:681.3,ry:NaN},
+      {name:"W40x149",d:39.24,bf:11.97,tf:0.917,tw:0.582,A:43.79,W:149,Ix:11357,Sx:577.8,Zx:670.7,ry:NaN},
+      {name:"W40x167",d:39.8,bf:12.2,tf:1.03,tw:0.65,A:49.1,W:167,Ix:12600,Sx:632,Zx:734,ry:NaN},
+      {name:"W40x183",d:40.3,bf:12.4,tf:1.13,tw:0.71,A:53.8,W:183,Ix:13700,Sx:680,Zx:790,ry:NaN},
+      {name:"W40x211",d:41.17,bf:12.75,tf:1.305,tw:0.815,A:62.01,W:211,Ix:15621,Sx:763.8,Zx:887.8,ry:NaN}
     ];
 
     const state = {
@@ -651,7 +939,9 @@
       selectedSolutionId: null,
       uploadedShapes: [],
       shapeDatasetLabel: "DEMO W-shapes subset",
-      shapeFileName: null
+      shapeFileName: null,
+      diagnostics: { candidateErrors: 0, firstError: null },
+      inputsDirty: false
     };
 
     const $ = (id) => document.getElementById(id);
@@ -674,10 +964,9 @@
       .replace(/>/g, "&gt;");
 
     function defaultInputs() {
-      return {
+      const out = {
         basis: {
           design_method: "AISC_360_22_LRFD",
-          live_load_reduction: true,
           optimize_by: "cost"
         },
         geometry: {
@@ -685,17 +974,29 @@
           Lg_ft: 30,
           spacing_ft: 15,
           nBeamLines_override: null,
-          share_half_girders: false
+          share_half_girders: true,
+          share_half_beams: true
         },
         loads: {
-          DL_add_psf: 0.5,
+          SWadd_psf: 0.5,
           LL_psf: 50,
-          LL_reducible: true,
+          LL_reduction_mode: "asce",
           SDL_psf: 20,
           CLL_psf: 20
         },
+        construction_stage: {
+          enabled: true,
+          apply_mode: "composite_only",
+          swadd_pct: 0
+        },
         slab: {
           shored: false,
+          shore_spacing_ft: null,
+          deck_profile: "None",
+          deck_gage: 22,
+          deck_span_condition: 3,
+          deck_table_density: "LWC",
+          self_weight_override_psf: null,
           deck: {
             hd_in: 2,
             deck_weight_psf: 2.5,
@@ -709,7 +1010,6 @@
           },
           studs: {
             dia_in: 0.75,
-            height_in: 4,
             Fu_ksi: 60,
             min_comp_pct: 25,
             max_comp_pct: 100
@@ -752,76 +1052,377 @@
           disallow_noncompact_web: true
         },
         stud_spacing_limits: {
-          edge_dist_in: 1.5,
           end_dist_in: 6,
           long_min_parallel_in: 4,
-          long_min_perp_in: 4,
           long_max_parallel_in: 24,
-          long_max_perp_in: 24,
-          trans_min_parallel_in: 3,
-          trans_min_perp_in: 3
+          trans_min_parallel_in: 3
         },
         cost: {
-          steel_per_lb: 1.2,
-          stud_per_each: 3.5,
-          camber_model: "ranges",
-          flat_cost_per_member: 225,
-          ranges: [
-            { max_in: 1.5, cost_per_member: 180 },
-            { max_in: 2.5, cost_per_member: 260 },
-            { max_in: null, cost_per_member: 360 }
-          ]
+          steel_tic_per_lb: 1.25,
+          stud_tic_per_each: 8.0,
+          camber_model: "eq_lbs_per_ft",
+          camber_eq: {
+            beam_lbs_per_ft: 5,
+            girder_lbs_per_ft: 7
+          },
+          camber_flat: {
+            beam_cost_per_member: 250,
+            girder_cost_per_member: 350
+          }
         }
       };
+      out.cost = normalizeCostInputs(out.cost);
+      out.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", swadd_pct:0 }, out.construction_stage || {});
+      out.construction_stage.swadd_pct = clamp(out.construction_stage.swadd_pct, 0, 100);
+      out.slab = Object.assign({ deck_table_density:"LWC", self_weight_override_psf: null }, out.slab || {});
+      return out;
     }
 
     function computeLayout(geometry) {
       const Lg = Math.max(0.01, geometry.Lg_ft);
-      let nBeamLines, spacing_ft;
+
+      let nDeckSpans;
       if (geometry.nBeamLines_override != null && Number.isFinite(geometry.nBeamLines_override)) {
-        nBeamLines = Math.max(1, Math.round(geometry.nBeamLines_override));
-        spacing_ft = Lg / (nBeamLines + 1);
+        nDeckSpans = Math.max(1, Math.round(geometry.nBeamLines_override));
       } else {
-        const nSpaces = Math.max(2, Math.round(Lg / Math.max(0.1, geometry.spacing_ft)));
-        nBeamLines = Math.max(1, nSpaces - 1);
-        spacing_ft = Lg / nSpaces;
+        nDeckSpans = Math.max(1, Math.round(Lg / Math.max(0.1, geometry.spacing_ft)));
       }
-      const nSpaces = nBeamLines + 1;
-      const positions_ft = [];
-      for (let i = 1; i <= nBeamLines; i++) positions_ft.push(i * spacing_ft);
-      return { nBeamLines, nSpaces, spacing_ft, positions_ft };
+
+      const spacing_ft = Lg / nDeckSpans;
+      const positions_all_ft = [];
+      for (let i = 0; i <= nDeckSpans; i++) positions_all_ft.push(i * spacing_ft);
+      const positions_interior_ft = positions_all_ft.slice(1, -1);
+
+      const shareBeams = !!geometry.share_half_beams;
+      const shareGirders = !!geometry.share_half_girders;
+
+      const beam_equiv_count = shareBeams ? nDeckSpans : (nDeckSpans + 1);
+      const girder_equiv_count = shareGirders ? 1 : 2;
+
+      const out = {
+        nDeckSpans,
+        spacing_ft,
+        positions_all_ft,
+        positions_interior_ft,
+        beam_equiv_count,
+        girder_equiv_count
+      };
+      return out;
     }
 
-    function llReduction(LL, reducible, globalOn, KLL, AT) {
-      if (!reducible || !globalOn) return { LL_used_psf: LL, factor: 1, reduction_pct: 0 };
+    function llReduction(LL, mode, KLL, AT) {
+      if (mode === "none") return { LL_used_psf: LL, factor: 1, reduction_pct: 0 };
       const at = Math.max(1, AT);
       let f = 0.25 + 15 / Math.sqrt(Math.max(1, KLL * at));
       const minF = at >= 400 ? 0.40 : 0.50;
       f = clamp(f, minF, 1);
+      if (mode === "asce_cap20") f = Math.max(f, 0.80);
       return { LL_used_psf: LL * f, factor: f, reduction_pct: (1 - f) * 100 };
     }
 
-    function makePlanSVG(geometry, layout, beamLabel = "", girderLabel = "") {
-      const W = 300, H = 200, m = 24;
-      const x0 = m, y0 = m, w = W - 2 * m, h = H - 2 * m;
-      const Lg = Math.max(0.01, geometry.Lg_ft);
-      let beams = "";
-      for (const xFt of layout.positions_ft) {
-        const x = x0 + (xFt / Lg) * w;
-        beams += `<line x1="${x}" y1="${y0}" x2="${x}" y2="${y0 + h}" stroke="#1d4ed8" stroke-width="2"/>`;
+
+    function roundUpSpanToTable(spanDeck_ft, spanColsArray) {
+      for (const c of spanColsArray) if (spanDeck_ft <= c + 1e-9) return { spanUsed_ft: c, okInRange: true };
+      return { spanUsed_ft: null, okInRange: false };
+    }
+
+    function findClosestTotalDepthKey(profile, density, totalDepth_in) {
+      const fam = VULCRAFT_DECK_DB?.[profile]?.[density];
+      if (!fam) return { key:null, note:null };
+      const keys = Object.keys(fam).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+      if (!keys.length) return { key:null, note:null };
+      const tol = 1e-6;
+      const lower = keys.filter(k => k <= totalDepth_in + tol);
+      if (lower.length) return { key:String(lower[lower.length - 1]), note:null };
+      return { key:String(keys[0]), note:"Total depth below table minimum; using minimum table depth." };
+    }
+
+    function formatFtIn(span_ft) {
+      if (!Number.isFinite(span_ft)) return "—";
+      const ft = Math.floor(span_ft);
+      const inch = Math.round((span_ft - ft) * 12);
+      return `${ft}'-${inch}"`;
+    }
+
+    function computeDeckFamilyFromSelection(family, concUw) {
+      const density_family = family === "NWC" ? "NWC" : "LWC";
+      const target = density_family === "NWC" ? 145 : 110;
+      const density_msg = `Using ${density_family} (${target} pcf) tables.`;
+      const mismatch = Math.abs(parseNum(concUw, target) - target) > 2;
+      const warn_msg = mismatch
+        ? `Vulcraft tables assume ${target} pcf (${density_family}). Your concrete unit weight is ${fmt(parseNum(concUw, target),1)} pcf. Proceeding using ${density_family} tables.`
+        : "";
+      return { density_family, density_msg, warn_msg };
+    }
+
+    function calcSlabDeckSelfWeight(inputs) {
+      const slab = inputs.slab || {};
+      const deck = slab.deck || {};
+      const conc = slab.concrete || {};
+      const deck_psf = parseNum(deck.deck_weight_psf, 0);
+      const topping_psf = (parseNum(conc.topping_in, 0) / 12) * parseNum(conc.unit_weight_pcf, 0);
+      const sr = Math.max(0.01, parseNum(deck.rib_spacing_in, 12));
+      const t_flute_avg_in = 0.5 * parseNum(deck.hd_in, 0) * (parseNum(deck.rib_width_in, 0) / sr);
+      const flute_psf = (t_flute_avg_in / 12) * parseNum(conc.unit_weight_pcf, 0);
+      return {
+        deck_psf,
+        topping_psf,
+        flute_psf,
+        total_psf: deck_psf + topping_psf + flute_psf
+      };
+    }
+
+    function slabSelfWeightPsfUsed(inputs) {
+      const ov = Number.parseFloat(inputs?.slab?.self_weight_override_psf);
+      if (Number.isFinite(ov) && ov > 0) return ov;
+      return calcSlabDeckSelfWeight(inputs).total_psf;
+    }
+
+    function deckChecks(inputs, computedLayout) {
+      const slab = inputs.slab;
+      const profile = slab.deck_profile || "None";
+      const selfWt = calcSlabDeckSelfWeight(inputs);
+      const selfWtUsed = slabSelfWeightPsfUsed(inputs);
+      const D_area = selfWtUsed + inputs.loads.SWadd_psf + inputs.loads.SDL_psf;
+      const out = {
+        enabled: profile !== "None",
+        fc_ok: false,
+        fc_msg: "Deck checks disabled.",
+        density_family: null,
+        density_msg: "",
+        profile,
+        gage: slab.deck_gage,
+        deckDepth_in: slab.deck.hd_in,
+        deckWeight_psf: slab.deck.deck_weight_psf,
+        topping_in: slab.concrete.topping_in,
+        totalDepth_in: slab.deck.hd_in + slab.concrete.topping_in,
+        tableDepth_in: null,
+        spanDeck_ft: null,
+        spanCondition: slab.deck_span_condition || 3,
+        maxUnshoredAllowed_ft: null,
+        pass_unshored: null,
+        spanUsed_ft_for_superimposed: null,
+        phiWn_psf: null,
+        wL360_psf: null,
+        governing_allowable_psf: null,
+        computed_slab_deck_self_weight_psf: selfWt.total_psf,
+        used_slab_deck_self_weight_psf: selfWtUsed,
+        D_area_psf: D_area,
+        demand_strength_psf: 1.2 * D_area + 1.6 * inputs.loads.LL_psf,
+        demand_defl_psf: D_area + inputs.loads.LL_psf,
+        pass_strength: null,
+        pass_defl: null,
+        notes: []
+      };
+      if (!out.enabled) return out;
+
+      const db = VULCRAFT_DECK_DB[profile];
+      if (!db) { out.fc_msg = "Deck checks disabled: unknown profile."; return out; }
+      out.deckDepth_in = db.deckDepth_in;
+      out.totalDepth_in = out.deckDepth_in + slab.concrete.topping_in;
+
+      out.fc_ok = slab.concrete.fc_ksi >= 3.0;
+      out.fc_msg = out.fc_ok
+        ? "Using Vulcraft LRFD tables (f’c=3000 psi baseline)."
+        : "Deck table checks disabled: Vulcraft tables assume f’c = 3000 psi minimum.";
+      if (!out.fc_ok) return out;
+
+      const fam = computeDeckFamilyFromSelection(slab.deck_table_density, slab.concrete.unit_weight_pcf);
+      out.density_family = fam.density_family;
+      out.density_msg = fam.density_msg;
+      if (fam.warn_msg) out.notes.push(fam.warn_msg);
+
+      const ksel = findClosestTotalDepthKey(profile, out.density_family, out.totalDepth_in);
+      if (!ksel.key) { out.notes.push("No table match for total slab depth."); return out; }
+      if (ksel.note) out.notes.push(ksel.note);
+      out.tableDepth_in = Number(ksel.key);
+      const row = db[out.density_family][ksel.key];
+
+      const spacing = computedLayout?.spacing_ft || inputs.geometry.spacing_ft;
+      const shore = slab.shore_spacing_ft || spacing;
+      out.spanDeck_ft = slab.shored ? shore : spacing;
+      out.notes.push("Span treated as clear span for table lookups (conceptual).");
+
+      const cond = Math.max(1, Math.min(3, slab.deck_span_condition || 3));
+      out.spanCondition = cond;
+      out.maxUnshoredAllowed_ft = row.maxUnshored_ft?.[slab.deck_gage]?.[cond] ?? null;
+      out.pass_unshored = out.maxUnshoredAllowed_ft != null ? out.spanDeck_ft <= out.maxUnshoredAllowed_ft + 1e-9 : null;
+
+      const ru = roundUpSpanToTable(out.spanDeck_ft, db.spanCols_superimposed_ft || []);
+      if (!ru.okInRange) { out.notes.push("Span exceeds superimposed-load table range."); return out; }
+      out.spanUsed_ft_for_superimposed = ru.spanUsed_ft;
+      const idx = (db.spanCols_superimposed_ft || []).indexOf(ru.spanUsed_ft);
+      const cell = row.superimposed_phiWn_L360_psf?.[slab.deck_gage]?.[idx];
+      if (!cell) return out;
+      out.phiWn_psf = cell[0];
+      out.wL360_psf = cell[1];
+      out.governing_allowable_psf = Math.min(out.phiWn_psf, out.wL360_psf);
+      out.pass_strength = out.demand_strength_psf <= out.phiWn_psf + 1e-9;
+      out.pass_defl = out.demand_defl_psf <= out.wL360_psf + 1e-9;
+      return out;
+    }
+
+    function applyDeckProfileToInputs() {
+      const inp = collectInputs();
+      const p = inp.slab.deck_profile;
+      const isCatalog = p === "2VLI" || p === "3VLI";
+      const density = inp.slab.deck_table_density === "NWC" ? "NWC" : "LWC";
+      const gage = Math.round(parseNum($("deckGage").value, 22));
+      const lockTag = $("deckLockTag");
+      const lockHelp = $("deckLockHelp");
+
+      if (isCatalog && DECK_PROFILE_GEOMETRY[p]) {
+        const geom = DECK_PROFILE_GEOMETRY[p];
+        const wt = catalogDeckWeightPsf(p, gage, density);
+        $("deckHd").value = geom.hd_in;
+        $("deckRibW").value = geom.rib_width_in;
+        $("deckRibS").value = geom.rib_spacing_in;
+        if (Number.isFinite(wt)) $("deckWt").value = fmt(wt, 2);
       }
+
+      ["deckHd","deckRibW","deckRibS","deckWt"].forEach(id => {
+        $(id).disabled = isCatalog;
+      });
+      if (lockTag) {
+        lockTag.className = `badge ${isCatalog ? "ok" : ""}`;
+        lockTag.style.display = isCatalog ? "inline-block" : "none";
+      }
+      if (lockHelp) lockHelp.style.display = isCatalog ? "block" : "none";
+
+      const ov = parseOptionalNum($("slabSelfWeightOverride").value);
+      const ovBadge = $("deckOverrideBadge");
+      if (ovBadge) ovBadge.style.display = (isCatalog && Number.isFinite(ov) && ov > 0) ? "block" : "none";
+
+      $("deckGeometryGrid").style.display = "grid";
+      $("shoreSpacingBox").style.display = $("slabShored").checked ? "block" : "none";
+      if (!$("shoreSpacing").value) $("shoreSpacing").value = fmt(computeLayout(inp.geometry).spacing_ft, 3);
+    }
+
+    function renderDeckCatalogView(inp, d) {
+      const box = $("deckCatalogView");
+      if (!box) return;
+      if (!d.enabled || !d.fc_ok || d.tableDepth_in == null) {
+        box.innerHTML = `<div class="small">Catalog view available for 2VLI/3VLI checks.</div>`;
+        return;
+      }
+      const db = VULCRAFT_DECK_DB[d.profile];
+      const fam = db?.[d.density_family || "LWC"];
+      const row = fam?.[String(d.tableDepth_in)];
+      const spans = Array.isArray(db?.spanCols_superimposed_ft) ? db.spanCols_superimposed_ft : [];
+      const vals = row?.superimposed_phiWn_L360_psf?.[d.gage];
+      if (!row || !spans.length || !vals) {
+        box.innerHTML = `<div class="small">Catalog row not available for selected inputs.</div>`;
+        return;
+      }
+      const hi = spans.indexOf(d.spanUsed_ft_for_superimposed);
+      const spanHdr = spans.map((s, i) => `<th class="${i===hi?'hl-col':''}">${fmt(s,2)} ft</th>`).join("");
+      const phiRow = spans.map((s, i) => `<td class="${i===hi?'hl-col':''}">${fmt(vals[i]?.[0],1)}</td>`).join("");
+      const deflRow = spans.map((s, i) => `<td class="${i===hi?'hl-col':''}" style="color:#b91c1c">${fmt(vals[i]?.[1],1)}</td>`).join("");
+      box.innerHTML = `
+        <div class="small"><strong>Actual total depth:</strong> ${fmt(d.totalDepth_in,2)} in | <strong>Catalog total depth used:</strong> <span class="hl-depth">${fmt(d.tableDepth_in,2)} in</span> (next lower)</div>
+        <div class="small"><strong>Actual deck span used:</strong> ${fmt(d.spanDeck_ft,3)} ft | <strong>Catalog span used:</strong> ${fmt(d.spanUsed_ft_for_superimposed,3)} ft (next higher column)</div>
+        ${d.notes.length ? `<div class="small">${d.notes.map(safeStr).join("<br/>")}</div>` : ""}
+        <div class="table-scroll" style="margin-top:.35rem">
+          <table>
+            <thead><tr><th>Row</th>${spanHdr}</tr></thead>
+            <tbody>
+              <tr><td><strong>φWn (psf)</strong><br/><span class="small hl-depth">Depth ${fmt(d.tableDepth_in,2)} in</span></td>${phiRow}</tr>
+              <tr><td><strong style="color:#b91c1c">w@L/360 (psf)</strong><br/><span class="small hl-depth">Depth ${fmt(d.tableDepth_in,2)} in</span></td>${deflRow}</tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="small" style="margin-top:.35rem">Highlighted column = catalog span used for checks. Values are catalog allowables; demands are computed from tool load inputs.</div>
+      `;
+    }
+
+    function renderDeckChecks() {
+      const inp = collectInputs();
+      applyDeckProfileToInputs();
+      const lay = computeLayout(inp.geometry);
+      const d = deckChecks(inp, lay);
+      const sw = calcSlabDeckSelfWeight(inp);
+      const usedSw = slabSelfWeightPsfUsed(inp);
+      const ovActive = Number.isFinite(parseOptionalNum($("slabSelfWeightOverride").value)) && parseOptionalNum($("slabSelfWeightOverride").value) > 0;
+      $("slabSelfWeightInfo").innerHTML = `<div><strong>Computed slab/deck self-weight (psf):</strong> ${fmt(sw.total_psf,2)} = metal ${fmt(sw.deck_psf,2)} + topping ${fmt(sw.topping_psf,2)} + flutes (avg) ${fmt(sw.flute_psf,2)}</div>${ovActive ? `<div><strong>Used (override):</strong> ${fmt(usedSw,2)} psf <span class="badge ok">Override active</span></div>` : ``}`;
+      const box = $("deckChecksInfo");
+      if (!d.enabled) {
+        box.innerHTML = '<div>Deck checks disabled (profile=None).</div>';
+        renderDeckCatalogView(inp, d);
+        return;
+      }
+      const pf = (v) => v == null ? '—' : (v ? '<span class="badge ok">PASS</span>' : '<span class="badge fail">FAIL</span>');
+      box.innerHTML = `
+        <div><strong>Status:</strong> ${d.fc_ok ? '<span class="badge ok">PASS</span>' : '<span class="badge fail">FAIL</span>'} ${safeStr(d.fc_msg)}</div>
+        <div>${safeStr(d.density_msg || '')}</div>
+        <div><strong>Deck span used:</strong> ${formatFtIn(d.spanDeck_ft)} (${fmt(d.spanDeck_ft,3)} ft)</div>
+        <div><strong>Total slab depth (lookup):</strong> ${fmt(d.totalDepth_in,2)} in → table ${d.tableDepth_in != null ? fmt(d.tableDepth_in,2) : "—"} in</div>
+        <div><strong>Allowed max unshored clear span:</strong> ${formatFtIn(d.maxUnshoredAllowed_ft)} | <strong>Provided:</strong> ${formatFtIn(d.spanDeck_ft)} → ${pf(d.pass_unshored)}</div>
+        <div><strong>Span column used:</strong> ${d.spanUsed_ft_for_superimposed != null ? formatFtIn(d.spanUsed_ft_for_superimposed) : '—'}</div>
+        <div><strong>Demand inputs:</strong> SWused=${fmt(d.used_slab_deck_self_weight_psf,2)} psf, SWadd=${fmt(inp.loads.SWadd_psf,2)} psf, SDL=${fmt(inp.loads.SDL_psf,2)} psf, LL=${fmt(inp.loads.LL_psf,2)} psf</div>
+        <div><strong>φWn capacity:</strong> ${fmt(d.phiWn_psf,1)} psf; strength demand=${fmt(d.demand_strength_psf,1)} psf → ${pf(d.pass_strength)}</div>
+        <div><strong style="color:#b91c1c">L/360 cap:</strong> <span style="color:#b91c1c">${fmt(d.wL360_psf,1)} psf</span>; service demand=${fmt(d.demand_defl_psf,1)} psf → ${pf(d.pass_defl)}</div>
+        <div><strong>Governing allowable:</strong> ${fmt(d.governing_allowable_psf,1)} psf (min of φWn and L/360)</div>
+        ${d.notes.map(n=>`<div>${safeStr(n)}</div>`).join('')}
+      `;
+      renderDeckCatalogView(inp, d);
+    }
+
+    function makePlanSVG(geometry, layout, beamLabel = "", girderLabel = "") {
+      const W = 360, H = 220, pad = 28;
+      const Lb = Number(geometry?.Lb_ft);
+      const Lg = Number(geometry?.Lg_ft);
+      const spacing = Number(layout?.spacing_ft);
+
+      if (!Number.isFinite(Lb) || !Number.isFinite(Lg) || Lb <= 0 || Lg <= 0) {
+        return `
+          <div class="gfx-card">
+            <div class="small" style="color:#111827">Enter valid spans to preview bay.</div>
+            <div class="small gfx-note" style="color:#6b7280">Typical Bay Configuration</div>
+          </div>`;
+      }
+
+      const maxDim = Math.max(Lb, Lg);
+      const usable = Math.max(20, Math.min(W, H) - 2 * pad);
+      const s = usable / maxDim;
+      const bayW = Lg * s;
+      const bayH = Lb * s;
+      const x0 = (W - bayW) / 2;
+      const y0 = (H - bayH) / 2;
+
+      const hasSpacing = Number.isFinite(spacing) && spacing > 0;
+      let beams = "";
+      if (hasSpacing && Array.isArray(layout?.positions_all_ft) && layout.positions_all_ft.length) {
+        for (const xFt of layout.positions_all_ft) {
+          const xi = x0 + (xFt / Lg) * bayW;
+          beams += `<line x1="${xi}" y1="${y0}" x2="${xi}" y2="${y0 + bayH}" stroke="#6b7280" stroke-width="1"/>`;
+        }
+      }
+
+      const spacingText = hasSpacing
+        ? `Beam spacing = ${fmt(spacing,3)} ft (actual)`
+        : "Spacing not available.";
+
+      const msg = hasSpacing ? "" : `<text x="${x0 + bayW / 2}" y="${y0 + bayH + 14}" text-anchor="middle" fill="#6b7280" font-size="11">Spacing not available.</text>`;
+
       return `
-      <svg viewBox="0 0 ${W} ${H}" width="100%" height="190" role="img" aria-label="Bay plan diagram">
-        <rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="#f8fafc" stroke="#334155" stroke-width="1.4"/>
-        <line x1="${x0}" y1="${y0}" x2="${x0 + w}" y2="${y0}" stroke="#0f172a" stroke-width="4"/>
-        <line x1="${x0}" y1="${y0 + h}" x2="${x0 + w}" y2="${y0 + h}" stroke="#0f172a" stroke-width="4"/>
-        ${beams}
-        <text x="${x0 + w / 2}" y="${y0 - 7}" text-anchor="middle" fill="#111827" font-size="11">Lg = ${fmt(geometry.Lg_ft,2)} ft</text>
-        <text x="${x0 - 8}" y="${y0 + h / 2}" transform="rotate(-90 ${x0 - 8},${y0 + h / 2})" text-anchor="middle" fill="#111827" font-size="11">Lb = ${fmt(geometry.Lb_ft,2)} ft</text>
-        <text x="${x0 + 6}" y="${y0 + 14}" fill="#0f172a" font-size="10">${safeStr(girderLabel)}</text>
-        <text x="${x0 + 6}" y="${y0 + h - 6}" fill="#0f172a" font-size="10">${safeStr(girderLabel)}</text>
-        <text x="${x0 + 6}" y="${y0 + h/2}" fill="#1d4ed8" font-size="10">${safeStr(beamLabel)}</text>
-      </svg>`;
+        <div class="gfx-card">
+          <svg class="bay-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Bay plan diagram scaled to span proportions">
+            <rect x="${x0}" y="${y0}" width="${bayW}" height="${bayH}" fill="#ffffff" stroke="#111827" stroke-width="2"/>
+            ${beams}
+            <line x1="${x0}" y1="${y0}" x2="${x0 + bayW}" y2="${y0}" stroke="#111827" stroke-width="2"/>
+            <line x1="${x0}" y1="${y0 + bayH}" x2="${x0 + bayW}" y2="${y0 + bayH}" stroke="#111827" stroke-width="2"/>
+
+            <text x="${x0 + bayW / 2}" y="${Math.max(12, y0 - 9)}" text-anchor="middle" fill="#111827" font-size="11">Girder span Lg = ${fmt(Lg,2)} ft</text>
+            <text x="${Math.max(12, x0 - 10)}" y="${y0 + bayH / 2}" transform="rotate(-90 ${Math.max(12, x0 - 10)},${y0 + bayH / 2})" text-anchor="middle" fill="#111827" font-size="11">Beam span Lb = ${fmt(Lb,2)} ft</text>
+            <text x="${x0 + bayW / 2}" y="${Math.min(H - 6, y0 + bayH + 26)}" text-anchor="middle" fill="#111827" font-size="11">${safeStr(spacingText)}</text>
+
+            <text x="${x0 + 6}" y="${y0 + 14}" fill="#111827" font-size="10">${safeStr(girderLabel)}</text>
+            <text x="${x0 + 6}" y="${y0 + bayH - 6}" fill="#111827" font-size="10">${safeStr(girderLabel)}</text>
+            <text x="${Math.min(W - 8, x0 + 8)}" y="${y0 + bayH/2}" fill="#111827" font-size="10">${safeStr(beamLabel)}</text>
+            ${msg}
+          </svg>
+          <div class="small gfx-note" style="color:#6b7280">Typical Bay Configuration</div>
+        </div>`;
     }
 
     function setTab(tabName) {
@@ -830,22 +1431,32 @@
     }
 
     function populateForm(inputs) {
-      $("globalLLReduction").value = String(inputs.basis.live_load_reduction);
       $("optimizeBy").value = inputs.basis.optimize_by;
 
       $("geoLb").value = inputs.geometry.Lb_ft;
       $("geoLg").value = inputs.geometry.Lg_ft;
       $("geoSpacing").value = inputs.geometry.spacing_ft;
-      $("geoNBeamOverride").value = inputs.geometry.nBeamLines_override ?? "";
+      if ($("geoNBeamOverride")) $("geoNBeamOverride").value = inputs.geometry.nBeamLines_override ?? "";
       $("geoShareHalfGirders").checked = !!inputs.geometry.share_half_girders;
+      $("geoShareHalfBeams").checked = !!inputs.geometry.share_half_beams;
 
-      $("loadDLadd").value = inputs.loads.DL_add_psf;
+      $("loadSWadd").value = inputs.loads.SWadd_psf;
       $("loadLL").value = inputs.loads.LL_psf;
-      $("loadLLReducible").checked = !!inputs.loads.LL_reducible;
+      $("loadLLReductionMode").value = inputs.loads.LL_reduction_mode || "asce";
       $("loadSDL").value = inputs.loads.SDL_psf;
       $("loadCLL").value = inputs.loads.CLL_psf;
 
+      $("constrEnable").checked = !!inputs.construction_stage?.enabled;
+      $("constrApplyMode").value = inputs.construction_stage?.apply_mode || "composite_only";
+      $("constrSWaddPct").value = inputs.construction_stage?.swadd_pct ?? 0;
+
       $("slabShored").checked = !!inputs.slab.shored;
+      $("shoreSpacing").value = inputs.slab.shore_spacing_ft ?? inputs.geometry.spacing_ft;
+      $("deckProfile").value = inputs.slab.deck_profile || "None";
+      $("deckGage").value = String(inputs.slab.deck_gage || 22);
+      $("deckSpanCond").value = String(inputs.slab.deck_span_condition || 3);
+      $("deckTableDensity").value = inputs.slab.deck_table_density || "LWC";
+      $("slabSelfWeightOverride").value = inputs.slab.self_weight_override_psf ?? "";
       $("deckHd").value = inputs.slab.deck.hd_in;
       $("deckWt").value = inputs.slab.deck.deck_weight_psf;
       $("deckRibW").value = inputs.slab.deck.rib_width_in;
@@ -856,19 +1467,14 @@
       $("concUw").value = inputs.slab.concrete.unit_weight_pcf;
 
       $("studDia").value = inputs.slab.studs.dia_in;
-      $("studH").value = inputs.slab.studs.height_in;
       $("studFu").value = inputs.slab.studs.Fu_ksi;
       $("studMinComp").value = inputs.slab.studs.min_comp_pct;
       $("studMaxComp").value = inputs.slab.studs.max_comp_pct;
 
-      $("studEdgeDist").value = inputs.stud_spacing_limits.edge_dist_in;
       $("studEndDist").value = inputs.stud_spacing_limits.end_dist_in;
       $("studLongMinPar").value = inputs.stud_spacing_limits.long_min_parallel_in;
-      $("studLongMinPerp").value = inputs.stud_spacing_limits.long_min_perp_in;
       $("studLongMaxPar").value = inputs.stud_spacing_limits.long_max_parallel_in;
-      $("studLongMaxPerp").value = inputs.stud_spacing_limits.long_max_perp_in;
       $("studTransMinPar").value = inputs.stud_spacing_limits.trans_min_parallel_in;
-      $("studTransMinPerp").value = inputs.stud_spacing_limits.trans_min_perp_in;
 
       $("Fy").value = inputs.member_criteria.Fy_ksi;
       $("beamCompositeAllowed").checked = !!inputs.member_criteria.beam.composite_allowed;
@@ -913,41 +1519,51 @@
       $("camberPctDead").value = inputs.camber.pct_of_dead * 100;
       $("camberDisallowNoncompact").checked = !!inputs.camber.disallow_noncompact_web;
 
-      $("costSteel").value = inputs.cost.steel_per_lb;
-      $("costStud").value = inputs.cost.stud_per_each;
+      $("costSteelTIC").value = inputs.cost.steel_tic_per_lb;
+      $("costStudTIC").value = inputs.cost.stud_tic_per_each;
       $("camberModel").value = inputs.cost.camber_model;
-      $("flatCamberCost").value = inputs.cost.flat_cost_per_member;
-      $("range1Max").value = inputs.cost.ranges[0].max_in ?? "";
-      $("range1Cost").value = inputs.cost.ranges[0].cost_per_member;
-      $("range2Max").value = inputs.cost.ranges[1].max_in ?? "";
-      $("range2Cost").value = inputs.cost.ranges[1].cost_per_member;
-      $("range3Cost").value = inputs.cost.ranges[2].cost_per_member;
+      $("camberEqBeam").value = inputs.cost.camber_eq.beam_lbs_per_ft;
+      $("camberEqGirder").value = inputs.cost.camber_eq.girder_lbs_per_ft;
+      $("camberFlatBeam").value = inputs.cost.camber_flat.beam_cost_per_member;
+      $("camberFlatGirder").value = inputs.cost.camber_flat.girder_cost_per_member;
+      applyDeckProfileToInputs();
     }
 
     function collectInputs() {
       const shapeMode = document.querySelector("input[name='shapeSource']:checked")?.value ?? "demo";
-      return {
+      const out = {
         basis: {
           design_method: "AISC_360_22_LRFD",
-          live_load_reduction: $("globalLLReduction").value === "true",
           optimize_by: $("optimizeBy").value === "weight" ? "weight" : "cost"
         },
         geometry: {
           Lb_ft: parseNum($("geoLb").value, 40),
           Lg_ft: parseNum($("geoLg").value, 30),
           spacing_ft: parseNum($("geoSpacing").value, 15),
-          nBeamLines_override: parseOptionalNum($("geoNBeamOverride").value),
-          share_half_girders: !!$("geoShareHalfGirders").checked
+          nBeamLines_override: $("geoNBeamOverride") ? parseOptionalNum($("geoNBeamOverride").value) : (state.inputs?.geometry?.nBeamLines_override ?? null),
+          share_half_girders: !!$("geoShareHalfGirders").checked,
+          share_half_beams: !!$("geoShareHalfBeams").checked
         },
         loads: {
-          DL_add_psf: parseNum($("loadDLadd").value, 0.5),
+          SWadd_psf: parseNum($("loadSWadd").value, 0.5),
           LL_psf: parseNum($("loadLL").value, 50),
-          LL_reducible: !!$("loadLLReducible").checked,
+          LL_reduction_mode: ["none","asce","asce_cap20"].includes($("loadLLReductionMode").value) ? $("loadLLReductionMode").value : "asce",
           SDL_psf: parseNum($("loadSDL").value, 20),
           CLL_psf: parseNum($("loadCLL").value, 20)
         },
+        construction_stage: {
+          enabled: !!$("constrEnable").checked,
+          apply_mode: $("constrApplyMode").value === "all" ? "all" : "composite_only",
+          swadd_pct: parseNum($("constrSWaddPct").value, 0)
+        },
         slab: {
           shored: !!$("slabShored").checked,
+          shore_spacing_ft: parseOptionalNum($("shoreSpacing").value),
+          deck_profile: $("deckProfile").value || "None",
+          deck_gage: Math.round(parseNum($("deckGage").value, 22)),
+          deck_span_condition: Math.max(1, Math.min(3, Math.round(parseNum($("deckSpanCond").value, 3)))),
+          deck_table_density: $("deckTableDensity").value === "NWC" ? "NWC" : "LWC",
+          self_weight_override_psf: parseOptionalNum($("slabSelfWeightOverride").value),
           deck: {
             hd_in: parseNum($("deckHd").value, 2),
             deck_weight_psf: parseNum($("deckWt").value, 2.5),
@@ -961,7 +1577,6 @@
           },
           studs: {
             dia_in: parseNum($("studDia").value, 0.75),
-            height_in: parseNum($("studH").value, 4),
             Fu_ksi: parseNum($("studFu").value, 60),
             min_comp_pct: parseNum($("studMinComp").value, 25),
             max_comp_pct: parseNum($("studMaxComp").value, 100)
@@ -1018,39 +1633,69 @@
           disallow_noncompact_web: !!$("camberDisallowNoncompact").checked
         },
         stud_spacing_limits: {
-          edge_dist_in: parseNum($("studEdgeDist").value, 1.5),
           end_dist_in: parseNum($("studEndDist").value, 6),
           long_min_parallel_in: parseNum($("studLongMinPar").value, 4),
-          long_min_perp_in: parseNum($("studLongMinPerp").value, 4),
           long_max_parallel_in: parseNum($("studLongMaxPar").value, 24),
-          long_max_perp_in: parseNum($("studLongMaxPerp").value, 24),
-          trans_min_parallel_in: parseNum($("studTransMinPar").value, 3),
-          trans_min_perp_in: parseNum($("studTransMinPerp").value, 3)
+          trans_min_parallel_in: parseNum($("studTransMinPar").value, 3)
         },
         cost: {
-          steel_per_lb: parseNum($("costSteel").value, 1.2),
-          stud_per_each: parseNum($("costStud").value, 3.5),
-          camber_model: $("camberModel").value === "flat" ? "flat" : "ranges",
-          flat_cost_per_member: parseNum($("flatCamberCost").value, 225),
-          ranges: [
-            { max_in: parseOptionalNum($("range1Max").value), cost_per_member: parseNum($("range1Cost").value, 180) },
-            { max_in: parseOptionalNum($("range2Max").value), cost_per_member: parseNum($("range2Cost").value, 260) },
-            { max_in: null, cost_per_member: parseNum($("range3Cost").value, 360) }
-          ]
+          steel_tic_per_lb: parseNum($("costSteelTIC").value, 1.25),
+          stud_tic_per_each: parseNum($("costStudTIC").value, 8.0),
+          camber_model: $("camberModel").value === "flat_per_member" ? "flat_per_member" : "eq_lbs_per_ft",
+          camber_eq: {
+            beam_lbs_per_ft: parseNum($("camberEqBeam").value, 5),
+            girder_lbs_per_ft: parseNum($("camberEqGirder").value, 7)
+          },
+          camber_flat: {
+            beam_cost_per_member: parseNum($("camberFlatBeam").value, 250),
+            girder_cost_per_member: parseNum($("camberFlatGirder").value, 350)
+          }
         }
+      };
+      out.cost = normalizeCostInputs(out.cost);
+      out.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", swadd_pct:0 }, out.construction_stage || {});
+      out.construction_stage.swadd_pct = clamp(out.construction_stage.swadd_pct, 0, 100);
+      out.slab = Object.assign({ deck_table_density:"LWC", self_weight_override_psf: null }, out.slab || {});
+      return out;
+    }
+
+
+    function normalizeCostInputs(costRaw = {}) {
+      if (costRaw.steel_tic_per_lb != null || costRaw.stud_tic_per_each != null || costRaw.camber_eq || costRaw.camber_flat) {
+        return {
+          steel_tic_per_lb: parseNum(costRaw.steel_tic_per_lb, 1.25),
+          stud_tic_per_each: parseNum(costRaw.stud_tic_per_each, 8.0),
+          camber_model: costRaw.camber_model === "flat_per_member" ? "flat_per_member" : "eq_lbs_per_ft",
+          camber_eq: {
+            beam_lbs_per_ft: parseNum(costRaw.camber_eq?.beam_lbs_per_ft, 5),
+            girder_lbs_per_ft: parseNum(costRaw.camber_eq?.girder_lbs_per_ft, 7)
+          },
+          camber_flat: {
+            beam_cost_per_member: parseNum(costRaw.camber_flat?.beam_cost_per_member, 250),
+            girder_cost_per_member: parseNum(costRaw.camber_flat?.girder_cost_per_member, 350)
+          }
+        };
+      }
+      return {
+        steel_tic_per_lb: parseNum(costRaw.steel_per_lb, 1.25),
+        stud_tic_per_each: parseNum(costRaw.stud_per_each, 8.0),
+        camber_model: "eq_lbs_per_ft",
+        camber_eq: { beam_lbs_per_ft: 5, girder_lbs_per_ft: 7 },
+        camber_flat: { beam_cost_per_member: 250, girder_cost_per_member: 350 }
       };
     }
 
     function validateInputs(inp, shapes) {
       const e = [];
       if (inp.geometry.Lb_ft <= 0 || inp.geometry.Lg_ft <= 0 || inp.geometry.spacing_ft <= 0) e.push("Geometry dimensions/spacing must be positive.");
-      if (inp.geometry.nBeamLines_override != null && inp.geometry.nBeamLines_override < 1) e.push("Interior beam line override must be >= 1.");
-      if (inp.loads.LL_psf < 0 || inp.loads.SDL_psf < 0 || inp.loads.CLL_psf < 0 || inp.loads.DL_add_psf < 0) e.push("Loads must be nonnegative.");
+      if (inp.geometry.nBeamLines_override != null && inp.geometry.nBeamLines_override < 1) e.push("Deck spans override must be >= 1.");
+      if (inp.loads.LL_psf < 0 || inp.loads.SDL_psf < 0 || inp.loads.CLL_psf < 0 || inp.loads.SWadd_psf < 0) e.push("Loads must be nonnegative.");
+      if (inp.slab.shored && (inp.slab.shore_spacing_ft == null || inp.slab.shore_spacing_ft <= 0)) e.push("Shore spacing must be positive when shored construction is enabled.");
       if (inp.slab.studs.min_comp_pct < 0 || inp.slab.studs.max_comp_pct > 100 || inp.slab.studs.min_comp_pct > inp.slab.studs.max_comp_pct) e.push("Stud composite % limits are invalid.");
       if (inp.member_criteria.Fy_ksi <= 0) e.push("Fy must be positive.");
       if (inp.camber.min_in < 0 || inp.camber.max_in < 0 || inp.camber.inc_in <= 0 || inp.camber.min_in > inp.camber.max_in) e.push("Camber range/increment is invalid.");
       if (inp.camber.pct_of_dead < 0 || inp.camber.pct_of_dead > 1) e.push("Camber dead-load percent must be between 0 and 100%.");
-      if (inp.cost.steel_per_lb < 0 || inp.cost.stud_per_each < 0) e.push("Cost inputs must be nonnegative.");
+      if (inp.cost.steel_tic_per_lb < 0 || inp.cost.stud_tic_per_each < 0) e.push("Cost inputs must be nonnegative.");
       if (inp.member_criteria.beam.shape_filters.d_min > inp.member_criteria.beam.shape_filters.d_max) e.push("Beam filter d min > d max.");
       if (inp.member_criteria.girder.shape_filters.d_min > inp.member_criteria.girder.shape_filters.d_max) e.push("Girder filter d min > d max.");
       if (!shapes.length) e.push("No shapes available. Use demo shapes or upload a valid shapes file.");
@@ -1069,8 +1714,8 @@
     }
 
     function updateCamberCostUI() {
-      const isFlat = $("camberModel").value === "flat";
-      $("camberRangesBox").style.display = isFlat ? "none" : "block";
+      const isFlat = $("camberModel").value === "flat_per_member";
+      $("camberEqBox").style.display = isFlat ? "none" : "block";
       $("camberFlatBox").style.display = isFlat ? "block" : "none";
     }
 
@@ -1100,16 +1745,41 @@
         Lb_ft: parseNum($("geoLb").value, 40),
         Lg_ft: parseNum($("geoLg").value, 30),
         spacing_ft: parseNum($("geoSpacing").value, 15),
-        nBeamLines_override: parseOptionalNum($("geoNBeamOverride").value)
+        nBeamLines_override: $("geoNBeamOverride") ? parseOptionalNum($("geoNBeamOverride").value) : (state.inputs?.geometry?.nBeamLines_override ?? null),
+        share_half_girders: !!$("geoShareHalfGirders").checked,
+        share_half_beams: !!$("geoShareHalfBeams").checked
       };
       const lay = computeLayout(g);
       $("layoutInfo").innerHTML = `
-        <div><strong>Computed interior beam lines:</strong> ${lay.nBeamLines}</div>
+        <div><strong>Computed deck spans:</strong> ${lay.nDeckSpans}</div>
+        <div><strong>Computed interior beam lines:</strong> ${lay.positions_interior_ft.length}</div>
         <div><strong>Actual spacing used:</strong> ${fmt(lay.spacing_ft,3)} ft</div>
-        <div><strong>Beam line positions xᵢ (ft):</strong> ${lay.positions_ft.map(v => fmt(v,2)).join(", ")}</div>
+        <div><strong>Beam lines (all) xᵢ (ft):</strong> ${lay.positions_all_ft.map(v => fmt(v,2)).join(", ")}</div>
+        <div><strong>Interior beam lines xᵢ (ft):</strong> ${lay.positions_interior_ft.map(v => fmt(v,2)).join(", ") || "none"}</div>
       `;
       $("planDiagram").innerHTML = makePlanSVG(g, lay);
       updateLLPreview();
+      updateConstructionPreview();
+      renderDeckChecks();
+    }
+
+
+    function updateConstructionPreview() {
+      const inp = collectInputs();
+      const cfg = inp.construction_stage || {};
+      const lay = computeLayout(inp.geometry);
+      const sw = calcSlabDeckSelfWeight(inp);
+      const slabPsfConstr = slabSelfWeightPsfUsed(inp);
+      const dlAddUsed = inp.loads.SWadd_psf * clamp((cfg.swadd_pct ?? 0) / 100, 0, 1);
+      const sdlUsed = 0;
+      $("constructionPreview").innerHTML = `
+        <div><strong>Check active:</strong> ${cfg.enabled ? "Yes" : "No"} (${safeStr(cfg.apply_mode === "all" ? "all solutions" : "composite solutions only")})${inp.slab.shored ? " — Shored selected, checks will be skipped." : ""}</div>
+        <div><strong>Slab/deck psf used for construction:</strong> ${fmt(slabPsfConstr,2)} psf (wet slab + metal deck + topping + flutes(avg))</div>
+        <div><strong>SWadd portion:</strong> ${fmt(dlAddUsed,2)} psf (${fmt(cfg.swadd_pct,1)}%)</div>
+        <div><strong>SDL included:</strong> ${fmt(sdlUsed,2)} psf (always excluded in pre-composite checks)</div>
+        <div><strong>CLL:</strong> ${fmt(inp.loads.CLL_psf,2)} psf</div>
+        <div><strong>Beam spacing used:</strong> ${fmt(lay.spacing_ft,3)} ft</div>
+      `;
     }
 
     function updateLLPreview() {
@@ -1117,11 +1787,14 @@
       const lay = computeLayout(inp.geometry);
       const AT_beam = lay.spacing_ft * inp.geometry.Lb_ft;
       const AT_girder = inp.geometry.Lb_ft * inp.geometry.Lg_ft;
-      const beam = llReduction(inp.loads.LL_psf, inp.loads.LL_reducible, inp.basis.live_load_reduction, 2, AT_beam);
-      const girder = llReduction(inp.loads.LL_psf, inp.loads.LL_reducible, inp.basis.live_load_reduction, 1, AT_girder);
+      const beam = llReduction(inp.loads.LL_psf, inp.loads.LL_reduction_mode, 2, AT_beam);
+      const girder = llReduction(inp.loads.LL_psf, inp.loads.LL_reduction_mode, 1, AT_girder);
+      const mode = inp.loads.LL_reduction_mode || "asce";
+      const modeLbl = mode === "none" ? "None" : (mode === "asce_cap20" ? "ASCE 7-22 (20% cap)" : "ASCE 7-22");
       $("llReductionInfo").innerHTML = `
-        <div><strong>Beam:</strong> KLL=2, AT=${fmt(AT_beam,2)} sf, LL_used=${fmt(beam.LL_used_psf,2)} psf (${fmt(beam.reduction_pct,1)}% reduction)</div>
-        <div><strong>Girder:</strong> KLL=1, AT=${fmt(AT_girder,2)} sf, LL_used=${fmt(girder.LL_used_psf,2)} psf (${fmt(girder.reduction_pct,1)}% reduction)</div>
+        <div><strong>Mode:</strong> ${safeStr(modeLbl)}</div>
+        <div><strong>Beam:</strong> AT=${fmt(AT_beam,2)} sf, KLL=2 → KLL·AT=${fmt(2 * AT_beam,2)} sf, LL_used=${fmt(beam.LL_used_psf,2)} psf (${fmt(beam.reduction_pct,1)}% reduction)</div>
+        <div><strong>Girder:</strong> AT=${fmt(AT_girder,2)} sf, KLL=1 → KLL·AT=${fmt(AT_girder,2)} sf, LL_used=${fmt(girder.LL_used_psf,2)} psf (${fmt(girder.reduction_pct,1)}% reduction)</div>
       `;
     }
 
@@ -1133,6 +1806,22 @@
       }
     }
 
+    function updateDiagnostics(info = {}) {
+      state.diagnostics = { candidateErrors: info.candidateErrors || 0, firstError: info.firstCandidateError || null };
+      $("diagnosticsInfo").innerHTML = `Worker candidate errors: ${state.diagnostics.candidateErrors}${state.diagnostics.firstError ? `<br/>First: ${safeStr(state.diagnostics.firstError)}` : ""}`;
+    }
+
+    function markInputsDirty() {
+      if (state.inputsDirty) return;
+      state.inputsDirty = true;
+      if ($("inputsDirtyPill")) $("inputsDirtyPill").style.display = "inline-block";
+    }
+
+    function clearInputsDirty() {
+      state.inputsDirty = false;
+      if ($("inputsDirtyPill")) $("inputsDirtyPill").style.display = "none";
+    }
+
     function setRunningUI(running) {
       state.running = running;
       $("btnRun").disabled = running;
@@ -1140,7 +1829,8 @@
     }
 
     function createWorker() {
-      const code = `(${optimizationWorkerMain.toString()})();`;
+      const pre = `const VULCRAFT_DECK_DB = ${JSON.stringify(VULCRAFT_DECK_DB)};`;
+      const code = pre + `(${optimizationWorkerMain.toString()})();`;
       const blob = new Blob([code], { type: "application/javascript" });
       const url = URL.createObjectURL(blob);
       return new Worker(url);
@@ -1154,7 +1844,9 @@
       showErrors(errs);
       if (errs.length) return;
 
+      clearInputsDirty();
       setTab("results");
+      updateDiagnostics({ candidateErrors: 0, firstCandidateError: null });
       state.inputs = deepClone(inputs);
       state.results = [];
       state.selectedSolutionId = null;
@@ -1178,12 +1870,15 @@
         } else if (m.cmd === "progress") {
           setRunStatus(`Running... processed ${m.processed}/${m.total}, passing ${m.found}`, m.processed, m.total);
           $("resultsMeta").textContent = `Running... processed ${m.processed}/${m.total}, passing ${m.found}`;
+          updateDiagnostics(m);
         } else if (m.cmd === "candidate") {
           insertCandidate(m.candidate);
           setRunStatus(`Running... processed ${m.processed}/${m.total}, passing ${m.found}`, m.processed, m.total);
           $("resultsMeta").textContent = `Running... processed ${m.processed}/${m.total}, passing ${m.found}`;
         } else if (m.cmd === "done") {
           setRunningUI(false);
+          clearInputsDirty();
+          updateDiagnostics(m);
           state.results = Array.isArray(m.results) ? m.results : [];
           sortResults();
           state.selectedSolutionId = state.results[0]?.solution_id ?? null;
@@ -1256,11 +1951,18 @@
       return state.results.find(r => r.solution_id === state.selectedSolutionId) || null;
     }
 
+    function deckStatus(inputs, layout) {
+      const d = deckChecks(inputs, layout);
+      if (!d.enabled) return { label: '<span class="badge">N/A (manual)</span>', fail: false, detail: d };
+      const passAll = !!(d.pass_unshored && d.pass_strength && d.pass_defl);
+      return { label: passAll ? '<span class="badge ok">PASS</span>' : '<span class="badge fail">FAIL</span>', fail: !passAll, detail: d };
+    }
+
     function renderResultsTable() {
       const tb = $("resultsTbody");
       tb.innerHTML = "";
       if (!state.results.length) {
-        tb.innerHTML = `<tr><td colspan="8" class="small">No results yet.</td></tr>`;
+        tb.innerHTML = `<tr><td colspan="10" class="small">No results yet.</td></tr>`;
       } else {
         state.results.forEach((r, i) => {
           const tr = document.createElement("tr");
@@ -1272,7 +1974,9 @@
             <td>${fmt(r.panel.cost_per_sf,3)}</td>
             <td>${fmt(r.panel.weight_psf,3)}</td>
             <td>${fmt(r.panel.governing.strength_util_max,3)}</td>
+            <td>${r.panel.governing.precomp_strength_util_max != null ? fmt(r.panel.governing.precomp_strength_util_max,3) : "—"}</td>
             <td>${fmt(r.panel.governing.deflection_util_max,3)}</td>
+            <td>${deckStatus(state.inputs || collectInputs(), r.panel.layout || computeLayout((state.inputs || collectInputs()).geometry)).label}</td>
             <td>${safeStr(r.panel.governing.controlling_case_str)}</td>
           `;
           tr.addEventListener("click", () => {
@@ -1291,12 +1995,34 @@
       $("btnExportCSV").disabled = !has && !state.results.length;
     }
 
+
+    function deckSidebarSummaryHTML(inputs, layout) {
+      const d = deckChecks(inputs, layout);
+      if (!d.enabled) {
+        return `<strong>Deck Design Summary</strong><br/>Deck checks not available (manual deck).<br/>Computed slab/deck self-weight used: ${fmt(d.used_slab_deck_self_weight_psf,2)} psf`;
+      }
+      const utilStrength = Number.isFinite(d.phiWn_psf) && d.phiWn_psf > 0 ? d.demand_strength_psf / d.phiWn_psf : null;
+      const utilDefl = Number.isFinite(d.wL360_psf) && d.wL360_psf > 0 ? d.demand_defl_psf / d.wL360_psf : null;
+      return `
+        <strong>Deck Design Summary</strong><br/>
+        ${safeStr(d.profile)} ${safeStr(d.gage)}ga • ${safeStr(d.density_family || "—")} • span cond ${safeStr(d.spanCondition)}<br/>
+        Deck span used: ${fmt(d.spanDeck_ft,3)} ft<br/>
+        Total depth: actual ${fmt(d.totalDepth_in,2)} in, catalog ${d.tableDepth_in != null ? fmt(d.tableDepth_in,2) : "—"} in (next lower)<br/>
+        Unshored: ${d.pass_unshored == null ? "—" : (d.pass_unshored ? '<span class="badge ok">PASS</span>' : '<span class="badge fail">FAIL</span>')} (max ${fmt(d.maxUnshoredAllowed_ft,3)} ft)<br/>
+        φWn = ${fmt(d.phiWn_psf,1)} psf | <span style="color:#b91c1c">w@L/360 = ${fmt(d.wL360_psf,1)} psf</span><br/>
+        Governing allowable = ${fmt(d.governing_allowable_psf,1)} psf<br/>
+        Strength demand = ${fmt(d.demand_strength_psf,1)} psf | Defl demand = ${fmt(d.demand_defl_psf,1)} psf<br/>
+        Strength util = ${utilStrength != null ? fmt(utilStrength,3) : "—"} | Defl util = ${utilDefl != null ? fmt(utilDefl,3) : "—"}
+      `;
+    }
+
     function updateSelectedPane() {
       const sol = selectedSolution();
       if (!sol) {
         $("bayPreview").innerHTML = "";
         $("selectedSummary").innerHTML = "No selection.";
         $("calcTraceText").textContent = "No selection.";
+        $("deckDesignSummary").innerHTML = "Deck Design Summary: No selection.";
         return;
       }
       const runGeom = state.inputs?.geometry ?? collectInputs().geometry;
@@ -1315,17 +2041,24 @@
           <div class="kpi"><div class="small">Cost</div><div class="v">$${fmt(sol.panel.cost_per_sf,3)}/sf</div></div>
           <div class="kpi"><div class="small">Weight</div><div class="v">${fmt(sol.panel.weight_psf,3)} psf</div></div>
           <div class="kpi"><div class="small">Strength Util</div><div class="v ${sol.panel.governing.strength_util_max>1?'bad':'ok'}">${fmt(sol.panel.governing.strength_util_max,3)}</div></div>
+          <div class="kpi"><div class="small">Pre-Comp Util</div><div class="v ${(sol.panel.governing.precomp_strength_util_max||0)>1?'bad':'ok'}">${sol.panel.governing.precomp_strength_util_max!=null?fmt(sol.panel.governing.precomp_strength_util_max,3):"—"}</div></div>
           <div class="kpi"><div class="small">Deflection Util</div><div class="v ${sol.panel.governing.deflection_util_max>1?'bad':'ok'}">${fmt(sol.panel.governing.deflection_util_max,3)}</div></div>
         </div>
         <div style="margin-top:.45rem"><strong>Control:</strong> ${safeStr(sol.panel.governing.controlling_case_str)}</div>
+        <div class="small"><strong>Pre-composite control:</strong> ${safeStr(sol.panel.governing.precomp_controlling_case_str || "—")}</div>
         <div style="margin-top:.35rem" class="small">
           <strong>Cost Breakdown (bay):</strong><br/>
-          Steel: $${fmt(cb.steel_usd,2)} |
-          Studs: $${fmt(cb.stud_usd,2)} |
-          Camber: $${fmt(cb.camber_usd,2)} |
-          Total: $${fmt(cb.total_usd,2)}
+          Steel Cost: $${fmt(cb.steel_usd,2)} |
+          Stud Cost: $${fmt(cb.stud_usd,2)} |
+          Camber Cost: $${fmt(cb.camber_usd,2)} (Beam $${fmt(cb.camber_beam_usd,2)} + Girder $${fmt(cb.camber_girder_usd,2)}) |
+          Total Cost: $${fmt(cb.total_usd,2)}
         </div>
+        <div class="small" style="margin-top:.35rem"><strong>Note:</strong> Cost is estimated Total Installed Cost and depends on user assumptions in Cost Inputs.</div>
       `;
+
+      const inputsForDeck = state.inputs || collectInputs();
+      const deckStat = deckStatus(inputsForDeck, layout);
+      $("deckDesignSummary").innerHTML = `${deckStat.fail ? '<div class="badge fail" style="margin-bottom:.25rem">Deck check FAIL (informational). Member sizing still shown.</div>' : ''}${deckSidebarSummaryHTML(inputsForDeck, layout)}${!deckStat.detail.enabled ? '<br/><span class="badge">Deck checks: N/A (manual deck)</span>' : ''}<br/>Unshored: ${deckStat.detail.pass_unshored == null ? '—' : (deckStat.detail.pass_unshored ? '<span class="badge ok">PASS</span>' : '<span class="badge fail">FAIL</span>')} | Strength: ${deckStat.detail.pass_strength == null ? '—' : (deckStat.detail.pass_strength ? '<span class="badge ok">PASS</span>' : '<span class="badge fail">FAIL</span>')} | Deflection: ${deckStat.detail.pass_defl == null ? '—' : (deckStat.detail.pass_defl ? '<span class="badge ok">PASS</span>' : '<span class="badge fail">FAIL</span>')}`;
 
       const trace = []
         .concat(sol.beam.notes || [])
@@ -1351,12 +2084,326 @@
         </div>`;
     }
 
-    function memberReportHTML(member, panel) {
+
+    function yesNo(v){ return v ? "Yes" : "No"; }
+    function money(v, d=2){ return Number.isFinite(v) ? `$${Number(v).toFixed(d)}` : "—"; }
+    function pct(v, d=1){ return Number.isFinite(v) ? `${Number(v).toFixed(d)}%` : "—"; }
+
+    function calcSlabSelfWeightPsf(inputs){
+      return calcSlabDeckSelfWeight(inputs).total_psf;
+    }
+
+    function getLayoutForReport(inputs, sol){
+      const lay = sol?.panel?.layout || computeLayout(inputs.geometry);
+      const spacing_used = lay.spacing_ft ?? inputs.geometry.spacing_ft;
+      const interiorPositions = lay.positions_interior_ft ?? lay.positions_ft ?? [];
+      const nInterior = Array.isArray(interiorPositions) ? interiorPositions.length : 0;
+
+      const beams_per_bay =
+        sol?.panel?.member_counts?.beams_per_bay ??
+        lay.beam_equiv_count ??
+        lay.nBeamLines ??
+        nInterior;
+
+      const girders_per_bay =
+        sol?.panel?.member_counts?.girders_per_bay ??
+        lay.girder_equiv_count ??
+        (inputs.geometry.share_half_girders ? 1 : 2);
+
+      const note =
+        sol?.panel?.member_counts ? "Member counts from solution."
+        : (lay.beam_equiv_count || lay.girder_equiv_count) ? "Member counts from interior-bay equivalent logic."
+        : "Member counts from legacy logic (interior beams only).";
+
+      return {
+        layout: lay,
+        spacing_used,
+        interiorPositions,
+        nInterior,
+        beams_per_bay,
+        girders_per_bay,
+        note
+      };
+    }
+
+    function studSpacingSummary(member, inputs){
+      const studs = member?.composite?.studs;
+      if (!member?.composite?.enabled || !studs) return null;
+
+      const lim = studs.limits_used && Object.keys(studs.limits_used).length
+        ? studs.limits_used
+        : inputs.stud_spacing_limits;
+
+      const L_in = member.length_ft * 12;
+      const end = lim.end_dist_in ?? inputs.stud_spacing_limits.end_dist_in;
+      const usable = Math.max(0, L_in - 2 * end);
+
+      const rows = (studs.rows_1 || 0) + (studs.rows_2 || 0);
+      const spacing_in = rows > 1 ? usable / (rows - 1) : usable;
+
+      const sMin = lim.long_min_parallel_in ?? inputs.stud_spacing_limits.long_min_parallel_in;
+      const sMax = lim.long_max_parallel_in ?? inputs.stud_spacing_limits.long_max_parallel_in;
+
+      const okMin = spacing_in + 1e-6 >= sMin;
+      const okMax = spacing_in - 1e-6 <= sMax;
+
+      return {
+        rows,
+        studs_per_row: studs.rows_2 > 0 ? 2 : 1,
+        stud_total: studs.stud_count_total,
+        end_dist_in: end,
+        usable_in: usable,
+        spacing_in,
+        sMin, sMax,
+        okMin, okMax
+      };
+    }
+
+
+    function deckCheckSummaryHTML(dc) {
+      const tf = (v) => v == null ? "—" : (v ? "PASS" : "FAIL");
+      return `
+        <h4>Deck Check Summary</h4>
+        ${tableHTML(["Item","Value"], [
+          ["Deck checks enabled", yesNo(dc.enabled)],
+          ["f’c gate", safeStr(dc.fc_msg)],
+          ["Density family", safeStr(dc.density_family || "—")],
+          ["Construction span used", `${fmt(dc.spanDeck_ft,3)} ft (${formatFtIn(dc.spanDeck_ft)})`],
+          ["Allowed max unshored span", `${fmt(dc.maxUnshoredAllowed_ft,3)} ft (${formatFtIn(dc.maxUnshoredAllowed_ft)})`],
+          ["Unshored span check", tf(dc.pass_unshored)],
+          ["Superimposed span column used", dc.spanUsed_ft_for_superimposed != null ? `${fmt(dc.spanUsed_ft_for_superimposed,3)} ft` : "—"],
+          ["φWn capacity vs demand", `${fmt(dc.phiWn_psf,1)} vs ${fmt(dc.demand_strength_psf,1)} psf (${tf(dc.pass_strength)})`],
+          ["L/360 cap vs demand", `${fmt(dc.wL360_psf,1)} vs ${fmt(dc.demand_defl_psf,1)} psf (${tf(dc.pass_defl)})`],
+          ["Computed slab/deck SW", `${fmt(dc.computed_slab_deck_self_weight_psf,2)} psf`],
+          ["Used slab/deck SW", `${fmt(dc.used_slab_deck_self_weight_psf,2)} psf`],
+          ["Governing allowable", `${fmt(dc.governing_allowable_psf,1)} psf`],
+          ["Note", "Tables do not address bearing/web-crippling; verify separately."]
+        ])}
+      `;
+    }
+
+    function inputSummaryHTML(inputs, sol){
+      const slabSW = calcSlabSelfWeightPsf(inputs);
+      const { spacing_used, interiorPositions, beams_per_bay, girders_per_bay, note } = getLayoutForReport(inputs, sol);
+
+      const shapeSrc = inputs.member_criteria?.shapes_source || {};
+      const cam = inputs.camber || {};
+      const def = inputs.deflection || {};
+      const lim = def.limits || {};
+      const costs = inputs.cost || {};
+
+      const rows = [
+        ["Tool Version", safeStr(APP_VERSION)],
+        ["Design Basis", "AISC 360-22 LRFD (MVP)"],
+        ["Load Basis", "ASCE 7-22 (LL reduction per tool settings)"],
+        ["Optimize By", safeStr(inputs.basis.optimize_by)],
+        ["LL Reduction Mode", safeStr(inputs.loads.LL_reduction_mode || "asce")],
+                ["Shapes Dataset", safeStr(shapeSrc.dataset_label || "—")],
+        ["Shapes File", safeStr(shapeSrc.file_name || "—")]
+      ];
+
+      const geom = [
+        ["Bay Length Lb (ft)", fmt(inputs.geometry.Lb_ft,2)],
+        ["Bay Width Lg (ft)", fmt(inputs.geometry.Lg_ft,2)],
+        ["Beam Spacing input s (ft)", fmt(inputs.geometry.spacing_ft,3)],
+        ["Beam Spacing used (ft)", fmt(spacing_used,3)],
+        ["Interior beamline positions xᵢ (ft)", safeStr((interiorPositions||[]).map(x=>fmt(x,2)).join(", ") || "—")],
+        ["Beams per bay (takeoff)", fmt(beams_per_bay,3)],
+        ["Girders per bay (takeoff)", fmt(girders_per_bay,3)],
+        ["Takeoff note", safeStr(note)]
+      ];
+
+      const loads = [
+        ["SWadd (psf)", fmt(inputs.loads.SWadd_psf,3)],
+        ["SDL (psf)", fmt(inputs.loads.SDL_psf,3)],
+        ["LL (psf)", fmt(inputs.loads.LL_psf,3)],
+        ["CLL (psf)", fmt(inputs.loads.CLL_psf,3)]
+      ];
+
+      const constr = inputs.construction_stage || {};
+      const constrRows = [
+        ["Enforce pre-composite", yesNo(constr.enabled)],
+        ["Apply mode", safeStr(constr.apply_mode || "composite_only")],
+                ["SWadd present during pour (%)", fmt(constr.swadd_pct,2)],
+      ];
+
+      const slab = [
+        ["Deck height hd (in)", fmt(inputs.slab.deck.hd_in,3)],
+        ["Deck weight (psf)", fmt(inputs.slab.deck.deck_weight_psf,3)],
+        ["Rib width wr (in)", fmt(inputs.slab.deck.rib_width_in,3)],
+        ["Rib spacing sr (in)", fmt(inputs.slab.deck.rib_spacing_in,3)],
+        ["Topping thickness t_top (in)", fmt(inputs.slab.concrete.topping_in,3)],
+        ["Concrete f'c (ksi)", fmt(inputs.slab.concrete.fc_ksi,3)],
+        ["Concrete unit wt (pcf)", fmt(inputs.slab.concrete.unit_weight_pcf,1)],
+        ["Computed slab self-weight (psf)", fmt(slabSW,3)],
+        ["Deck profile", safeStr(inputs.slab.deck_profile)],
+        ["Deck gage", safeStr(inputs.slab.deck_gage)],
+        ["Deck span condition", safeStr(inputs.slab.deck_span_condition)],
+        ["Deck table density", safeStr(inputs.slab.deck_table_density || "LWC")],
+        ["Shored construction", yesNo(inputs.slab.shored)],
+        ["Shore spacing (ft)", inputs.slab.shored ? fmt(inputs.slab.shore_spacing_ft ?? spacing_used,3) : "—"],
+        ["Override slab/deck self-weight (psf)", inputs.slab.self_weight_override_psf != null ? fmt(inputs.slab.self_weight_override_psf,3) : "—"]
+      ];
+
+      const studs = [
+        ["Stud dia (in)", fmt(inputs.slab.studs.dia_in,3)],
+        ["Stud Fu (ksi)", fmt(inputs.slab.studs.Fu_ksi,3)],
+        ["Min composite (%)", fmt(inputs.slab.studs.min_comp_pct,2)],
+        ["Max composite (%)", fmt(inputs.slab.studs.max_comp_pct,2)],
+        ["End dist (in)", fmt(inputs.stud_spacing_limits.end_dist_in,2)],
+        ["Long min parallel (in)", fmt(inputs.stud_spacing_limits.long_min_parallel_in,2)],
+        ["Long max parallel (in)", fmt(inputs.stud_spacing_limits.long_max_parallel_in,2)],
+        ["Trans min parallel (in)", fmt(inputs.stud_spacing_limits.trans_min_parallel_in,2)]
+      ];
+
+      const memberCrit = [
+        ["Fy (ksi)", fmt(inputs.member_criteria.Fy_ksi,2)],
+        ["Beam composite allowed", yesNo(inputs.member_criteria.beam.composite_allowed)],
+        ["Girder composite allowed", yesNo(inputs.member_criteria.girder.composite_allowed)],
+        ["Beam camber allowed", yesNo(inputs.member_criteria.beam.camber_allowed)],
+        ["Girder camber allowed", yesNo(inputs.member_criteria.girder.camber_allowed)],
+        ["Composite inertia method", safeStr(def.inertia_method)]
+      ];
+
+      const defl = [
+        ["DL limit", `Δ≤${lim.DL?.delta_max_in ?? "—"} in, L/${lim.DL?.ratio_L_over ?? "—"}`],
+        ["LL limit", `Δ≤${lim.LL?.delta_max_in ?? "—"} in, L/${lim.LL?.ratio_L_over ?? "—"}`],
+        ["SDL limit", `Δ≤${lim.SDL?.delta_max_in ?? "—"} in, L/${lim.SDL?.ratio_L_over ?? "—"}`],
+        ["LL+SDL limit", `Δ≤${lim.LL_SDL?.delta_max_in ?? "—"} in, L/${lim.LL_SDL?.ratio_L_over ?? "—"}`],
+        ["TOTAL limit", `Δ≤${lim.TOTAL?.delta_max_in ?? "—"} in, L/${lim.TOTAL?.ratio_L_over ?? "—"}`]
+      ];
+
+      const camber = [
+        ["Camber min/max/inc (in)", `${fmt(cam.min_in,2)} / ${fmt(cam.max_in,2)} / ${fmt(cam.inc_in,2)}`],
+        ["Min length to camber (ft)", fmt(cam.min_length_ft,2)],
+        ["Camber % of dead load", pct((cam.pct_of_dead ?? 0)*100,1)],
+        ["Disallow noncompact web camber", yesNo(cam.disallow_noncompact_web)]
+      ];
+
+      const cost = [
+        ["Steel Cost ($/lb)", fmt(costs.steel_tic_per_lb,3)],
+        ["Stud Cost ($/stud)", fmt(costs.stud_tic_per_each,2)],
+        ["Camber model", safeStr(costs.camber_model)],
+        ["Beam camber eq (lbs/ft)", costs.camber_model==="eq_lbs_per_ft" ? fmt(costs.camber_eq?.beam_lbs_per_ft,3) : "—"],
+        ["Girder camber eq (lbs/ft)", costs.camber_model==="eq_lbs_per_ft" ? fmt(costs.camber_eq?.girder_lbs_per_ft,3) : "—"],
+        ["Beam camber flat ($/member)", costs.camber_model==="flat_per_member" ? money(costs.camber_flat?.beam_cost_per_member,2) : "—"],
+        ["Girder camber flat ($/member)", costs.camber_model==="flat_per_member" ? money(costs.camber_flat?.girder_cost_per_member,2) : "—"]
+      ];
+
+      const section = (title, arr) => `
+        <h4>${safeStr(title)}</h4>
+        ${tableHTML(["Item","Value"], arr.map(([a,b]) => [safeStr(a), safeStr(b)]))}
+      `;
+
+      return `
+        ${section("Run Metadata", rows)}
+        ${section("Geometry + Layout", geom)}
+        ${section("Loads (psf)", loads)}
+        ${section("Construction Stage (Pre-Composite)", constrRows)}
+        ${section("Floor Slab + Deck Inputs", slab)}
+        ${section("Studs + Limits", studs)}
+        ${section("Member Criteria", memberCrit)}
+        ${section("Deflection Criteria", defl)}
+        ${section("Camber Criteria", camber)}
+        ${section("Cost Inputs", cost)}
+        ${deckCheckSummaryHTML(deckChecks(inputs, getLayoutForReport(inputs, sol).layout))}
+      `;
+    }
+
+    function loadDerivationHTML(member, inputs, sol){
+      const slabSW = calcSlabSelfWeightPsf(inputs);
+      const { spacing_used, interiorPositions } = getLayoutForReport(inputs, sol);
+
+      if (member.member_type === "beam") {
+        const tw = spacing_used;
+        const DLpsf = slabSW + inputs.loads.SWadd_psf;
+        const SDLpsf = inputs.loads.SDL_psf;
+        const LLpsf  = inputs.loads.LL_psf;
+        const CLLpsf = inputs.loads.CLL_psf;
+        return `
+          <h4>Load Derivation</h4>
+          ${tableHTML(["Step","Value"], [
+            ["Tributary width used (ft)", fmt(tw,3)],
+            ["Slab self-weight (psf)", `${fmt(slabSW,3)} = deck ${fmt(inputs.slab.deck.deck_weight_psf,3)} + topping ${(fmt(inputs.slab.concrete.topping_in,2))}in × ${fmt(inputs.slab.concrete.unit_weight_pcf,1)}pcf / 12`],
+            ["DL total area (psf)", fmt(DLpsf,3)],
+            ["SDL (psf)", fmt(SDLpsf,3)],
+            ["LL (psf)", fmt(LLpsf,3)],
+            ["CLL (psf)", fmt(CLLpsf,3)],
+            ["Convert psf→k/ft", "w(k/ft)=psf×trib(ft)/1000, then add member self-weight to DL line load"]
+          ])}
+        `;
+      }
+
+      const nInt = (interiorPositions || []).length;
+      return `
+        <h4>Load Derivation</h4>
+        ${tableHTML(["Step","Value"], [
+          ["Interior beamlines used for point loads", `${nInt} at x = ${safeStr((interiorPositions||[]).map(x=>fmt(x,2)).join(", ") || "—")} ft`],
+          ["Point load basis", "Each interior beam end reaction R = (w_beam × Lb / 2) per load component"],
+          ["Girder self-weight", `${fmt(member.shape?.W_lbft,1)} lb/ft → ${fmt((member.shape?.W_lbft||0)/1000,4)} k/ft applied uniformly`]
+        ])}
+      `;
+    }
+
+    function panelTakeoffHTML(sol, inputs){
+      const { beams_per_bay, girders_per_bay, spacing_used } = getLayoutForReport(inputs, sol);
+      const A = inputs.geometry.Lb_ft * inputs.geometry.Lg_ft;
+
+      const beamW = sol.beam.shape.W_lbft;
+      const girderW = sol.girder.shape.W_lbft;
+
+      const beamLb = beamW * inputs.geometry.Lb_ft * beams_per_bay;
+      const girderLb = girderW * inputs.geometry.Lg_ft * girders_per_bay;
+      const totalLb = beamLb + girderLb;
+
+      const beamStud = (sol.beam.composite?.studs?.stud_count_total || 0) * beams_per_bay;
+      const girderStud = (sol.girder.composite?.studs?.stud_count_total || 0) * girders_per_bay;
+
+      const cb = sol.panel.cost_breakdown || {};
+      return `
+        <h4>Takeoff + Cost Breakdown</h4>
+        ${tableHTML(["Item","Value"], [
+          ["Bay area (sf)", fmt(A,2)],
+          ["Spacing used (ft)", fmt(spacing_used,3)],
+          ["Beams per bay (used)", fmt(beams_per_bay,3)],
+          ["Girders per bay (used)", fmt(girders_per_bay,3)],
+          ["Beam total weight (lb)", fmt(beamLb,1)],
+          ["Girder total weight (lb)", fmt(girderLb,1)],
+          ["Total weight (lb)", fmt(totalLb,1)],
+          ["Weight (psf)", fmt(sol.panel.weight_psf,3)],
+          ["Beam studs total", fmtI(beamStud)],
+          ["Girder studs total", fmtI(girderStud)],
+          ["Total studs", fmtI(beamStud + girderStud)],
+          ["Steel Cost ($/lb)", fmt(inputs.cost.steel_tic_per_lb,3)],
+          ["Stud Cost ($/stud)", fmt(inputs.cost.stud_tic_per_each,2)],
+          ["Steel Cost (bay)", money(cb.steel_usd,2)],
+          ["Stud Cost (bay)", money(cb.stud_usd,2)],
+          ["Camber Cost beam (bay)", money(cb.camber_beam_usd,2)],
+          ["Camber Cost girder (bay)", money(cb.camber_girder_usd,2)],
+          ["Camber Cost (bay)", money(cb.camber_usd,2)],
+          ["Total Cost (bay)", money(cb.total_usd,2)],
+          ["Total Cost ($/sf)", money(sol.panel.cost_per_sf,3)]
+        ])}
+      `;
+    }
+
+    function memberReportHTML(member, panel, opts = {}) {
+      const mode = opts.mode || "modal";
+      const inputs = opts.inputs || state.inputs || collectInputs();
+      const sol = opts.solution || selectedSolution();
+
       const comp = member.composite || {};
       const studs = comp.studs || {};
+      const studSum = studSpacingSummary(member, inputs);
+
       const strengthRows = (member.strength?.combos || []).map(c => [
-        safeStr(c.name), fmt(c.Mu,3), fmt(c.Vu,3), fmt(c.utilM,3), fmt(c.utilV,3)
+        safeStr(c.name),
+        fmt(c.Mu,3),
+        fmt(c.Vu,3),
+        fmt(c.utilM,3),
+        fmt(c.utilV,3)
       ]);
+
       const deflRows = (member.deflection?.cases || []).map(c => [
         safeStr(caseLabel(c.name)),
         fmt(c.defl_in,3),
@@ -1365,12 +2412,35 @@
         c.limit_ratio != null ? `L/${fmt(c.limit_ratio,0)}` : "—",
         fmt(c.util,3)
       ]);
+
       const loadRows = (member.loads?.components || []).map(c => [
         safeStr(c.name),
         safeStr(c.type),
         fmt(c.value,4),
         safeStr(c.note || "")
       ]);
+
+
+      const constr = member.construction_stage || {};
+      const constrRows = (constr.combos || []).map(c => [safeStr(c.name), fmt(c.Mu,3), fmt(c.Vu,3), fmt(c.utilM,3), fmt(c.utilV,3), fmt(c.util,3)]);
+      const constrSection = !constr.applied ? `
+        <h4>Construction Stage (Pre-Composite) — Bare Steel Check</h4>
+        <div class="small muted-box">Not applied (${constr.shored ? "shored construction selected" : (!constr.enabled ? "disabled" : "apply mode not triggered for this variant")}).</div>
+      ` : `
+        <h4>Construction Stage (Pre-Composite) — Bare Steel Check</h4>
+        ${tableHTML(["Field","Value"], [
+          ["Shored", yesNo(constr.shored)],
+                    ["SWadd present (%)", fmt(constr.swadd_pct,1)],
+          ["Slab psf used", fmt(constr.slab_psf_used,3)],
+          ["SWadd psf used", fmt(constr.D_area_psf_components?.swadd_psf_used,3)],
+          ["SDL psf used", fmt(constr.D_area_psf_components?.sdl_psf_used,3)],
+          ["CLL psf", fmt(constr.cll_psf,3)],
+          ["Controlling", safeStr(constr.controlling || "—")],
+          ["Max util", fmt(constr.maxUtil,3)],
+          ["Pass", constr.maxUtil != null && constr.maxUtil <= 1 ? "PASS" : "FAIL"]
+        ])}
+        ${tableHTML(["Combo","Mu (k-ft)","Vu (k)","Mu/(φMn_nc)","Vu/(φVn)","Util"], constrRows)}
+      `;
 
       let pointLoadSection = "";
       if (member.loads?.point_load_table) {
@@ -1389,55 +2459,89 @@
         `;
       }
 
-      const html = `
+      const studLayoutSection = (!studSum) ? `
+        <h4>Stud Layout</h4>
+        <div class="small muted-box">Noncomposite (no studs) or insufficient stud data.</div>
+      ` : `
+        <h4>Stud Layout</h4>
+        ${tableHTML(["Item","Value"], [
+          ["Studs per row", String(studSum.studs_per_row)],
+          ["Rows", fmtI(studSum.rows)],
+          ["Stud total", fmtI(studSum.stud_total)],
+          ["End distance used (in)", fmt(studSum.end_dist_in,2)],
+          ["Computed longitudinal spacing (in)", fmt(studSum.spacing_in,2)],
+          ["Min allowed (in)", fmt(studSum.sMin,2)],
+          ["Max allowed (in)", fmt(studSum.sMax,2)],
+          ["Min spacing check", studSum.okMin ? "OK" : "FAIL"],
+          ["Max spacing check", studSum.okMax ? "OK" : "FAIL"]
+        ])}
+      `;
+
+      const body = `
+        ${tableHTML(["Field","Value"], [
+          ["Member type", safeStr(member.member_type)],
+          ["Shape", safeStr(member.shape?.name || "—")],
+          ["Length (ft)", fmt(member.length_ft,3)],
+          ["Camber used (in)", fmt(member.camber?.used_in,3)],
+          ["Camber cost ($)", money(member.camber?.cost_usd,2)],
+          ["φMn (k-ft)", fmt(member.strength?.phiMn_kft,3)],
+          ["φVn (k)", fmt(member.strength?.phiVn_k,3)],
+          ["Influence area (sf)", fmt(member.loads?.influence_area_ft2,3)],
+          ["Live load reduction (%)", fmt(member.loads?.live_load_reduction_pct,2)]
+        ])}
+
+        <h4>Composite Summary</h4>
+        ${tableHTML(["Field","Value"], [
+          ["Composite enabled", comp.enabled ? "Yes" : "No"],
+          ["% composite", fmt(comp.percent_composite,2)],
+          ["be (in)", fmt(comp.be_in,3)],
+          ["Ac (in²)", fmt(comp.Ac_in2,3)],
+          ["PNA from bottom (in)", comp.PNA_from_bottom_in != null ? fmt(comp.PNA_from_bottom_in,3) : "—"],
+          ["ENA from bottom (in)", comp.ENA_from_bottom_in != null ? fmt(comp.ENA_from_bottom_in,3) : "—"],
+          ["Ec (ksi)", fmt(comp.Ec_ksi,2)],
+          ["Modular ratio n", fmt(comp.n_modular,3)],
+          ["I_trans (in⁴)", fmt(comp.I_trans_in4,3)],
+          ["I_eff (in⁴)", fmt(comp.I_eff_in4,3)],
+          ["Rows (1 stud/row)", fmtI(studs.rows_1)],
+          ["Rows (2 stud/row)", fmtI(studs.rows_2)],
+          ["Stud total", fmtI(studs.stud_count_total)],
+          ["Qn per stud (k)", fmt(studs.Qn_k,3)],
+          ["ΣQn (k)", fmt(studs.sumQn_k,3)]
+        ])}
+
+        ${studLayoutSection}
+
+        ${loadDerivationHTML(member, inputs, sol)}
+
+        <h4>Load Components</h4>
+        ${tableHTML(["Name","Type","Value","Note"], loadRows)}
+
+        ${pointLoadSection}
+
+        ${constrSection}
+
+        <h4>Strength Combos (LRFD)</h4>
+        ${tableHTML(["Combo","Mu (k-ft)","Vu (k)","Mu/(φMn)","Vu/(φVn)"], strengthRows)}
+
+        <h4>Deflections</h4>
+        ${tableHTML(["Case","Δ (in)","L/Δ","Δ limit (in)","Ratio limit","Util"], deflRows)}
+
+        <h4>Notes</h4>
+        <ul>${(member.notes || []).map(n => `<li>${safeStr(n)}</li>`).join("")}</ul>
+      `;
+
+      if (mode === "print") return body;
+
+      return `
         <div>
           <h3 style="margin-top:0;text-transform:capitalize">${safeStr(member.member_type)} Report</h3>
-          ${tableHTML(["Field","Value"], [
-            ["Shape", safeStr(member.shape?.name || "—")],
-            ["Length (ft)", fmt(member.length_ft,3)],
-            ["φMn (k-ft)", fmt(member.strength?.phiMn_kft,3)],
-            ["φVn (k)", fmt(member.strength?.phiVn_k,3)],
-            ["Live load reduction (%)", fmt(member.loads?.live_load_reduction_pct,2)],
-            ["Influence area (sf)", fmt(member.loads?.influence_area_ft2,3)]
-          ])}
-
-          <h4>Composite Summary</h4>
-          ${tableHTML(["Field","Value"], [
-            ["Composite enabled", comp.enabled ? "Yes" : "No"],
-            ["% composite", fmt(comp.percent_composite,2)],
-            ["be (in)", fmt(comp.be_in,3)],
-            ["Ac (in²)", fmt(comp.Ac_in2,3)],
-            ["PNA from bottom (in)", comp.PNA_from_bottom_in != null ? fmt(comp.PNA_from_bottom_in,3) : "—"],
-            ["ENA from bottom (in)", comp.ENA_from_bottom_in != null ? fmt(comp.ENA_from_bottom_in,3) : "—"],
-            ["Ec (ksi)", fmt(comp.Ec_ksi,2)],
-            ["Modular ratio n", fmt(comp.n_modular,3)],
-            ["I_trans (in⁴)", fmt(comp.I_trans_in4,3)],
-            ["I_eff (in⁴)", fmt(comp.I_eff_in4,3)],
-            ["Stud rows (1 per row)", fmtI(studs.rows_1)],
-            ["Stud rows (2 per row)", fmtI(studs.rows_2)],
-            ["Stud total", fmtI(studs.stud_count_total)],
-            ["Qn per stud (k)", fmt(studs.Qn_k,3)],
-            ["ΣQn (k)", fmt(studs.sumQn_k,3)]
-          ])}
-
-          <h4>Load Components</h4>
-          ${tableHTML(["Name","Type","Value","Note"], loadRows)}
-
-          ${pointLoadSection}
-
-          <h4>Strength Combos (LRFD)</h4>
-          ${tableHTML(["Combo","Mu (k-ft)","Vu (k)","Mu/(φMn)","Vu/(φVn)"], strengthRows)}
-
-          <h4>Deflections</h4>
-          ${tableHTML(["Case","Δ (in)","L/Δ","Δ limit (in)","Ratio limit","Util"], deflRows)}
-
-          <h4>Notes</h4>
-          <ul>${(member.notes || []).map(n => `<li>${safeStr(n)}</li>`).join("")}</ul>
-
-          <div class="report-footer"><strong>Disclaimer:</strong> Conceptual/schematic tool. Not for final design. Verify results independently.</div>
+          ${body}
+          <div class="report-footer">
+            <strong>Disclaimer:</strong> Conceptual/schematic tool. Not for final design. Verify results independently.<br/>
+            <span class="small">Tool ${safeStr(APP_VERSION)} • ${new Date().toLocaleString()}</span>
+          </div>
         </div>
       `;
-      return html;
     }
 
     function openModal(title, html) {
@@ -1454,6 +2558,8 @@
 
     function buildRunObject() {
       const inputs = state.inputs || collectInputs();
+      const layoutForDeck = (selectedSolution()?.panel?.layout) || computeLayout(inputs.geometry);
+      const deck_check_summary = deckChecks(inputs, layoutForDeck);
       return {
         run_meta: {
           tool_version: APP_VERSION,
@@ -1465,6 +2571,7 @@
           shapes_dataset_label: inputs.member_criteria.shapes_source.dataset_label || state.shapeDatasetLabel
         },
         inputs: deepClone(inputs),
+        deck_check_summary: deepClone(deck_check_summary),
         results: deepClone(state.results),
         shapes_snapshot: {
           mode: inputs.member_criteria.shapes_source.mode,
@@ -1502,7 +2609,7 @@
     function exportCSV() {
       if (!state.results.length) return;
       const rows = [
-        ["Rank","Beam","Girder","Cost_per_sf","Weight_psf","StrengthUtilMax","DeflectionUtilMax","Control"]
+        ["Rank","Beam","Girder","Cost_per_sf","Weight_psf","StrengthUtilMax","PreCompUtilMax","DeflectionUtilMax","PreCompControl","Control"]
       ];
       state.results.forEach((r, i) => {
         rows.push([
@@ -1512,7 +2619,9 @@
           fmt(r.panel.cost_per_sf, 4),
           fmt(r.panel.weight_psf, 4),
           fmt(r.panel.governing.strength_util_max, 4),
+          r.panel.governing.precomp_strength_util_max != null ? fmt(r.panel.governing.precomp_strength_util_max, 4) : "—",
           fmt(r.panel.governing.deflection_util_max, 4),
+          r.panel.governing.precomp_controlling_case_str || "—",
           r.panel.governing.controlling_case_str
         ]);
       });
@@ -1535,44 +2644,75 @@
       }
     }
 
-    function renderReportPackAndPrint() {
-      const sol = selectedSolution();
-      if (!sol) return;
-      const geom = state.inputs?.geometry ?? collectInputs().geometry;
-      const layout = sol.panel.layout || computeLayout(geom);
+    function buildReportPackHTML(sol, inputs) {
+      const geom = inputs.geometry;
+      const metaTime = new Date().toLocaleString();
 
-      const panelSummary = tableHTML(["Field","Value"], [
-        ["Beam", safeStr(sol.panel.beam_shape)],
-        ["Girder", safeStr(sol.panel.girder_shape)],
-        ["Cost ($/sf)", fmt(sol.panel.cost_per_sf,3)],
-        ["Weight (psf)", fmt(sol.panel.weight_psf,3)],
-        ["Strength Util Max", fmt(sol.panel.governing.strength_util_max,3)],
-        ["Deflection Util Max", fmt(sol.panel.governing.deflection_util_max,3)],
-        ["Controlling", safeStr(sol.panel.governing.controlling_case_str)]
-      ]);
+      const layoutInfo = getLayoutForReport(inputs, sol);
+      const layout = layoutInfo.layout;
 
-      $("reportPack").innerHTML = `
+      const page = (title, subtitle, bodyHTML) => `
         <section class="print-page">
-          <div class="report-title">Panel Summary</div>
-          <div class="report-sub">Floor Framing (AISC 360-22) — MVP | ${new Date().toLocaleString()}</div>
-          ${makePlanSVG(geom, layout, sol.beam.shape.name, sol.girder.shape.name)}
-          ${panelSummary}
-          <div class="report-footer"><strong>Disclaimer:</strong> Conceptual/schematic tool. Not for final design. Verify results independently.</div>
-        </section>
-
-        <section class="print-page">
-          <div class="report-title">Beam Report</div>
-          <div class="report-sub">${safeStr(sol.beam.shape.name)}</div>
-          ${memberReportHTML(sol.beam, sol.panel)}
-        </section>
-
-        <section class="print-page">
-          <div class="report-title">Girder Report</div>
-          <div class="report-sub">${safeStr(sol.girder.shape.name)}</div>
-          ${memberReportHTML(sol.girder, sol.panel)}
+          <div class="report-title">${safeStr(title)}</div>
+          <div class="report-sub">${safeStr(subtitle)}</div>
+          ${bodyHTML}
+          <div class="report-footer">
+            <strong>Disclaimer:</strong> Conceptual/schematic tool. Not for final design. Verify results independently.<br/>
+            <span class="small">Tool ${safeStr(APP_VERSION)} • Solution ID: <span class="mono">${safeStr(sol.solution_id || "—")}</span> • ${safeStr(metaTime)}</span>
+          </div>
         </section>
       `;
-      window.print();
+
+      const panelSummary = `
+        ${makePlanSVG(geom, layout, sol.beam.shape.name, sol.girder.shape.name)}
+        ${tableHTML(["Field","Value"], [
+          ["Beam", safeStr(sol.panel.beam_shape)],
+          ["Girder", safeStr(sol.panel.girder_shape)],
+          ["Cost ($/sf)", money(sol.panel.cost_per_sf,3)],
+          ["Weight (psf)", fmt(sol.panel.weight_psf,3)],
+          ["Strength Util Max", fmt(sol.panel.governing.strength_util_max,3)],
+          ["Deflection Util Max", fmt(sol.panel.governing.deflection_util_max,3)],
+          ["Pre-composite strength util max", sol.panel.governing.precomp_strength_util_max != null ? fmt(sol.panel.governing.precomp_strength_util_max,3) : "—"],
+          ["Pre-composite controlling", safeStr(sol.panel.governing.precomp_controlling_case_str || "—")],
+          ["Controlling", safeStr(sol.panel.governing.controlling_case_str)]
+        ])}
+        ${panelTakeoffHTML(sol, inputs)}
+      `;
+
+      const inputSummary = inputSummaryHTML(inputs, sol);
+      const beamBody = memberReportHTML(sol.beam, sol.panel, { mode:"print", inputs, solution: sol });
+      const girderBody = memberReportHTML(sol.girder, sol.panel, { mode:"print", inputs, solution: sol });
+
+      return page("Input Summary", `Floor Framing (AISC 360-22) — MVP • ${metaTime}`, inputSummary) +
+        page("Panel Summary", `Bay ${fmt(geom.Lb_ft,2)} ft × ${fmt(geom.Lg_ft,2)} ft • Spacing used ${fmt(layoutInfo.spacing_used,3)} ft`, panelSummary) +
+        page("Beam Report", safeStr(sol.beam.shape.name), beamBody) +
+        page("Girder Report", safeStr(sol.girder.shape.name), girderBody);
+    }
+
+    function printReportPacketHTML(html) {
+      $("reportPack").innerHTML = html;
+      closeModal();
+      setTimeout(() => window.print(), 30);
+    }
+
+    function openReportPacketModal(html) {
+      openModal("Report Packet", `
+        <div class="btn-row" style="margin:.1rem 0 .6rem 0">
+          <button id="btnModalPrint" class="btn primary" type="button">Print</button>
+          <button id="btnModalClose2" class="btn" type="button">Close</button>
+        </div>
+        ${html}
+      `);
+      $("btnModalPrint").onclick = () => printReportPacketHTML(html);
+      $("btnModalClose2").onclick = closeModal;
+    }
+
+    function renderReportPackAndView() {
+      const sol = selectedSolution();
+      if (!sol) return;
+      const inputs = state.inputs || collectInputs();
+      const html = buildReportPackHTML(sol, inputs);
+      openReportPacketModal(html);
     }
 
     function saveRunJSON() {
@@ -1586,7 +2726,15 @@
           const obj = JSON.parse(fr.result);
           if (!obj || !obj.inputs) throw new Error("Invalid run JSON.");
           state.inputs = deepClone(obj.inputs);
+          if (state.inputs.loads && state.inputs.loads.SWadd_psf == null && state.inputs.loads.DL_add_psf != null) state.inputs.loads.SWadd_psf = state.inputs.loads.DL_add_psf;
+          if (state.inputs.loads && state.inputs.loads.SWadd_psf == null) state.inputs.loads.SWadd_psf = 0;
+          if (state.inputs.loads && !state.inputs.loads.LL_reduction_mode) state.inputs.loads.LL_reduction_mode = "asce";
+          if (state.inputs.slab) { delete state.inputs.slab.use_vulcraft_slab_self_weight; delete state.inputs.slab.deck_override_weight; }
+          state.inputs.cost = normalizeCostInputs(state.inputs.cost || {});
+          state.inputs.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", swadd_pct:0 }, state.inputs.construction_stage || {});
+          state.inputs.slab = Object.assign({ deck_table_density:"LWC", self_weight_override_psf: null }, state.inputs.slab || {});
           populateForm(state.inputs);
+          clearInputsDirty();
 
           if (obj.shapes_snapshot?.mode === "upload" && Array.isArray(obj.shapes_snapshot.shapes)) {
             state.uploadedShapes = obj.shapes_snapshot.shapes;
@@ -1744,16 +2892,20 @@
     function runSanityCheck() {
       const inp = collectInputs();
       const lay = computeLayout(inp.geometry);
-      const selfW = inp.slab.deck.deck_weight_psf + inp.slab.concrete.topping_in / 12 * inp.slab.concrete.unit_weight_pcf;
-      const w = (selfW + inp.loads.DL_add_psf + inp.loads.SDL_psf + inp.loads.LL_psf) * lay.spacing_ft / 1000;
+      const swComp = calcSlabDeckSelfWeight(inp);
+      const selfW = slabSelfWeightPsfUsed(inp);
+      const ov = Number.parseFloat(inp?.slab?.self_weight_override_psf);
+      const w = (selfW + inp.loads.SWadd_psf + inp.loads.SDL_psf + inp.loads.LL_psf) * lay.spacing_ft / 1000;
       const L = inp.geometry.Lb_ft;
       const M = w * L * L / 8;
       const V = w * L / 2;
       const lines = [
         "Reference Case Sanity Check (order-of-magnitude only)",
         `Lb=${fmt(inp.geometry.Lb_ft,2)} ft, Lg=${fmt(inp.geometry.Lg_ft,2)} ft, spacing_used=${fmt(lay.spacing_ft,3)} ft`,
-        `Interior beam lines=${lay.nBeamLines}`,
-        `Computed slab self-weight=${fmt(selfW,3)} psf`,
+        `Deck spans=${lay.nDeckSpans}`,
+        `Interior beam lines=${lay.positions_interior_ft.length}`,
+        `Computed slab/deck SW=${fmt(swComp.total_psf,3)} psf (metal + topping + flutes avg)`,
+        ...(Number.isFinite(ov) && ov > 0 ? [`Used (override): ${fmt(selfW,3)} psf`] : []),
         `Approx beam service line load w≈${fmt(w,4)} k/ft`,
         `Approx Mmax=wL²/8≈${fmt(M,3)} k-ft`,
         `Approx Vmax=wL/2≈${fmt(V,3)} k`,
@@ -1764,9 +2916,40 @@
       $("sanityOut").textContent = lines.join("\n");
     }
 
+
+    function applyTheme(theme) {
+      const mode = theme === "dark" ? "dark" : "light";
+      document.body.setAttribute("data-theme", mode);
+      const btn = $("btnTheme");
+      if (btn) btn.textContent = mode === "dark" ? "Light Mode" : "Dark Mode";
+      try { localStorage.setItem("floorFramingTheme", mode); } catch (_) {}
+    }
+
+    function initTheme() {
+      let pref = null;
+      try { pref = localStorage.getItem("floorFramingTheme"); } catch (_) {}
+      if (pref !== "dark" && pref !== "light") {
+        pref = (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+      }
+      applyTheme(pref);
+    }
+
     function hookEvents() {
       document.querySelectorAll(".tab-btn").forEach(btn => {
         btn.addEventListener("click", () => setTab(btn.dataset.tab));
+      });
+
+      $("btnExpandAll").addEventListener("click", () => {
+        document.querySelectorAll("details.accordion").forEach(d => d.open = true);
+      });
+      $("btnCollapseAll").addEventListener("click", () => {
+        document.querySelectorAll("details.accordion").forEach(d => d.open = false);
+      });
+      document.querySelectorAll("[data-jump]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const el = $(btn.dataset.jump);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
       });
 
       $("btnRun").addEventListener("click", startRun);
@@ -1775,19 +2958,20 @@
       $("btnViewBeam").addEventListener("click", () => {
         const sol = selectedSolution();
         if (!sol) return;
-        openModal("Beam Report", memberReportHTML(sol.beam, sol.panel));
+        openModal("Beam Report", memberReportHTML(sol.beam, sol.panel, { mode:"modal", inputs: state.inputs || collectInputs(), solution: sol }));
       });
       $("btnViewGirder").addEventListener("click", () => {
         const sol = selectedSolution();
         if (!sol) return;
-        openModal("Girder Report", memberReportHTML(sol.girder, sol.panel));
+        openModal("Girder Report", memberReportHTML(sol.girder, sol.panel, { mode:"modal", inputs: state.inputs || collectInputs(), solution: sol }));
       });
-      $("btnPrintPack").addEventListener("click", renderReportPackAndPrint);
+      $("btnPrintPack").addEventListener("click", renderReportPackAndView);
       $("btnExportJSON").addEventListener("click", exportJSON);
       $("btnExportCSV").addEventListener("click", exportCSV);
 
       $("btnSaveRun").addEventListener("click", saveRunJSON);
       $("btnLoadRun").addEventListener("click", () => $("fileLoadRun").click());
+      $("btnTheme").addEventListener("click", () => applyTheme(document.body.getAttribute("data-theme") === "dark" ? "light" : "dark"));
       $("fileLoadRun").addEventListener("change", (e) => {
         const f = e.target.files?.[0];
         if (f) loadRunFromFile(f);
@@ -1800,6 +2984,9 @@
       });
 
       $("camberModel").addEventListener("change", updateCamberCostUI);
+      $("deckProfile").addEventListener("change", applyDeckProfileToInputs);
+      $("deckGage").addEventListener("change", applyDeckProfileToInputs);
+      $("slabShored").addEventListener("change", applyDeckProfileToInputs);
 
       document.querySelectorAll("input[name='shapeSource']").forEach(r => {
         r.addEventListener("change", updateShapeStatus);
@@ -1816,17 +3003,20 @@
       });
 
       const watchIds = [
-        "geoLb","geoLg","geoSpacing","geoNBeamOverride","globalLLReduction","loadLL","loadLLReducible",
-        "camberModel"
+        "geoLb","geoLg","geoSpacing","loadSWadd","loadLL","loadLLReductionMode","loadSDL","loadCLL",
+        "concTop","concFc","concUw","deckProfile","deckGage","deckSpanCond","deckTableDensity","slabShored","shoreSpacing","deckHd","deckWt","deckRibW","deckRibS","slabSelfWeightOverride",
+        "camberModel","constrEnable","constrApplyMode","constrSWaddPct"
       ];
       watchIds.forEach(id => {
         $(id).addEventListener("input", () => {
           updateGeometryPreview();
           updateCamberCostUI();
+          markInputsDirty();
         });
         $(id).addEventListener("change", () => {
           updateGeometryPreview();
           updateCamberCostUI();
+          markInputsDirty();
         });
       });
 
@@ -1837,6 +3027,7 @@
     }
 
     function init() {
+      initTheme();
       const d = defaultInputs();
       state.inputs = deepClone(d);
       populateForm(d);
@@ -1844,6 +3035,8 @@
       updateShapeStatus();
       updateGeometryPreview();
       updateLLPreview();
+      updateConstructionPreview();
+      renderDeckChecks();
       renderResultsTable();
       updateSelectedPane();
       hookEvents();
@@ -1861,31 +3054,86 @@
         return Number.isFinite(n) ? n : d;
       };
       const r = (v, d = 6) => Number(v.toFixed(d));
+      const parseNum = toNum;
 
       function computeLayout(geometry) {
         const Lg = Math.max(0.01, toNum(geometry.Lg_ft, 1));
-        let nBeamLines, spacing_ft;
+
+        let nDeckSpans;
         if (geometry.nBeamLines_override != null && Number.isFinite(geometry.nBeamLines_override)) {
-          nBeamLines = Math.max(1, Math.round(geometry.nBeamLines_override));
-          spacing_ft = Lg / (nBeamLines + 1);
+          nDeckSpans = Math.max(1, Math.round(geometry.nBeamLines_override));
         } else {
-          const nSpaces = Math.max(2, Math.round(Lg / Math.max(0.1, toNum(geometry.spacing_ft, 1))));
-          nBeamLines = Math.max(1, nSpaces - 1);
-          spacing_ft = Lg / nSpaces;
+          nDeckSpans = Math.max(1, Math.round(Lg / Math.max(0.1, toNum(geometry.spacing_ft, 1))));
         }
-        const nSpaces = nBeamLines + 1;
-        const positions_ft = [];
-        for (let i = 1; i <= nBeamLines; i++) positions_ft.push(i * spacing_ft);
-        return { nBeamLines, nSpaces, spacing_ft, positions_ft };
+
+        const spacing_ft = Lg / nDeckSpans;
+        const positions_all_ft = [];
+        for (let i = 0; i <= nDeckSpans; i++) positions_all_ft.push(i * spacing_ft);
+        const positions_interior_ft = positions_all_ft.slice(1, -1);
+
+        const shareBeams = !!geometry.share_half_beams;
+        const shareGirders = !!geometry.share_half_girders;
+
+        const beam_equiv_count = shareBeams ? nDeckSpans : (nDeckSpans + 1);
+        const girder_equiv_count = shareGirders ? 1 : 2;
+
+        return {
+          nDeckSpans,
+          spacing_ft,
+          positions_all_ft,
+          positions_interior_ft,
+          beam_equiv_count,
+          girder_equiv_count
+        };
       }
 
-      function llReduction(LL, reducible, globalOn, KLL, AT) {
-        if (!reducible || !globalOn) return { LL_used_psf: LL, factor: 1, reduction_pct: 0 };
+      function llReduction(LL, mode, KLL, AT) {
+        if (mode === "none") return { LL_used_psf: LL, factor: 1, reduction_pct: 0 };
         const at = Math.max(1, AT);
         let f = 0.25 + 15 / Math.sqrt(Math.max(1, KLL * at));
         const minF = at >= 400 ? 0.4 : 0.5;
         f = clamp(f, minF, 1);
+        if (mode === "asce_cap20") f = Math.max(f, 0.80);
         return { LL_used_psf: LL * f, factor: f, reduction_pct: (1 - f) * 100 };
+      }
+
+
+      function calcSlabDeckSelfWeight(inputs) {
+        const slab = inputs.slab || {};
+        const deck = slab.deck || {};
+        const conc = slab.concrete || {};
+        const deck_psf = toNum(deck.deck_weight_psf, 0);
+        const topping_psf = (toNum(conc.topping_in, 0) / 12) * toNum(conc.unit_weight_pcf, 0);
+        const sr = Math.max(0.01, toNum(deck.rib_spacing_in, 12));
+        const t_flute_avg_in = 0.5 * toNum(deck.hd_in, 0) * (toNum(deck.rib_width_in, 0) / sr);
+        const flute_psf = (t_flute_avg_in / 12) * toNum(conc.unit_weight_pcf, 0);
+        return { deck_psf, topping_psf, flute_psf, total_psf: deck_psf + topping_psf + flute_psf };
+      }
+
+      function slabSelfWeightPsf(inputs, spacing_ft) {
+        const ov = Number.parseFloat(inputs?.slab?.self_weight_override_psf);
+        if (Number.isFinite(ov) && ov > 0) return ov;
+        return calcSlabDeckSelfWeight(inputs).total_psf;
+      }
+
+      function constructionStageConfig(inputs) {
+        const c = inputs.construction_stage || {};
+        return {
+          enabled: !!c.enabled,
+          apply_mode: c.apply_mode === "all" ? "all" : "composite_only",
+          swadd_pct: clamp(toNum(c.swadd_pct, 0), 0, 100)
+        };
+      }
+
+      function slabWeightPsfFinal(inputs, spacing_ft) {
+        return slabSelfWeightPsf(inputs, spacing_ft);
+      }
+
+      function slabWeightPsfConstruction(inputs, cfg) {
+        const wet = calcSlabDeckSelfWeight(inputs);
+        const used = slabSelfWeightPsf(inputs);
+        const ov = Number.parseFloat(inputs?.slab?.self_weight_override_psf);
+        return { psf: used, note: Number.isFinite(ov) && ov > 0 ? "Using slab/deck self-weight override for pre-composite stage." : "Using wet slab + metal deck + topping + flutes(avg) for pre-composite stage." };
       }
 
       function sectionClass(shape, Fy) {
@@ -1917,17 +3165,90 @@
         const Cv = lambda <= lambdaP ? 1 : (lambdaP / lambda);
         const Aw = h * shape.tw;
         const Vn = 0.6 * Fy * Aw * Cv;
-        return Vn; // phi_v ~ 1.0 for this simplified MVP
+        return Vn;
       }
 
       function lrfdCombos() {
         return [
-          { name: "1.4D", D: 1.4, SDL: 0, L: 0, CLL: 0 },
-          { name: "1.2D+1.6L+0.5SDL", D: 1.2, SDL: 0.5, L: 1.6, CLL: 0 },
-          { name: "1.2D+1.6L", D: 1.2, SDL: 0, L: 1.6, CLL: 0 },
-          { name: "1.2D+1.6CLL", D: 1.2, SDL: 0, L: 0, CLL: 1.6 },
-          { name: "1.2D+1.0SDL+1.0L", D: 1.2, SDL: 1.0, L: 1.0, CLL: 0 }
+          { name: "1.4D", D: 1.4, L: 0, CLL: 0 },
+          { name: "1.2D+1.6L", D: 1.2, L: 1.6, CLL: 0 }
         ];
+      }
+
+      function constructionCombos() {
+        return [
+          { name:"1.4D(constr)", D:1.4, CLL:0 },
+          { name:"1.2D+1.6CLL(constr)", D:1.2, CLL:1.6 }
+        ];
+      }
+
+      function precompBeamStrengthCheck(shape, inputs, layout, phiMn_nc, phiV) {
+        const cfg = constructionStageConfig(inputs);
+        const L = inputs.geometry.Lb_ft;
+        const spacing = layout.spacing_ft;
+        const slab = slabWeightPsfConstruction(inputs, cfg);
+        const dlAdd = inputs.loads.SWadd_psf * (cfg.swadd_pct / 100);
+        const sdl = 0;
+        const D_area_psf = slab.psf + dlAdd;
+        const wD = D_area_psf * spacing / 1000 + shape.W / 1000;
+        const wCLL = inputs.loads.CLL_psf * spacing / 1000;
+        const out = [];
+        let maxUtil = 0, controlling = "";
+        for (const c of constructionCombos()) {
+          const w = c.D * wD + c.CLL * wCLL;
+          const Mu = w * L * L / 8;
+          const Vu = w * L / 2;
+          const utilM = phiMn_nc > 0 ? Mu / phiMn_nc : 999;
+          const utilV = phiV > 0 ? Vu / phiV : 999;
+          const util = Math.max(utilM, utilV);
+          if (util > maxUtil) { maxUtil = util; controlling = c.name; }
+          out.push({ name:c.name, Mu, Vu, utilM, utilV, util });
+        }
+        return {
+          maxUtil, controlling, combos: out,
+          slab_psf_used: slab.psf,
+          slab_note: slab.note,
+          D_area_psf_components: { slab_psf: slab.psf, swadd_psf_used: dlAdd, sdl_psf_used: 0 },
+          cll_psf: inputs.loads.CLL_psf
+        };
+      }
+
+      function precompGirderStrengthCheck(shape, beamShape, inputs, layout, phiMn_nc, phiV) {
+        const cfg = constructionStageConfig(inputs);
+        const Lg = inputs.geometry.Lg_ft;
+        const Lb = inputs.geometry.Lb_ft;
+        const spacing = layout.spacing_ft;
+        const slab = slabWeightPsfConstruction(inputs, cfg);
+        const dlAdd = inputs.loads.SWadd_psf * (cfg.swadd_pct / 100);
+        const sdl = 0;
+        const D_area_psf = slab.psf + dlAdd;
+
+        const wBeamD_noGirder = D_area_psf * spacing / 1000 + beamShape.W / 1000;
+        const R_D = wBeamD_noGirder * Lb / 2;
+        const R_CLL = (inputs.loads.CLL_psf * spacing / 1000) * Lb / 2;
+
+        const mk = (R) => layout.positions_interior_ft.map(x => ({ x, P: R }));
+        const pointD = mk(R_D);
+        const pointCLL = mk(R_CLL);
+        const out = [];
+        let maxUtil = 0, controlling = "";
+        for (const c of constructionCombos()) {
+          const pts = mergePointLoads([scaleLoads(pointD, c.D), scaleLoads(pointCLL, c.CLL)]);
+          const w = c.D * (shape.W / 1000);
+          const a = analyzePointUniform(Lg, pts, w);
+          const utilM = phiMn_nc > 0 ? a.maxM / phiMn_nc : 999;
+          const utilV = phiV > 0 ? a.maxV / phiV : 999;
+          const util = Math.max(utilM, utilV);
+          if (util > maxUtil) { maxUtil = util; controlling = c.name; }
+          out.push({ name:c.name, Mu:a.maxM, Vu:a.maxV, utilM, utilV, util });
+        }
+        return {
+          maxUtil, controlling, combos: out,
+          slab_psf_used: slab.psf,
+          slab_note: slab.note,
+          D_area_psf_components: { slab_psf: slab.psf, swadd_psf_used: dlAdd, sdl_psf_used: 0 },
+          cll_psf: inputs.loads.CLL_psf
+        };
       }
 
       function uniformDefl(w_kft, L_ft, I_in4) {
@@ -1942,7 +3263,8 @@
         const out = [];
         let maxUtil = 0, ctrl = "";
         for (const c of combos) {
-          const wc = c.D * w.DL + c.SDL * w.SDL + c.L * w.LL + c.CLL * w.CLL;
+          const D = w.DL + w.SDL;
+          const wc = c.D * D + c.L * w.LL + c.CLL * w.CLL;
           const Mu = wc * L_ft * L_ft / 8;
           const Vu = wc * L_ft / 2;
           const utilM = phiMn_kft > 0 ? Mu / phiMn_kft : 999;
@@ -2025,10 +3347,13 @@
       function studQn(inputs) {
         const dia = inputs.slab.studs.dia_in;
         const As = Math.PI * dia * dia / 4;
-        const fc = inputs.slab.concrete.fc_ksi * 1000;
-        const Ec = 57000 * Math.sqrt(Math.max(fc, 1));
+
+        const wc = Math.max(90, Math.min(155, inputs.slab.concrete.unit_weight_pcf));
+        const fc_psi = inputs.slab.concrete.fc_ksi * 1000;
+        const Ec_psi = 33 * Math.pow(wc, 1.5) * Math.sqrt(Math.max(fc_psi, 1));
+
         const Fu = inputs.slab.studs.Fu_ksi;
-        const qConc = 0.5 * As * Math.sqrt(fc * Ec) / 1000;
+        const qConc = 0.5 * As * Math.sqrt(fc_psi * Ec_psi) / 1000;
         const qSteel = As * Fu;
         return Math.min(qConc, qSteel);
       }
@@ -2064,10 +3389,14 @@
 
       function buildCompositeVariant(shape, memberType, L_ft, trib_ft, layout, inputs, Fy, phiMn_nc) {
         const be = effectiveWidth(memberType, L_ft, trib_ft, inputs);
-        const t_eff = inputs.slab.concrete.topping_in + 0.5 * inputs.slab.deck.hd_in;
-        const Ac = be * t_eff;
+        const t_top = inputs.slab.concrete.topping_in;
+        const hd = inputs.slab.deck.hd_in;
+        const Ac = be * t_top;
         const fc = inputs.slab.concrete.fc_ksi;
-        const Ec_ksi = 57 * Math.sqrt(Math.max(fc * 1000, 1));
+        const fc_psi = fc * 1000;
+        const wc = Math.max(90, Math.min(155, inputs.slab.concrete.unit_weight_pcf));
+        const Ec_psi = 33 * Math.pow(wc, 1.5) * Math.sqrt(Math.max(fc_psi, 1));
+        const Ec_ksi = Ec_psi / 1000;
         const n = E / Ec_ksi;
 
         const Qn = studQn(inputs);
@@ -2080,7 +3409,7 @@
 
         const Aeq = Ac / n;
         const ySteel = shape.d / 2;
-        const ySlab = shape.d + t_eff / 2;
+        const ySlab = shape.d + hd + t_top / 2;
         const yBar = (shape.A * ySteel + Aeq * ySlab) / (shape.A + Aeq);
         const Itrans = shape.Ix + shape.A * Math.pow(yBar - ySteel, 2) + Aeq * Math.pow(ySlab - yBar, 2);
         const eta = clamp(sumQn / Math.max(1e-9, Tfull), 0, 1);
@@ -2089,7 +3418,8 @@
         const Cc = 0.85 * fc * Ac;
         const C = Math.min(Cc, sumQn, Tfull);
         const a = C / Math.max(1e-9, (0.85 * fc * be));
-        const yComp = shape.d + t_eff - a / 2;
+        const yTop = shape.d + hd + t_top;
+        const yComp = yTop - a / 2;
         const z = Math.max(0.1, yComp - ySteel);
         const Mn_comp_nom = Math.max(phiMn_nc / 0.9, C * z / 12);
         const phiMn_comp = 0.9 * Mn_comp_nom;
@@ -2102,7 +3432,7 @@
             percent_composite: pct,
             be_in: be,
             Ac_in2: Ac,
-            PNA_from_bottom_in: shape.d + t_eff - a,
+            PNA_from_bottom_in: (shape.d + hd + t_top) - a,
             ENA_from_bottom_in: yBar,
             Ec_ksi,
             n_modular: n,
@@ -2138,13 +3468,26 @@
         return Array.from(new Set(out));
       }
 
-      function camberCost(camber_in, cost) {
+      function camberCostEq(memberType, camber_in, length_ft, cost) {
         if (!camber_in || camber_in <= 0) return 0;
-        if (cost.camber_model === "flat") return Math.max(0, toNum(cost.flat_cost_per_member, 0));
-        const r1 = cost.ranges[0], r2 = cost.ranges[1], r3 = cost.ranges[2];
-        if (r1.max_in != null && camber_in <= r1.max_in) return Math.max(0, toNum(r1.cost_per_member, 0));
-        if (r2.max_in != null && camber_in <= r2.max_in) return Math.max(0, toNum(r2.cost_per_member, 0));
-        return Math.max(0, toNum(r3.cost_per_member, 0));
+        const lbsPerFt = memberType === "girder"
+          ? toNum(cost.camber_eq?.girder_lbs_per_ft, 7)
+          : toNum(cost.camber_eq?.beam_lbs_per_ft, 5);
+        const steelTic = toNum(cost.steel_tic_per_lb, 1.25);
+        return Math.max(0, lbsPerFt * length_ft * steelTic);
+      }
+
+      function camberCostFlat(memberType, camber_in, cost) {
+        if (!camber_in || camber_in <= 0) return 0;
+        const flatCost = memberType === "girder"
+          ? toNum(cost.camber_flat?.girder_cost_per_member, 350)
+          : toNum(cost.camber_flat?.beam_cost_per_member, 250);
+        return Math.max(0, flatCost);
+      }
+
+      function camberCost(memberType, camber_in, length_ft, cost) {
+        if (cost.camber_model === "flat_per_member") return camberCostFlat(memberType, camber_in, cost);
+        return camberCostEq(memberType, camber_in, length_ft, cost);
       }
 
       function checkDeflCases(defMap, L_ft, limits) {
@@ -2191,10 +3534,10 @@
         const Fy = inputs.member_criteria.Fy_ksi;
         const L = inputs.geometry.Lb_ft;
         const spacing = layout.spacing_ft;
-        const selfPsf = inputs.slab.deck.deck_weight_psf + (inputs.slab.concrete.topping_in / 12) * inputs.slab.concrete.unit_weight_pcf;
+        const selfPsf = slabSelfWeightPsf(inputs, spacing);
 
-        const wDL_area = (selfPsf + inputs.loads.DL_add_psf) * spacing / 1000;
-        const wDL_defl_area = ((inputs.slab.shored ? 0 : selfPsf) + inputs.loads.DL_add_psf) * spacing / 1000;
+        const wDL_area = (selfPsf + inputs.loads.SWadd_psf) * spacing / 1000;
+        const wDL_defl_area = (selfPsf + inputs.loads.SWadd_psf) * spacing / 1000;
         const wSelf = shape.W / 1000;
         const wSDL = inputs.loads.SDL_psf * spacing / 1000;
         const wLL = llBeamInfo.LL_used_psf * spacing / 1000;
@@ -2206,8 +3549,8 @@
         const phiV = phiVn(shape, Fy);
 
         const quick = calcStrengthUniform(L, wComp, phiMn_nc, phiV);
-        if (!inputs.member_criteria.beam.composite_allowed && quick.maxUtil > 1) return null;
-        if (!inputs.member_criteria.beam.composite_allowed && quick.maxUtil > 1.2) return null;
+        if (!inputs.member_criteria.beam.composite_allowed && quick.maxUtil > 1.0) return null;
+        if (inputs.member_criteria.beam.composite_allowed && quick.maxUtil > 2.0) return null;
 
         const variants = [];
         variants.push({
@@ -2238,11 +3581,16 @@
         }
 
         const cambers = camberList(inputs.member_criteria.beam.camber_allowed, L, cls, inputs);
+        const constrCfg = constructionStageConfig(inputs);
         let best = null;
         for (const v of variants) {
           const strength = calcStrengthUniform(L, wComp, v.phiMn, phiV);
           if (strength.maxUtil > 1.0) continue;
           if (strength.maxUtil > 1.2 && v.kind === "NONCOMP" && !inputs.member_criteria.beam.composite_allowed) continue;
+
+          const precompApplied = constrCfg.enabled && !inputs.slab.shored && (constrCfg.apply_mode === "all" || (constrCfg.apply_mode === "composite_only" && v.composite.enabled));
+          const precomp = precompApplied ? precompBeamStrengthCheck(shape, inputs, layout, phiMn_nc, phiV) : null;
+          if (precompApplied && precomp.maxUtil > 1.0) continue;
 
           const Iserv = v.composite.enabled
             ? (inputs.deflection.inertia_method === "I_TRANS" ? v.composite.I_trans_in4 : v.composite.I_eff_in4)
@@ -2259,8 +3607,8 @@
             const defl = checkDeflCases({ DL:dDL, LL:dLL, SDL:dSDL, LL_SDL:dLL+dSDL, TOTAL:dTOTAL }, L, inputs.deflection.limits);
             if (defl.maxUtil > 1) continue;
 
-            const cCost = camberCost(c, inputs.cost);
-            const localScore = (v.composite.studs.stud_count_total || 0) * inputs.cost.stud_per_each + cCost + 100 * (strength.maxUtil + defl.maxUtil);
+            const cCost = camberCost("beam", c, L, inputs.cost);
+            const localScore = (v.composite.studs.stud_count_total || 0) * inputs.cost.stud_tic_per_each + cCost + 100 * (strength.maxUtil + defl.maxUtil);
 
             if (!best || localScore < best.localScore) {
               best = {
@@ -2270,12 +3618,16 @@
                 camber_in: c,
                 camber_cost: cCost,
                 localScore,
+                precomp,
+                precompApplied,
                 notes: [
                   `Beam ${shape.name}: class flange=${cls.flange_class}, web=${cls.web_class}`,
                   `wDL=${r(wComp.DL,4)} k/ft, wSDL=${r(wComp.SDL,4)} k/ft, wLL=${r(wComp.LL,4)} k/ft`,
                   `Camber=${r(c,3)} in, camber offset=${r(offset,3)} in`,
                   `Deflection control=${defl.controlling}, util=${r(defl.maxUtil,4)}`,
-                  `Strength control=${strength.controlling}, util=${r(strength.maxUtil,4)}`
+                  `Strength control=${strength.controlling}, util=${r(strength.maxUtil,4)}`,
+                  `Pre-composite check uses NONCOMPOSITE φMn/φVn regardless of final composite selection.`,
+                  ...(inputs.slab.shored ? ["Pre-composite checks skipped because Shored construction is selected."] : [])
                 ].concat(v.trace)
               };
             }
@@ -2294,10 +3646,10 @@
             influence_area_ft2: spacing * L,
             live_load_reduction_pct: llBeamInfo.reduction_pct,
             components: [
-              {name:"DL", type:"uniform_kft", value:wComp.DL, note:"Includes slab/deck, DL_add, beam self-weight"},
+              {name:"DL", type:"uniform_kft", value:wComp.DL, note:"Includes slab/deck, SWadd, beam self-weight"},
               {name:"SDL", type:"uniform_kft", value:wComp.SDL, note:"Superimposed dead load"},
               {name:"LL", type:"uniform_kft", value:wComp.LL, note:"Reduced live load"},
-              {name:"CLL", type:"uniform_kft", value:wComp.CLL, note:"Construction live load"}
+              {name:"CLL", type:"uniform_kft", value:wComp.CLL, note:"Construction-stage only (not used in final post-cure LRFD combos)"}
             ],
             cases: best.strength.combos.map(c => ({name:c.name, Mu_kft:c.Mu, Vu_k:c.Vu, defl_in:null, ratio:null, util_M:c.utilM, util_V:c.utilV}))
           },
@@ -2309,6 +3661,19 @@
           deflection: {
             cases: best.defl.cases,
             net_total_case: best.defl.cases.find(c => c.name === "TOTAL") || null
+          },
+          construction_stage: {
+            enabled: constrCfg.enabled,
+            applied: !!best.precompApplied,
+            shored: !!inputs.slab.shored,
+                        swadd_pct: constrCfg.swadd_pct,
+            slab_psf_used: best.precomp?.slab_psf_used ?? null,
+            D_area_psf_components: best.precomp?.D_area_psf_components || null,
+            cll_psf: best.precomp?.cll_psf ?? null,
+            combos: best.precomp?.combos || [],
+            maxUtil: best.precomp?.maxUtil ?? null,
+            controlling: best.precomp?.controlling ?? null,
+            note: best.precomp?.slab_note || null
           },
           notes: best.notes
         };
@@ -2344,13 +3709,14 @@
         const out = [];
         let maxUtil = 0, ctrl = "";
         for (const c of combos) {
+          const ptsD = mergePointLoads([comp.DL.point, comp.SDL.point]);
           const pts = mergePointLoads([
-            scaleLoads(comp.DL.point, c.D),
-            scaleLoads(comp.SDL.point, c.SDL),
+            scaleLoads(ptsD, c.D),
             scaleLoads(comp.LL.point, c.L),
             scaleLoads(comp.CLL.point, c.CLL)
           ]);
-          const w = c.D * comp.DL.w + c.SDL * comp.SDL.w + c.L * comp.LL.w + c.CLL * comp.CLL.w;
+          const wD = comp.DL.w + comp.SDL.w;
+          const w = c.D * wD + c.L * comp.LL.w + c.CLL * comp.CLL.w;
           const a = analyzePointUniform(L_ft, pts, w);
           const utilM = phiMn_kft > 0 ? a.maxM / phiMn_kft : 999;
           const utilV = phiVn_k > 0 ? a.maxV / phiVn_k : 999;
@@ -2366,10 +3732,10 @@
         const Lg = inputs.geometry.Lg_ft;
         const Lb = inputs.geometry.Lb_ft;
         const spacing = layout.spacing_ft;
-        const selfPsf = inputs.slab.deck.deck_weight_psf + (inputs.slab.concrete.topping_in / 12) * inputs.slab.concrete.unit_weight_pcf;
+        const selfPsf = slabSelfWeightPsf(inputs, spacing);
 
-        const wBeamDL_area = (selfPsf + inputs.loads.DL_add_psf) * spacing / 1000;
-        const wBeamDL_defl_area = ((inputs.slab.shored ? 0 : selfPsf) + inputs.loads.DL_add_psf) * spacing / 1000;
+        const wBeamDL_area = (selfPsf + inputs.loads.SWadd_psf) * spacing / 1000;
+        const wBeamDL_defl_area = (selfPsf + inputs.loads.SWadd_psf) * spacing / 1000;
         const wBeamSelf = beamShape.W / 1000;
 
         const R_DL = (wBeamDL_area + wBeamSelf) * Lb / 2;
@@ -2378,7 +3744,7 @@
         const R_LL = (llGirderInfo.LL_used_psf * spacing / 1000) * Lb / 2;
         const R_CLL = (inputs.loads.CLL_psf * spacing / 1000) * Lb / 2;
 
-        const mk = (R) => layout.positions_ft.map(x => ({ x, P: R }));
+        const mk = (R) => layout.positions_interior_ft.map(x => ({ x, P: R }));
         const pointDL = mk(R_DL);
         const pointDLdefl = mk(R_DL_defl);
         const pointSDL = mk(R_SDL);
@@ -2397,8 +3763,8 @@
         const phiV = phiVn(shape, Fy);
 
         const quick = calcStrengthPoint(Lg, compLoads, phiMn_nc, phiV);
-        if (!inputs.member_criteria.girder.composite_allowed && quick.maxUtil > 1) return null;
-        if (!inputs.member_criteria.girder.composite_allowed && quick.maxUtil > 1.2) return null;
+        if (!inputs.member_criteria.girder.composite_allowed && quick.maxUtil > 1.0) return null;
+        if (inputs.member_criteria.girder.composite_allowed && quick.maxUtil > 2.0) return null;
 
         const variants = [{
           kind: "NONCOMP",
@@ -2428,11 +3794,16 @@
         }
 
         const cambers = camberList(inputs.member_criteria.girder.camber_allowed, Lg, cls, inputs);
+        const constrCfg = constructionStageConfig(inputs);
         let best = null;
 
         for (const v of variants) {
           const strength = calcStrengthPoint(Lg, compLoads, v.phiMn, phiV);
           if (strength.maxUtil > 1) continue;
+
+          const precompApplied = constrCfg.enabled && !inputs.slab.shored && (constrCfg.apply_mode === "all" || (constrCfg.apply_mode === "composite_only" && v.composite.enabled));
+          const precomp = precompApplied ? precompGirderStrengthCheck(shape, beamShape, inputs, layout, phiMn_nc, phiV) : null;
+          if (precompApplied && precomp.maxUtil > 1.0) continue;
 
           const Iserv = v.composite.enabled
             ? (inputs.deflection.inertia_method === "I_TRANS" ? v.composite.I_trans_in4 : v.composite.I_eff_in4)
@@ -2449,8 +3820,8 @@
             const defl = checkDeflCases({ DL:dDL, LL:dLL, SDL:dSDL, LL_SDL:dLL+dSDL, TOTAL:dTOTAL }, Lg, inputs.deflection.limits);
             if (defl.maxUtil > 1) continue;
 
-            const cCost = camberCost(c, inputs.cost);
-            const localScore = (v.composite.studs.stud_count_total || 0) * inputs.cost.stud_per_each + cCost + 100 * (strength.maxUtil + defl.maxUtil);
+            const cCost = camberCost("girder", c, Lg, inputs.cost);
+            const localScore = (v.composite.studs.stud_count_total || 0) * inputs.cost.stud_tic_per_each + cCost + 100 * (strength.maxUtil + defl.maxUtil);
 
             if (!best || localScore < best.localScore) {
               best = {
@@ -2460,12 +3831,16 @@
                 camber_in: c,
                 camber_cost: cCost,
                 localScore,
+                precomp,
+                precompApplied,
                 notes: [
                   `Girder ${shape.name}: class flange=${cls.flange_class}, web=${cls.web_class}`,
                   `Point loads per beam line: DL=${r(R_DL,3)}k, SDL=${r(R_SDL,3)}k, LL=${r(R_LL,3)}k, CLL=${r(R_CLL,3)}k`,
                   `Camber=${r(c,3)} in, camber offset=${r(offset,3)} in`,
                   `Deflection control=${defl.controlling}, util=${r(defl.maxUtil,4)}`,
-                  `Strength control=${strength.controlling}, util=${r(strength.maxUtil,4)}`
+                  `Strength control=${strength.controlling}, util=${r(strength.maxUtil,4)}`,
+                  `Pre-composite check uses NONCOMPOSITE φMn/φVn regardless of final composite selection.`,
+                  ...(inputs.slab.shored ? ["Pre-composite checks skipped because Shored construction is selected."] : [])
                 ].concat(v.trace)
               };
             }
@@ -2484,10 +3859,10 @@
             influence_area_ft2: inputs.geometry.Lb_ft * inputs.geometry.Lg_ft,
             live_load_reduction_pct: llGirderInfo.reduction_pct,
             components: [
-              {name:"DL", type:"point_k", value:R_DL, note:`${layout.nBeamLines} point loads + girder self-weight ${r(shape.W/1000,4)} k/ft`},
-              {name:"SDL", type:"point_k", value:R_SDL, note:`${layout.nBeamLines} point loads`},
-              {name:"LL", type:"point_k", value:R_LL, note:`${layout.nBeamLines} point loads (reduced)`},
-              {name:"CLL", type:"point_k", value:R_CLL, note:`${layout.nBeamLines} point loads`}
+              {name:"DL", type:"point_k", value:R_DL, note:`${layout.positions_interior_ft.length} point loads + girder self-weight ${r(shape.W/1000,4)} k/ft`},
+              {name:"SDL", type:"point_k", value:R_SDL, note:`${layout.positions_interior_ft.length} point loads`},
+              {name:"LL", type:"point_k", value:R_LL, note:`${layout.positions_interior_ft.length} point loads (reduced)`},
+              {name:"CLL", type:"point_k", value:R_CLL, note:`${layout.positions_interior_ft.length} point loads (construction-stage only)`}
             ],
             point_load_table: {
               DL: pointDL.map(p => ({ x_ft:p.x, P_k:p.P })),
@@ -2505,6 +3880,19 @@
           deflection: {
             cases: best.defl.cases,
             net_total_case: best.defl.cases.find(c => c.name === "TOTAL") || null
+          },
+          construction_stage: {
+            enabled: constrCfg.enabled,
+            applied: !!best.precompApplied,
+            shored: !!inputs.slab.shored,
+                        swadd_pct: constrCfg.swadd_pct,
+            slab_psf_used: best.precomp?.slab_psf_used ?? null,
+            D_area_psf_components: best.precomp?.D_area_psf_components || null,
+            cll_psf: best.precomp?.cll_psf ?? null,
+            combos: best.precomp?.combos || [],
+            maxUtil: best.precomp?.maxUtil ?? null,
+            controlling: best.precomp?.controlling ?? null,
+            note: best.precomp?.slab_note || null
           },
           notes: best.notes
         };
@@ -2526,24 +3914,36 @@
         if (!girder) return null;
 
         const bayArea = inputs.geometry.Lb_ft * inputs.geometry.Lg_ft;
-        const girderCount = inputs.geometry.share_half_girders ? 1 : 2;
-        const beamWeightLb = beamShape.W * inputs.geometry.Lb_ft * layout.nBeamLines;
-        const girderWeightLb = girderShape.W * inputs.geometry.Lg_ft * girderCount;
+        const nBeamEq = layout.beam_equiv_count;
+        const nGirderEq = layout.girder_equiv_count;
+        const beamWeightLb = beamShape.W * inputs.geometry.Lb_ft * nBeamEq;
+        const girderWeightLb = girderShape.W * inputs.geometry.Lg_ft * nGirderEq;
         const totalWeightLb = beamWeightLb + girderWeightLb;
         const weight_psf = totalWeightLb / bayArea;
 
-        const beamStudsTotal = (beam.report.composite.studs.stud_count_total || 0) * layout.nBeamLines;
-        const girderStudsTotal = (girder.report.composite.studs.stud_count_total || 0) * girderCount;
+        const beamStudsTotal = (beam.report.composite.studs.stud_count_total || 0) * nBeamEq;
+        const girderStudsTotal = (girder.report.composite.studs.stud_count_total || 0) * nGirderEq;
         const totalStuds = beamStudsTotal + girderStudsTotal;
 
-        const steel_usd = totalWeightLb * inputs.cost.steel_per_lb;
-        const stud_usd = totalStuds * inputs.cost.stud_per_each;
-        const camber_usd = beam.report.camber.cost_usd * layout.nBeamLines + girder.report.camber.cost_usd * girderCount;
+        const steel_usd = totalWeightLb * inputs.cost.steel_tic_per_lb;
+        const stud_usd = totalStuds * inputs.cost.stud_tic_per_each;
+        const camber_beam_usd = beam.report.camber.cost_usd * nBeamEq;
+        const camber_girder_usd = girder.report.camber.cost_usd * nGirderEq;
+        const camber_usd = camber_beam_usd + camber_girder_usd;
         const total_usd = steel_usd + stud_usd + camber_usd;
         const cost_per_sf = total_usd / bayArea;
 
         const sMax = Math.max(beam.strengthUtil, girder.strengthUtil);
         const dMax = Math.max(beam.deflUtil, girder.deflUtil);
+        const bpc = beam.report.construction_stage;
+        const gpc = girder.report.construction_stage;
+        const bpcU = bpc?.applied ? (bpc.maxUtil ?? 0) : 0;
+        const gpcU = gpc?.applied ? (gpc.maxUtil ?? 0) : 0;
+        const precomp_strength_util_max = Math.max(bpcU, gpcU);
+        const precomp_controlling_case_str = precomp_strength_util_max > 0
+          ? (bpcU >= gpcU ? `Beam ${bpc?.controlling || ""}` : `Girder ${gpc?.controlling || ""}`)
+          : null;
+
         const control = sMax >= dMax
           ? `Strength: ${beam.strengthUtil >= girder.strengthUtil ? `Beam ${beam.controlStrength}` : `Girder ${girder.controlStrength}`}`
           : `Deflection: ${beam.deflUtil >= girder.deflUtil ? `Beam ${beam.controlDefl}` : `Girder ${girder.controlDefl}`}`;
@@ -2565,6 +3965,8 @@
             pass: true,
             governing: {
               strength_util_max: sMax,
+              precomp_strength_util_max: precomp_strength_util_max > 0 ? precomp_strength_util_max : null,
+              precomp_controlling_case_str: precomp_controlling_case_str,
               deflection_util_max: dMax,
               controlling_case_str: control
             },
@@ -2572,11 +3974,13 @@
               bay_area_sf: bayArea,
               steel_usd,
               stud_usd,
+              camber_beam_usd,
+              camber_girder_usd,
               camber_usd,
               total_usd
             },
             layout: layout,
-            calc_trace: `Beam utils: strength=${r(beam.strengthUtil,4)}, defl=${r(beam.deflUtil,4)} | Girder utils: strength=${r(girder.strengthUtil,4)}, defl=${r(girder.deflUtil,4)}`
+            calc_trace: `Beam utils: strength=${r(beam.strengthUtil,4)}, defl=${r(beam.deflUtil,4)}, precomp=${r(bpcU,4)} | Girder utils: strength=${r(girder.strengthUtil,4)}, defl=${r(girder.deflUtil,4)}, precomp=${r(gpcU,4)}`
           },
           beam: beam.report,
           girder: girder.report
@@ -2629,13 +4033,14 @@
         const layout = computeLayout(inputs.geometry);
         const AT_beam = layout.spacing_ft * inputs.geometry.Lb_ft;
         const AT_girder = inputs.geometry.Lb_ft * inputs.geometry.Lg_ft;
-        const llBeamInfo = llReduction(inputs.loads.LL_psf, inputs.loads.LL_reducible, inputs.basis.live_load_reduction, 2, AT_beam);
-        const llGirderInfo = llReduction(inputs.loads.LL_psf, inputs.loads.LL_reducible, inputs.basis.live_load_reduction, 1, AT_girder);
+        const llBeamInfo = llReduction(inputs.loads.LL_psf, inputs.loads.LL_reduction_mode, 2, AT_beam);
+        const llGirderInfo = llReduction(inputs.loads.LL_psf, inputs.loads.LL_reduction_mode, 1, AT_girder);
 
         const total = beamShapes.length * girderShapes.length;
         self.postMessage({ cmd: "started", total, beamCount: beamShapes.length, girderCount: girderShapes.length });
 
-        let processed = 0, found = 0;
+        let processed = 0, found = 0, candidateErrors = 0;
+        let firstCandidateError = null;
         const top = [];
 
         for (let gi = 0; gi < girderShapes.length; gi++) {
@@ -2651,17 +4056,18 @@
                 self.postMessage({ cmd:"candidate", candidate: sol, processed, total, found });
               }
             } catch (e) {
-              // ignore single-candidate failure
+              candidateErrors++;
+              if (!firstCandidateError) firstCandidateError = e?.message || String(e);
             }
 
             if (processed % 10 === 0) {
-              self.postMessage({ cmd: "progress", processed, total, found });
+              self.postMessage({ cmd: "progress", processed, total, found, candidateErrors, firstCandidateError });
             }
           }
         }
 
         top.sort((a,b) => metric(a, optimizeBy) - metric(b, optimizeBy));
-        self.postMessage({ cmd: "done", results: top, processed, total, found });
+        self.postMessage({ cmd: "done", results: top, processed, total, found, candidateErrors, firstCandidateError });
       }
 
       self.onmessage = (ev) => {
