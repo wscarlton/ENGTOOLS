@@ -165,9 +165,9 @@
     .bay-svg{width:100%;height:190px;display:block}
     .bay-svg *{vector-effect:non-scaling-stroke}
     .gfx-note{margin-top:.35rem}
-    .badge{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid transparent}
-    .badge.ok{color:#14532d;background:#dcfce7;border-color:#86efac}
-    .badge.fail{color:#7f1d1d;background:#fee2e2;border-color:#fca5a5}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-weight:700;font-size:12px;line-height:18px}
+    .badge.ok{background:rgba(34,197,94,.15);color:#166534;border:1px solid rgba(34,197,94,.35)}
+    .badge.fail{background:rgba(239,68,68,.15);color:#991b1b;border:1px solid rgba(239,68,68,.35)}
     .catalog-card{background:#fff;color:#111827;border:1px solid #d1d5db;border-radius:10px;padding:.45rem}
     .catalog-card .table-scroll table{background:#fff}
     .catalog-card .table-scroll th,.catalog-card .table-scroll td{border-color:#cbd5e1}
@@ -463,8 +463,9 @@
             <div class="field"><label>Rib spacing sr (in)</label><input id="deckRibS" type="number" step="0.01" /></div>
           </div>
           <div id="slabSelfWeightInfo" class="small muted-box" style="margin-top:.35rem"></div>
-          <div id="deckLockHelp" class="small muted-box" style="margin-top:.35rem;display:none">To edit rib geometry/weight, switch Deck Profile to “None (manual)”.</div>
+          <div id="deckLockHelp" class="small muted-box" style="margin-top:.35rem;display:none">Locked by profile (switch to Manual deck to edit).</div>
           <div id="deckOverrideBadge" class="small muted-box" style="margin-top:.35rem;display:none">Self-weight override active (used in design).</div>
+          <div id="deckGeomNote" class="small muted-box" style="margin-top:.35rem">If you need to override slab/deck weight, use the slab/deck self-weight override (psf). Beam self-weight remains computed automatically.</div>
           <div class="field" style="max-width:420px;margin-top:.35rem">
             <label>Override slab/deck self-weight (psf)</label>
             <input id="slabSelfWeightOverride" type="number" step="0.01" placeholder="(blank = use computed)" />
@@ -1338,7 +1339,9 @@
       const lay = computeLayout(inp.geometry);
       const d = deckChecks(inp, lay);
       const sw = calcSlabDeckSelfWeight(inp);
-      $("slabSelfWeightInfo").innerHTML = `<div><strong>Computed slab/deck self-weight (psf):</strong> ${fmt(sw.total_psf,2)} = metal ${fmt(sw.deck_psf,2)} + topping ${fmt(sw.topping_psf,2)} + flutes ${fmt(sw.flute_psf,2)}</div>`;
+      const usedSw = slabSelfWeightPsfUsed(inp);
+      const ovActive = Number.isFinite(parseOptionalNum($("slabSelfWeightOverride").value)) && parseOptionalNum($("slabSelfWeightOverride").value) > 0;
+      $("slabSelfWeightInfo").innerHTML = `<div><strong>Computed slab/deck self-weight (psf):</strong> ${fmt(sw.total_psf,2)} = metal ${fmt(sw.deck_psf,2)} + topping ${fmt(sw.topping_psf,2)} + flutes (avg) ${fmt(sw.flute_psf,2)}</div>${ovActive ? `<div><strong>Used (override):</strong> ${fmt(usedSw,2)} psf <span class="badge ok">Override active</span></div>` : ``}`;
       const box = $("deckChecksInfo");
       if (!d.enabled) {
         box.innerHTML = '<div>Deck checks disabled (profile=None).</div>';
@@ -1521,6 +1524,7 @@
       $("camberEqGirder").value = inputs.cost.camber_eq.girder_lbs_per_ft;
       $("camberFlatBeam").value = inputs.cost.camber_flat.beam_cost_per_member;
       $("camberFlatGirder").value = inputs.cost.camber_flat.girder_cost_per_member;
+      applyDeckProfileToInputs();
     }
 
     function collectInputs() {
@@ -1763,12 +1767,12 @@
       const cfg = inp.construction_stage || {};
       const lay = computeLayout(inp.geometry);
       const sw = calcSlabDeckSelfWeight(inp);
-      const slabPsfConstr = sw.total_psf;
+      const slabPsfConstr = slabSelfWeightPsfUsed(inp);
       const dlAddUsed = inp.loads.SWadd_psf * clamp((cfg.swadd_pct ?? 0) / 100, 0, 1);
       const sdlUsed = 0;
       $("constructionPreview").innerHTML = `
         <div><strong>Check active:</strong> ${cfg.enabled ? "Yes" : "No"} (${safeStr(cfg.apply_mode === "all" ? "all solutions" : "composite solutions only")})${inp.slab.shored ? " — Shored selected, checks will be skipped." : ""}</div>
-        <div><strong>Slab/deck psf used for construction:</strong> ${fmt(slabPsfConstr,2)} psf (wet slab + deck (metal+topping+flutes))</div>
+        <div><strong>Slab/deck psf used for construction:</strong> ${fmt(slabPsfConstr,2)} psf (wet slab + metal deck + topping + flutes(avg))</div>
         <div><strong>SWadd portion:</strong> ${fmt(dlAddUsed,2)} psf (${fmt(cfg.swadd_pct,1)}%)</div>
         <div><strong>SDL included:</strong> ${fmt(sdlUsed,2)} psf (always excluded in pre-composite checks)</div>
         <div><strong>CLL:</strong> ${fmt(inp.loads.CLL_psf,2)} psf</div>
@@ -3112,7 +3116,9 @@
 
       function slabWeightPsfConstruction(inputs, cfg) {
         const wet = calcSlabDeckSelfWeight(inputs);
-        return { psf: wet.total_psf, note: "Using wet slab+deck (metal+topping+flutes) for pre-composite stage." };
+        const used = slabSelfWeightPsf(inputs);
+        const ov = Number.parseFloat(inputs?.slab?.self_weight_override_psf);
+        return { psf: used, note: Number.isFinite(ov) && ov > 0 ? "Using slab/deck self-weight override for pre-composite stage." : "Using wet slab + metal deck + topping + flutes(avg) for pre-composite stage." };
       }
 
       function sectionClass(shape, Fy) {
