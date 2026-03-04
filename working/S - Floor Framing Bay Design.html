@@ -155,6 +155,12 @@
     body[data-theme="dark"] details{border-color:#374151;background:#0f172a}
     body[data-theme="dark"] .footer{background:#0b1220;border-top-color:#374151}
     body[data-theme="dark"] .pill{background:#0f172a}
+    .inputs-toolbar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.45rem;margin:.25rem 0 .55rem}
+    .pill-row{display:flex;align-items:center;gap:.35rem;flex-wrap:wrap}
+    .pill-row .small{margin-right:.15rem}
+    details.accordion{border:1px solid var(--line);border-radius:12px;padding:.35rem .6rem;margin:.55rem 0;background:var(--card)}
+    details.accordion summary{font-weight:700;cursor:pointer}
+    details.accordion[open] summary{margin-bottom:.35rem}
 
     /* Modal */
     .modal{
@@ -209,12 +215,9 @@
     <header class="topbar">
       <div class="brand">Floor Framing (AISC 360-22) — MVP</div>
       <nav class="tabs">
-        <button class="tab-btn active" data-tab="loads">Loads</button>
-        <button class="tab-btn" data-tab="slab">Floor Slab</button>
-        <button class="tab-btn" data-tab="member">Member Criteria</button>
-        <button class="tab-btn" data-tab="defl">Deflection + Camber</button>
-        <button class="tab-btn" data-tab="cost">Cost</button>
+        <button class="tab-btn active" data-tab="inputs">Inputs</button>
         <button class="tab-btn" data-tab="results">Results</button>
+        <button class="tab-btn" data-tab="reports">Reports</button>
       </nav>
       <div class="actions">
         <button id="btnRun" class="btn primary">Run Analysis</button>
@@ -303,13 +306,29 @@
             </ul>
           </details>
         </section>
-      </aside>
-
-      <!-- Main -->
+      </aside>      <!-- Main -->
       <main class="col" id="mainCol">
-        <!-- LOADS TAB -->
-        <section class="card tab-panel active" data-panel="loads">
-          <h3>Loads</h3>
+        <section class="card tab-panel active" data-panel="inputs">
+          <h3>Inputs</h3>
+          <div class="inputs-toolbar">
+            <div class="pill-row">
+              <span class="small muted">Jump to:</span>
+              <button class="pill" data-jump="secLoads" type="button">Loads</button>
+              <button class="pill" data-jump="secSlab" type="button">Floor Slab</button>
+              <button class="pill" data-jump="secMember" type="button">Member Criteria</button>
+              <button class="pill" data-jump="secDefl" type="button">Deflection + Camber</button>
+              <button class="pill" data-jump="secCost" type="button">Cost</button>
+            </div>
+            <div class="btn-row" style="margin-top:0">
+              <button id="btnExpandAll" class="btn" type="button">Expand all</button>
+              <button id="btnCollapseAll" class="btn" type="button">Collapse all</button>
+              <span id="inputsDirtyPill" class="pill" style="display:none">Inputs changed — rerun analysis</span>
+            </div>
+          </div>
+
+          <div id="secLoads"></div>
+          <details class="accordion" open>
+            <summary>Loads</summary>
           <div class="grid3">
             <div class="field">
               <label title="Permanent self-weight add-on excluding slab/deck self-weight (load-only, e.g., ponding allowance).">Self Weight Add-On (psf)</label>
@@ -361,11 +380,11 @@
           </div>
           <div class="small muted-box" style="margin-top:.35rem">Note: If Shored construction is selected (Floor Slab tab), pre-composite checks are automatically skipped.</div>
           <div id="constructionPreview" class="small muted-box"></div>
-        </section>
+          </details>
 
-        <!-- FLOOR SLAB TAB -->
-        <section class="card tab-panel" data-panel="slab">
-          <h3>Floor Slab</h3>
+          <div id="secSlab"></div>
+          <details class="accordion" open>
+            <summary>Floor Slab</summary>
           <div class="field" style="max-width:340px">
             <label>Slab Type</label>
             <input value="Metal Deck with Concrete Topping (MVP only)" disabled />
@@ -414,50 +433,11 @@
             </div>
             <div id="deckChecksInfo" class="small muted-box" style="margin-top:.45rem"></div>
             <div class="small muted-box" style="margin-top:.35rem">Note: max unshored span tables do not address bearing/web-crippling; verify separately.</div>
-          </section>
-          <div class="hr"></div>
+          </details>
 
-          <h4>Deck</h4>
-          <div class="grid2" id="deckGeometryGrid">
-            <div class="field"><label>Deck height hd (in)</label><input id="deckHd" type="number" step="0.01" /></div>
-            <div class="field"><label>Deck weight (psf)</label><input id="deckWt" type="number" step="0.01" /></div>
-            <div class="field"><label>Rib width wr (in)</label><input id="deckRibW" type="number" step="0.01" /></div>
-            <div class="field"><label>Rib spacing sr (in)</label><input id="deckRibS" type="number" step="0.01" /></div>
-          </div>
-          <div id="slabSelfWeightInfo" class="small muted-box" style="margin-top:.35rem"></div>
-          <div class="field" style="max-width:420px;margin-top:.35rem">
-            <label>Override slab/deck self-weight (psf)</label>
-            <input id="slabSelfWeightOverride" type="number" step="0.01" placeholder="(blank = use computed)" />
-            <div class="small">If provided, replaces computed slab/deck self-weight (does not include beam self-weight).</div>
-          </div>
-
-          <h4>Concrete</h4>
-          <div class="grid2">
-            <div class="field"><label>Topping thickness t_top (in)</label><input id="concTop" type="number" step="0.01" /></div>
-            <div class="field"><label>f’c (ksi)</label><input id="concFc" type="number" step="0.01" /></div>
-            <div class="field"><label>Unit weight (pcf)</label><input id="concUw" type="number" step="0.01" /></div>
-          </div>
-
-          <h4>Studs</h4>
-          <div class="grid3">
-            <div class="field"><label>Diameter (in)</label><input id="studDia" type="number" step="0.01" /></div>
-                        <div class="field"><label>Fu (ksi)</label><input id="studFu" type="number" step="0.01" /></div>
-            <div class="field"><label>Min composite (%)</label><input id="studMinComp" type="number" step="0.01" min="0" max="100" /></div>
-            <div class="field"><label>Max composite (%)</label><input id="studMaxComp" type="number" step="0.01" min="0" max="100" /></div>
-          </div>
-
-          <h4>Stud Spacing Limits (MVP editable)</h4>
-          <div class="grid2">
-            <div class="field"><label>End dist (in)</label><input id="studEndDist" type="number" step="0.01" /></div>
-            <div class="field"><label>Long min parallel (in)</label><input id="studLongMinPar" type="number" step="0.01" /></div>
-            <div class="field"><label>Long max parallel (in)</label><input id="studLongMaxPar" type="number" step="0.01" /></div>
-            <div class="field"><label>Trans min parallel (in)</label><input id="studTransMinPar" type="number" step="0.01" /></div>
-          </div>
-        </section>
-
-        <!-- MEMBER TAB -->
-        <section class="card tab-panel" data-panel="member">
-          <h3>Member Design Criteria</h3>
+          <div id="secMember"></div>
+          <details class="accordion">
+            <summary>Member Criteria</summary>
           <div class="grid3">
             <div class="field">
               <label>Steel Fy (ksi)</label>
@@ -527,11 +507,11 @@
             <strong>Vibration</strong>:
             <span class="small">DG11 vibration checks are out of scope for MVP — coming later.</span>
           </div>
-        </section>
+          </details>
 
-        <!-- DEFLECTION TAB -->
-        <section class="card tab-panel" data-panel="defl">
-          <h3>Deflection + Camber</h3>
+          <div id="secDefl"></div>
+          <details class="accordion">
+            <summary>Deflection + Camber</summary>
           <div class="grid2">
             <div class="field">
               <label>Composite deflection inertia method</label>
@@ -570,11 +550,11 @@
               <label>Do not camber non-compact web members</label>
             </div>
           </div>
-        </section>
+          </details>
 
-        <!-- COST TAB -->
-        <section class="card tab-panel" data-panel="cost">
-          <h3>Cost (TIC)</h3>
+          <div id="secCost"></div>
+          <details class="accordion">
+            <summary>Cost</summary>
           <div class="grid3">
             <div class="field"><label title="Total installed cost per pound of steel. Should reflect your typical fabricated + erected steel package (not mill price). If you only know $/ton: divide by 2000 to get $/lb.">Steel TIC ($/lb)</label><input id="costSteelTIC" type="number" step="0.001" /></div>
             <div class="field"><label title="Total installed cost per stud (stud + welding labor + QA). If you only know material cost, installed TIC is typically higher.">Stud TIC ($/stud)</label><input id="costStudTIC" type="number" step="0.01" /></div>
@@ -605,9 +585,9 @@
           </div>
 
           <div class="small muted-box" style="margin-top:.45rem">Tip: Calibrate these values against a recent project. The optimizer ranks options by a relative TIC index.</div>
+          </details>
         </section>
 
-        <!-- RESULTS TAB -->
         <section class="card tab-panel" data-panel="results">
           <h3>Adequate Beam/Girder Combinations</h3>
           <div class="small" id="resultsMeta">No analysis run yet.</div>
@@ -631,6 +611,18 @@
             </table>
           </div>
         </section>
+
+        <section class="card tab-panel" data-panel="reports">
+          <h3>Reports</h3>
+          <div class="small muted-box">Select a solution in Results to enable report actions.</div>
+          <div class="btn-row">
+            <button id="btnViewBeam" class="btn" disabled>View Beam Report</button>
+            <button id="btnViewGirder" class="btn" disabled>View Girder Report</button>
+            <button id="btnPrintPack" class="btn" disabled>View Report Packet</button>
+            <button id="btnExportJSON" class="btn" disabled>Export JSON</button>
+            <button id="btnExportCSV" class="btn" disabled>Export CSV</button>
+          </div>
+        </section>
       </main>
 
       <!-- Right -->
@@ -640,13 +632,6 @@
           <div id="bayPreview"></div>
           <div id="selectedSummary" class="small" style="margin-top:.4rem">No selection.</div>
 
-          <div class="btn-row">
-            <button id="btnViewBeam" class="btn" disabled>View Beam Report</button>
-            <button id="btnViewGirder" class="btn" disabled>View Girder Report</button>
-            <button id="btnPrintPack" class="btn" disabled>Print Report Pack</button>
-            <button id="btnExportJSON" class="btn" disabled>Export JSON</button>
-            <button id="btnExportCSV" class="btn" disabled>Export CSV</button>
-          </div>
         </section>
 
         <section class="card">
@@ -867,7 +852,8 @@
       uploadedShapes: [],
       shapeDatasetLabel: "DEMO W-shapes subset",
       shapeFileName: null,
-      diagnostics: { candidateErrors: 0, firstError: null }
+      diagnostics: { candidateErrors: 0, firstError: null },
+      inputsDirty: false
     };
 
     const $ = (id) => document.getElementById(id);
@@ -1636,6 +1622,17 @@
       $("diagnosticsInfo").innerHTML = `Worker candidate errors: ${state.diagnostics.candidateErrors}${state.diagnostics.firstError ? `<br/>First: ${safeStr(state.diagnostics.firstError)}` : ""}`;
     }
 
+    function markInputsDirty() {
+      if (state.inputsDirty) return;
+      state.inputsDirty = true;
+      if ($("inputsDirtyPill")) $("inputsDirtyPill").style.display = "inline-block";
+    }
+
+    function clearInputsDirty() {
+      state.inputsDirty = false;
+      if ($("inputsDirtyPill")) $("inputsDirtyPill").style.display = "none";
+    }
+
     function setRunningUI(running) {
       state.running = running;
       $("btnRun").disabled = running;
@@ -1658,6 +1655,7 @@
       showErrors(errs);
       if (errs.length) return;
 
+      clearInputsDirty();
       setTab("results");
       updateDiagnostics({ candidateErrors: 0, firstCandidateError: null });
       state.inputs = deepClone(inputs);
@@ -1690,6 +1688,7 @@
           $("resultsMeta").textContent = `Running... processed ${m.processed}/${m.total}, passing ${m.found}`;
         } else if (m.cmd === "done") {
           setRunningUI(false);
+          clearInputsDirty();
           updateDiagnostics(m);
           state.results = Array.isArray(m.results) ? m.results : [];
           sortResults();
@@ -2421,11 +2420,7 @@
       }
     }
 
-    function renderReportPackAndPrint() {
-      const sol = selectedSolution();
-      if (!sol) return;
-
-      const inputs = state.inputs || collectInputs();
+    function buildReportPackHTML(sol, inputs) {
       const geom = inputs.geometry;
       const metaTime = new Date().toLocaleString();
 
@@ -2461,17 +2456,39 @@
       `;
 
       const inputSummary = inputSummaryHTML(inputs, sol);
-
       const beamBody = memberReportHTML(sol.beam, sol.panel, { mode:"print", inputs, solution: sol });
       const girderBody = memberReportHTML(sol.girder, sol.panel, { mode:"print", inputs, solution: sol });
 
-      $("reportPack").innerHTML =
-        page("Input Summary", `Floor Framing (AISC 360-22) — MVP • ${metaTime}`, inputSummary) +
+      return page("Input Summary", `Floor Framing (AISC 360-22) — MVP • ${metaTime}`, inputSummary) +
         page("Panel Summary", `Bay ${fmt(geom.Lb_ft,2)} ft × ${fmt(geom.Lg_ft,2)} ft • Spacing used ${fmt(layoutInfo.spacing_used,3)} ft`, panelSummary) +
         page("Beam Report", safeStr(sol.beam.shape.name), beamBody) +
         page("Girder Report", safeStr(sol.girder.shape.name), girderBody);
+    }
 
-      window.print();
+    function printReportPacketHTML(html) {
+      $("reportPack").innerHTML = html;
+      closeModal();
+      setTimeout(() => window.print(), 30);
+    }
+
+    function openReportPacketModal(html) {
+      openModal("Report Packet", `
+        <div class="btn-row" style="margin:.1rem 0 .6rem 0">
+          <button id="btnModalPrint" class="btn primary" type="button">Print</button>
+          <button id="btnModalClose2" class="btn" type="button">Close</button>
+        </div>
+        ${html}
+      `);
+      $("btnModalPrint").onclick = () => printReportPacketHTML(html);
+      $("btnModalClose2").onclick = closeModal;
+    }
+
+    function renderReportPackAndView() {
+      const sol = selectedSolution();
+      if (!sol) return;
+      const inputs = state.inputs || collectInputs();
+      const html = buildReportPackHTML(sol, inputs);
+      openReportPacketModal(html);
     }
 
     function saveRunJSON() {
@@ -2493,6 +2510,7 @@
           state.inputs.construction_stage = Object.assign({ enabled:true, apply_mode:"composite_only", swadd_pct:0 }, state.inputs.construction_stage || {});
           state.inputs.slab = Object.assign({ deck_table_density:"LWC", self_weight_override_psf: null }, state.inputs.slab || {});
           populateForm(state.inputs);
+          clearInputsDirty();
 
           if (obj.shapes_snapshot?.mode === "upload" && Array.isArray(obj.shapes_snapshot.shapes)) {
             state.uploadedShapes = obj.shapes_snapshot.shapes;
@@ -2694,6 +2712,19 @@
         btn.addEventListener("click", () => setTab(btn.dataset.tab));
       });
 
+      $("btnExpandAll").addEventListener("click", () => {
+        document.querySelectorAll("details.accordion").forEach(d => d.open = true);
+      });
+      $("btnCollapseAll").addEventListener("click", () => {
+        document.querySelectorAll("details.accordion").forEach(d => d.open = false);
+      });
+      document.querySelectorAll("[data-jump]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const el = $(btn.dataset.jump);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
+
       $("btnRun").addEventListener("click", startRun);
       $("btnCancel").addEventListener("click", stopRun);
 
@@ -2707,7 +2738,7 @@
         if (!sol) return;
         openModal("Girder Report", memberReportHTML(sol.girder, sol.panel, { mode:"modal", inputs: state.inputs || collectInputs(), solution: sol }));
       });
-      $("btnPrintPack").addEventListener("click", renderReportPackAndPrint);
+      $("btnPrintPack").addEventListener("click", renderReportPackAndView);
       $("btnExportJSON").addEventListener("click", exportJSON);
       $("btnExportCSV").addEventListener("click", exportCSV);
 
@@ -2753,10 +2784,12 @@
         $(id).addEventListener("input", () => {
           updateGeometryPreview();
           updateCamberCostUI();
+          markInputsDirty();
         });
         $(id).addEventListener("change", () => {
           updateGeometryPreview();
           updateCamberCostUI();
+          markInputsDirty();
         });
       });
 
