@@ -161,6 +161,12 @@
     details.accordion{border:1px solid var(--line);border-radius:12px;padding:.35rem .6rem;margin:.55rem 0;background:var(--card)}
     details.accordion summary{font-weight:700;cursor:pointer}
     details.accordion[open] summary{margin-bottom:.35rem}
+    .gfx-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+    .bay-svg{width:100%;height:190px;display:block}
+    .bay-svg *{vector-effect:non-scaling-stroke}
+    .gfx-note{margin-top:.35rem}
+    body[data-theme="dark"] .gfx-card{background:#fff;border-color:#2b2f36}
+    body.dark .gfx-card{background:#fff;border-color:#2b2f36}
 
     /* Modal */
     .modal{
@@ -1215,26 +1221,61 @@
     }
 
     function makePlanSVG(geometry, layout, beamLabel = "", girderLabel = "") {
-      const W = 300, H = 200, m = 24;
-      const x0 = m, y0 = m, w = W - 2 * m, h = H - 2 * m;
-      const Lg = Math.max(0.01, geometry.Lg_ft);
-      let beams = "";
-      for (const xFt of layout.positions_all_ft) {
-        const x = x0 + (xFt / Lg) * w;
-        beams += `<line x1="${x}" y1="${y0}" x2="${x}" y2="${y0 + h}" stroke="#1d4ed8" stroke-width="2"/>`;
+      const W = 360, H = 220, pad = 28;
+      const Lb = Number(geometry?.Lb_ft);
+      const Lg = Number(geometry?.Lg_ft);
+      const spacing = Number(layout?.spacing_ft);
+
+      if (!Number.isFinite(Lb) || !Number.isFinite(Lg) || Lb <= 0 || Lg <= 0) {
+        return `
+          <div class="gfx-card">
+            <div class="small" style="color:#111827">Enter valid spans to preview bay.</div>
+            <div class="small gfx-note" style="color:#6b7280">Graphic scaled to spans (proportional). White card is intentional for legibility in dark mode.</div>
+          </div>`;
       }
+
+      const maxDim = Math.max(Lb, Lg);
+      const usable = Math.max(20, Math.min(W, H) - 2 * pad);
+      const s = usable / maxDim;
+      const bayW = Lg * s;
+      const bayH = Lb * s;
+      const x0 = (W - bayW) / 2;
+      const y0 = (H - bayH) / 2;
+
+      const hasSpacing = Number.isFinite(spacing) && spacing > 0;
+      let beams = "";
+      if (hasSpacing && Array.isArray(layout?.positions_all_ft) && layout.positions_all_ft.length) {
+        for (const xFt of layout.positions_all_ft) {
+          const xi = x0 + (xFt / Lg) * bayW;
+          beams += `<line x1="${xi}" y1="${y0}" x2="${xi}" y2="${y0 + bayH}" stroke="#6b7280" stroke-width="1"/>`;
+        }
+      }
+
+      const spacingText = hasSpacing
+        ? `Beam spacing = ${fmt(spacing,3)} ft (actual)`
+        : "Spacing not available.";
+
+      const msg = hasSpacing ? "" : `<text x="${x0 + bayW / 2}" y="${y0 + bayH + 14}" text-anchor="middle" fill="#6b7280" font-size="11">Spacing not available.</text>`;
+
       return `
-      <svg viewBox="0 0 ${W} ${H}" width="100%" height="190" role="img" aria-label="Bay plan diagram">
-        <rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="#f8fafc" stroke="#334155" stroke-width="1.4"/>
-        <line x1="${x0}" y1="${y0}" x2="${x0 + w}" y2="${y0}" stroke="#0f172a" stroke-width="4"/>
-        <line x1="${x0}" y1="${y0 + h}" x2="${x0 + w}" y2="${y0 + h}" stroke="#0f172a" stroke-width="4"/>
-        ${beams}
-        <text x="${x0 + w / 2}" y="${y0 - 7}" text-anchor="middle" fill="#111827" font-size="11">Lg = ${fmt(geometry.Lg_ft,2)} ft</text>
-        <text x="${x0 - 8}" y="${y0 + h / 2}" transform="rotate(-90 ${x0 - 8},${y0 + h / 2})" text-anchor="middle" fill="#111827" font-size="11">Lb = ${fmt(geometry.Lb_ft,2)} ft</text>
-        <text x="${x0 + 6}" y="${y0 + 14}" fill="#0f172a" font-size="10">${safeStr(girderLabel)}</text>
-        <text x="${x0 + 6}" y="${y0 + h - 6}" fill="#0f172a" font-size="10">${safeStr(girderLabel)}</text>
-        <text x="${x0 + 6}" y="${y0 + h/2}" fill="#1d4ed8" font-size="10">${safeStr(beamLabel)}</text>
-      </svg>`;
+        <div class="gfx-card">
+          <svg class="bay-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Bay plan diagram scaled to span proportions">
+            <rect x="${x0}" y="${y0}" width="${bayW}" height="${bayH}" fill="#ffffff" stroke="#111827" stroke-width="2"/>
+            ${beams}
+            <line x1="${x0}" y1="${y0}" x2="${x0 + bayW}" y2="${y0}" stroke="#111827" stroke-width="2"/>
+            <line x1="${x0}" y1="${y0 + bayH}" x2="${x0 + bayW}" y2="${y0 + bayH}" stroke="#111827" stroke-width="2"/>
+
+            <text x="${x0 + bayW / 2}" y="${Math.max(12, y0 - 9)}" text-anchor="middle" fill="#111827" font-size="11">Girder span Lg = ${fmt(Lg,2)} ft</text>
+            <text x="${Math.max(12, x0 - 10)}" y="${y0 + bayH / 2}" transform="rotate(-90 ${Math.max(12, x0 - 10)},${y0 + bayH / 2})" text-anchor="middle" fill="#111827" font-size="11">Beam span Lb = ${fmt(Lb,2)} ft</text>
+            <text x="${x0 + bayW / 2}" y="${Math.min(H - 6, y0 + bayH + 26)}" text-anchor="middle" fill="#111827" font-size="11">${safeStr(spacingText)}</text>
+
+            <text x="${x0 + 6}" y="${y0 + 14}" fill="#111827" font-size="10">${safeStr(girderLabel)}</text>
+            <text x="${x0 + 6}" y="${y0 + bayH - 6}" fill="#111827" font-size="10">${safeStr(girderLabel)}</text>
+            <text x="${Math.min(W - 8, x0 + 8)}" y="${y0 + bayH/2}" fill="#111827" font-size="10">${safeStr(beamLabel)}</text>
+            ${msg}
+          </svg>
+          <div class="small gfx-note" style="color:#6b7280">Graphic scaled to spans (proportional). White card is intentional for legibility in dark mode.</div>
+        </div>`;
     }
 
     function setTab(tabName) {
