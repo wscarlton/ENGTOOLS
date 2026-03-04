@@ -117,6 +117,45 @@
       padding:.6rem;border-radius:8px;max-height:240px;overflow:auto
     }
 
+
+    body[data-theme="dark"]{
+      --bg:#0b1220;
+      --card:#111827;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --line:#374151;
+      --blue:#3b82f6;
+      --blue2:#3b82f6;
+      --green:#22c55e;
+      --red:#f87171;
+      --orange:#fb923c;
+      --shadow:0 2px 12px rgba(0,0,0,.45);
+    }
+    body[data-theme="dark"] .topbar{background:#020617;border-bottom-color:#1f2937}
+    body[data-theme="dark"] .tab-btn{background:#0f172a;color:#c7d2fe;border-color:#334155}
+    body[data-theme="dark"] .tab-btn.active{color:#fff}
+    body[data-theme="dark"] .btn{background:#111827;color:#e5e7eb;border-color:#4b5563}
+    body[data-theme="dark"] .btn.primary{background:var(--blue2);border-color:var(--blue2);color:#fff}
+    body[data-theme="dark"] .btn.danger{background:#dc2626;border-color:#dc2626;color:#fff}
+    body[data-theme="dark"] .btn.ghost{background:transparent;color:#e5e7eb;border-color:#64748b}
+    body[data-theme="dark"] .statusbar{background:#111827;border-bottom-color:#374151}
+    body[data-theme="dark"] #errorBox{background:#3f1d1d;color:#fecaca;border-color:#7f1d1d}
+    body[data-theme="dark"] .card h4{color:#e5e7eb}
+    body[data-theme="dark"] .field label{color:#d1d5db}
+    body[data-theme="dark"] .field input,
+    body[data-theme="dark"] .field select,
+    body[data-theme="dark"] .field textarea{background:#0f172a;color:#e5e7eb;border-color:#4b5563}
+    body[data-theme="dark"] .hr{background:#374151}
+    body[data-theme="dark"] .muted-box{background:#0f172a;border-color:#4b5563}
+    body[data-theme="dark"] th,
+    body[data-theme="dark"] td{border-color:#4b5563}
+    body[data-theme="dark"] th{background:#1f2937}
+    body[data-theme="dark"] tr.sel{background:#172554}
+    body[data-theme="dark"] .kpi{border-color:#1d4ed8;background:#172554}
+    body[data-theme="dark"] details{border-color:#374151;background:#0f172a}
+    body[data-theme="dark"] .footer{background:#0b1220;border-top-color:#374151}
+    body[data-theme="dark"] .pill{background:#0f172a}
+
     /* Modal */
     .modal{
       position:fixed;inset:0;background:rgba(15,23,42,.48);display:none;align-items:center;justify-content:center;z-index:50
@@ -182,6 +221,7 @@
         <button id="btnCancel" class="btn danger" disabled>Stop</button>
         <button id="btnSaveRun" class="btn ghost">Save Run JSON</button>
         <button id="btnLoadRun" class="btn ghost">Load Run JSON</button>
+        <button id="btnTheme" class="btn ghost" title="Toggle dark mode">Dark Mode</button>
         <input id="fileLoadRun" type="file" accept=".json" hidden />
       </div>
     </header>
@@ -2631,6 +2671,24 @@
       $("sanityOut").textContent = lines.join("\n");
     }
 
+
+    function applyTheme(theme) {
+      const mode = theme === "dark" ? "dark" : "light";
+      document.body.setAttribute("data-theme", mode);
+      const btn = $("btnTheme");
+      if (btn) btn.textContent = mode === "dark" ? "Light Mode" : "Dark Mode";
+      try { localStorage.setItem("floorFramingTheme", mode); } catch (_) {}
+    }
+
+    function initTheme() {
+      let pref = null;
+      try { pref = localStorage.getItem("floorFramingTheme"); } catch (_) {}
+      if (pref !== "dark" && pref !== "light") {
+        pref = (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+      }
+      applyTheme(pref);
+    }
+
     function hookEvents() {
       document.querySelectorAll(".tab-btn").forEach(btn => {
         btn.addEventListener("click", () => setTab(btn.dataset.tab));
@@ -2655,6 +2713,7 @@
 
       $("btnSaveRun").addEventListener("click", saveRunJSON);
       $("btnLoadRun").addEventListener("click", () => $("fileLoadRun").click());
+      $("btnTheme").addEventListener("click", () => applyTheme(document.body.getAttribute("data-theme") === "dark" ? "light" : "dark"));
       $("fileLoadRun").addEventListener("change", (e) => {
         const f = e.target.files?.[0];
         if (f) loadRunFromFile(f);
@@ -2708,6 +2767,7 @@
     }
 
     function init() {
+      initTheme();
       const d = defaultInputs();
       state.inputs = deepClone(d);
       populateForm(d);
