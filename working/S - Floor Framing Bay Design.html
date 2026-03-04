@@ -312,7 +312,9 @@
             </ul>
           </details>
         </section>
-      </aside>      <!-- Main -->
+      </aside>
+
+      <!-- Main -->
       <main class="col" id="mainCol">
         <section class="card tab-panel active" data-panel="inputs">
           <h3>Inputs</h3>
@@ -395,7 +397,6 @@
             <label>Slab Type</label>
             <input value="Metal Deck with Concrete Topping (MVP only)" disabled />
           </div>
-
           <section class="card" style="margin:.5rem 0">
             <h4>Deck Selection + Checks (Vulcraft 2VLI / 3VLI — LRFD)</h4>
             <div class="grid3">
@@ -439,6 +440,45 @@
             </div>
             <div id="deckChecksInfo" class="small muted-box" style="margin-top:.45rem"></div>
             <div class="small muted-box" style="margin-top:.35rem">Note: max unshored span tables do not address bearing/web-crippling; verify separately.</div>
+          </section>
+
+          <div class="hr"></div>
+          <h4>Deck</h4>
+          <div class="grid2" id="deckGeometryGrid">
+            <div class="field"><label>Deck height hd (in)</label><input id="deckHd" type="number" step="0.01" /></div>
+            <div class="field"><label>Deck weight (psf)</label><input id="deckWt" type="number" step="0.01" /></div>
+            <div class="field"><label>Rib width wr (in)</label><input id="deckRibW" type="number" step="0.01" /></div>
+            <div class="field"><label>Rib spacing sr (in)</label><input id="deckRibS" type="number" step="0.01" /></div>
+          </div>
+          <div id="slabSelfWeightInfo" class="small muted-box" style="margin-top:.35rem"></div>
+          <div class="field" style="max-width:420px;margin-top:.35rem">
+            <label>Override slab/deck self-weight (psf)</label>
+            <input id="slabSelfWeightOverride" type="number" step="0.01" placeholder="(blank = use computed)" />
+            <div class="small">If provided, replaces computed slab/deck self-weight (does not include beam self-weight).</div>
+          </div>
+
+          <h4>Concrete</h4>
+          <div class="grid2">
+            <div class="field"><label>Topping thickness t_top (in)</label><input id="concTop" type="number" step="0.01" /></div>
+            <div class="field"><label>f’c (ksi)</label><input id="concFc" type="number" step="0.01" /></div>
+            <div class="field"><label>Unit weight (pcf)</label><input id="concUw" type="number" step="0.01" /></div>
+          </div>
+
+          <h4>Studs</h4>
+          <div class="grid3">
+            <div class="field"><label>Diameter (in)</label><input id="studDia" type="number" step="0.01" /></div>
+            <div class="field"><label>Fu (ksi)</label><input id="studFu" type="number" step="0.01" /></div>
+            <div class="field"><label>Min composite (%)</label><input id="studMinComp" type="number" step="0.01" min="0" max="100" /></div>
+            <div class="field"><label>Max composite (%)</label><input id="studMaxComp" type="number" step="0.01" min="0" max="100" /></div>
+          </div>
+
+          <h4>Stud Spacing Limits (MVP editable)</h4>
+          <div class="grid2">
+            <div class="field"><label>End dist (in)</label><input id="studEndDist" type="number" step="0.01" /></div>
+            <div class="field"><label>Long min parallel (in)</label><input id="studLongMinPar" type="number" step="0.01" /></div>
+            <div class="field"><label>Long max parallel (in)</label><input id="studLongMaxPar" type="number" step="0.01" /></div>
+            <div class="field"><label>Trans min parallel (in)</label><input id="studTransMinPar" type="number" step="0.01" /></div>
+          </div>
           </details>
 
           <div id="secMember"></div>
