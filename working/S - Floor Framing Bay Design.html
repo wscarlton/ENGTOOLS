@@ -165,6 +165,14 @@
     .bay-svg{width:100%;height:190px;display:block}
     .bay-svg *{vector-effect:non-scaling-stroke}
     .gfx-note{margin-top:.35rem}
+    .badge{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid transparent}
+    .badge.ok{color:#14532d;background:#dcfce7;border-color:#86efac}
+    .badge.fail{color:#7f1d1d;background:#fee2e2;border-color:#fca5a5}
+    .catalog-card{background:#fff;color:#111827;border:1px solid #d1d5db;border-radius:10px;padding:.45rem}
+    .catalog-card .table-scroll table{background:#fff}
+    .catalog-card .table-scroll th,.catalog-card .table-scroll td{border-color:#cbd5e1}
+    .catalog-card .hl-col{background:#fef3c7 !important;font-weight:700}
+    .catalog-card .hl-depth{background:#ecfccb;font-weight:700}
     body[data-theme="dark"] .gfx-card{background:#fff;border-color:#2b2f36}
     body.dark .gfx-card{background:#fff;border-color:#2b2f36}
 
@@ -440,10 +448,14 @@
             </div>
             <div id="deckChecksInfo" class="small muted-box" style="margin-top:.45rem"></div>
             <div class="small muted-box" style="margin-top:.35rem">Note: max unshored span tables do not address bearing/web-crippling; verify separately.</div>
+            <details class="accordion" style="margin-top:.45rem">
+              <summary>Vulcraft Catalog Table (highlighted cells used for checks)</summary>
+              <div id="deckCatalogView" class="catalog-card" style="margin-top:.4rem"></div>
+            </details>
           </section>
 
           <div class="hr"></div>
-          <h4>Deck</h4>
+          <h4>Deck <span id="deckLockTag" class="badge" style="display:none">Locked by profile</span></h4>
           <div class="grid2" id="deckGeometryGrid">
             <div class="field"><label>Deck height hd (in)</label><input id="deckHd" type="number" step="0.01" /></div>
             <div class="field"><label>Deck weight (psf)</label><input id="deckWt" type="number" step="0.01" /></div>
@@ -451,6 +463,8 @@
             <div class="field"><label>Rib spacing sr (in)</label><input id="deckRibS" type="number" step="0.01" /></div>
           </div>
           <div id="slabSelfWeightInfo" class="small muted-box" style="margin-top:.35rem"></div>
+          <div id="deckLockHelp" class="small muted-box" style="margin-top:.35rem;display:none">To edit rib geometry/weight, switch Deck Profile to “None (manual)”.</div>
+          <div id="deckOverrideBadge" class="small muted-box" style="margin-top:.35rem;display:none">Self-weight override active (used in design).</div>
           <div class="field" style="max-width:420px;margin-top:.35rem">
             <label>Override slab/deck self-weight (psf)</label>
             <input id="slabSelfWeightOverride" type="number" step="0.01" placeholder="(blank = use computed)" />
@@ -677,6 +691,7 @@
           <h3>Selected Solution Preview</h3>
           <div id="bayPreview"></div>
           <div id="selectedSummary" class="small" style="margin-top:.4rem">No selection.</div>
+          <div id="deckDesignSummary" class="small muted-box" style="margin-top:.4rem">Deck Design Summary: No selection.</div>
 
         </section>
 
@@ -834,6 +849,30 @@
         }
       }
     };
+
+
+    const DECK_PROFILE_GEOMETRY = {
+      "2VLI": { hd_in: 2.0, rib_width_in: 6.0, rib_spacing_in: 12.0 },
+      "3VLI": { hd_in: 3.0, rib_width_in: 6.0, rib_spacing_in: 12.0 }
+    };
+
+    function catalogDeckWeightPsf(profile, gage, density = "LWC") {
+      const db = VULCRAFT_DECK_DB?.[profile];
+      if (!db || !DECK_PROFILE_GEOMETRY[profile]) return null;
+      const fam = db[density] || db.LWC || db.NWC;
+      if (!fam) return null;
+      const keys = Object.keys(fam).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+      if (!keys.length) return null;
+      const row = fam[String(keys[0])];
+      const concPlus = row?.concPlusDeck_psf?.[gage];
+      if (!Number.isFinite(concPlus)) return null;
+      const geom = DECK_PROFILE_GEOMETRY[profile];
+      const uw = density === "NWC" ? 145 : 110;
+      const topping_psf = (row.topping_in / 12) * uw;
+      const flute_psf = (0.5 * geom.hd_in * (geom.rib_width_in / geom.rib_spacing_in) / 12) * uw;
+      const wt = concPlus - topping_psf - flute_psf;
+      return Number.isFinite(wt) ? Math.max(0, wt) : null;
+    }
 
     const DEMO_SHAPES =
     [
@@ -1223,13 +1262,74 @@
     function applyDeckProfileToInputs() {
       const inp = collectInputs();
       const p = inp.slab.deck_profile;
-      const db = VULCRAFT_DECK_DB[p];
-      if (p !== "None" && db) {
-        $("deckHd").value = db.deckDepth_in;
+      const isCatalog = p === "2VLI" || p === "3VLI";
+      const density = inp.slab.deck_table_density === "NWC" ? "NWC" : "LWC";
+      const gage = Math.round(parseNum($("deckGage").value, 22));
+      const lockTag = $("deckLockTag");
+      const lockHelp = $("deckLockHelp");
+
+      if (isCatalog && DECK_PROFILE_GEOMETRY[p]) {
+        const geom = DECK_PROFILE_GEOMETRY[p];
+        const wt = catalogDeckWeightPsf(p, gage, density);
+        $("deckHd").value = geom.hd_in;
+        $("deckRibW").value = geom.rib_width_in;
+        $("deckRibS").value = geom.rib_spacing_in;
+        if (Number.isFinite(wt)) $("deckWt").value = fmt(wt, 2);
       }
-      $("deckGeometryGrid").style.display = p === "None" ? "grid" : "none";
+
+      ["deckHd","deckRibW","deckRibS","deckWt"].forEach(id => {
+        $(id).disabled = isCatalog;
+      });
+      if (lockTag) {
+        lockTag.className = `badge ${isCatalog ? "ok" : ""}`;
+        lockTag.style.display = isCatalog ? "inline-block" : "none";
+      }
+      if (lockHelp) lockHelp.style.display = isCatalog ? "block" : "none";
+
+      const ov = parseOptionalNum($("slabSelfWeightOverride").value);
+      const ovBadge = $("deckOverrideBadge");
+      if (ovBadge) ovBadge.style.display = (isCatalog && Number.isFinite(ov) && ov > 0) ? "block" : "none";
+
+      $("deckGeometryGrid").style.display = "grid";
       $("shoreSpacingBox").style.display = $("slabShored").checked ? "block" : "none";
       if (!$("shoreSpacing").value) $("shoreSpacing").value = fmt(computeLayout(inp.geometry).spacing_ft, 3);
+    }
+
+    function renderDeckCatalogView(inp, d) {
+      const box = $("deckCatalogView");
+      if (!box) return;
+      if (!d.enabled || !d.fc_ok || d.tableDepth_in == null) {
+        box.innerHTML = `<div class="small">Catalog view available for 2VLI/3VLI checks.</div>`;
+        return;
+      }
+      const db = VULCRAFT_DECK_DB[d.profile];
+      const fam = db?.[d.density_family || "LWC"];
+      const row = fam?.[String(d.tableDepth_in)];
+      const spans = Array.isArray(db?.spanCols_superimposed_ft) ? db.spanCols_superimposed_ft : [];
+      const vals = row?.superimposed_phiWn_L360_psf?.[d.gage];
+      if (!row || !spans.length || !vals) {
+        box.innerHTML = `<div class="small">Catalog row not available for selected inputs.</div>`;
+        return;
+      }
+      const hi = spans.indexOf(d.spanUsed_ft_for_superimposed);
+      const spanHdr = spans.map((s, i) => `<th class="${i===hi?'hl-col':''}">${fmt(s,2)} ft</th>`).join("");
+      const phiRow = spans.map((s, i) => `<td class="${i===hi?'hl-col':''}">${fmt(vals[i]?.[0],1)}</td>`).join("");
+      const deflRow = spans.map((s, i) => `<td class="${i===hi?'hl-col':''}" style="color:#b91c1c">${fmt(vals[i]?.[1],1)}</td>`).join("");
+      box.innerHTML = `
+        <div class="small"><strong>Actual total depth:</strong> ${fmt(d.totalDepth_in,2)} in | <strong>Catalog total depth used:</strong> <span class="hl-depth">${fmt(d.tableDepth_in,2)} in</span> (next lower)</div>
+        <div class="small"><strong>Actual deck span used:</strong> ${fmt(d.spanDeck_ft,3)} ft | <strong>Catalog span used:</strong> ${fmt(d.spanUsed_ft_for_superimposed,3)} ft (next higher column)</div>
+        ${d.notes.length ? `<div class="small">${d.notes.map(safeStr).join("<br/>")}</div>` : ""}
+        <div class="table-scroll" style="margin-top:.35rem">
+          <table>
+            <thead><tr><th>Row</th>${spanHdr}</tr></thead>
+            <tbody>
+              <tr><td><strong>φWn (psf)</strong><br/><span class="small hl-depth">Depth ${fmt(d.tableDepth_in,2)} in</span></td>${phiRow}</tr>
+              <tr><td><strong style="color:#b91c1c">w@L/360 (psf)</strong><br/><span class="small hl-depth">Depth ${fmt(d.tableDepth_in,2)} in</span></td>${deflRow}</tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="small" style="margin-top:.35rem">Highlighted column = catalog span used for checks. Values are catalog allowables; demands are computed from tool load inputs.</div>
+      `;
     }
 
     function renderDeckChecks() {
@@ -1242,11 +1342,12 @@
       const box = $("deckChecksInfo");
       if (!d.enabled) {
         box.innerHTML = '<div>Deck checks disabled (profile=None).</div>';
+        renderDeckCatalogView(inp, d);
         return;
       }
-      const pf = (v) => v == null ? '—' : (v ? '<span class="ok">PASS</span>' : '<span class="bad">FAIL</span>');
+      const pf = (v) => v == null ? '—' : (v ? '<span class="badge ok">PASS</span>' : '<span class="badge fail">FAIL</span>');
       box.innerHTML = `
-        <div><strong>${d.fc_ok ? '✅' : '❌'} ${safeStr(d.fc_msg)}</strong></div>
+        <div><strong>Status:</strong> ${d.fc_ok ? '<span class="badge ok">PASS</span>' : '<span class="badge fail">FAIL</span>'} ${safeStr(d.fc_msg)}</div>
         <div>${safeStr(d.density_msg || '')}</div>
         <div><strong>Deck span used:</strong> ${formatFtIn(d.spanDeck_ft)} (${fmt(d.spanDeck_ft,3)} ft)</div>
         <div><strong>Total slab depth (lookup):</strong> ${fmt(d.totalDepth_in,2)} in → table ${d.tableDepth_in != null ? fmt(d.tableDepth_in,2) : "—"} in</div>
@@ -1258,6 +1359,7 @@
         <div><strong>Governing allowable:</strong> ${fmt(d.governing_allowable_psf,1)} psf (min of φWn and L/360)</div>
         ${d.notes.map(n=>`<div>${safeStr(n)}</div>`).join('')}
       `;
+      renderDeckCatalogView(inp, d);
     }
 
     function makePlanSVG(geometry, layout, beamLabel = "", girderLabel = "") {
@@ -1879,12 +1981,34 @@
       $("btnExportCSV").disabled = !has && !state.results.length;
     }
 
+
+    function deckSidebarSummaryHTML(inputs, layout) {
+      const d = deckChecks(inputs, layout);
+      if (!d.enabled) {
+        return `<strong>Deck Design Summary</strong><br/>Deck checks not available (manual deck).<br/>Computed slab/deck self-weight used: ${fmt(d.used_slab_deck_self_weight_psf,2)} psf`;
+      }
+      const utilStrength = Number.isFinite(d.phiWn_psf) && d.phiWn_psf > 0 ? d.demand_strength_psf / d.phiWn_psf : null;
+      const utilDefl = Number.isFinite(d.wL360_psf) && d.wL360_psf > 0 ? d.demand_defl_psf / d.wL360_psf : null;
+      return `
+        <strong>Deck Design Summary</strong><br/>
+        ${safeStr(d.profile)} ${safeStr(d.gage)}ga • ${safeStr(d.density_family || "—")} • span cond ${safeStr(d.spanCondition)}<br/>
+        Deck span used: ${fmt(d.spanDeck_ft,3)} ft<br/>
+        Total depth: actual ${fmt(d.totalDepth_in,2)} in, catalog ${d.tableDepth_in != null ? fmt(d.tableDepth_in,2) : "—"} in (next lower)<br/>
+        Unshored: ${d.pass_unshored == null ? "—" : (d.pass_unshored ? '<span class="badge ok">PASS</span>' : '<span class="badge fail">FAIL</span>')} (max ${fmt(d.maxUnshoredAllowed_ft,3)} ft)<br/>
+        φWn = ${fmt(d.phiWn_psf,1)} psf | <span style="color:#b91c1c">w@L/360 = ${fmt(d.wL360_psf,1)} psf</span><br/>
+        Governing allowable = ${fmt(d.governing_allowable_psf,1)} psf<br/>
+        Strength demand = ${fmt(d.demand_strength_psf,1)} psf | Defl demand = ${fmt(d.demand_defl_psf,1)} psf<br/>
+        Strength util = ${utilStrength != null ? fmt(utilStrength,3) : "—"} | Defl util = ${utilDefl != null ? fmt(utilDefl,3) : "—"}
+      `;
+    }
+
     function updateSelectedPane() {
       const sol = selectedSolution();
       if (!sol) {
         $("bayPreview").innerHTML = "";
         $("selectedSummary").innerHTML = "No selection.";
         $("calcTraceText").textContent = "No selection.";
+        $("deckDesignSummary").innerHTML = "Deck Design Summary: No selection.";
         return;
       }
       const runGeom = state.inputs?.geometry ?? collectInputs().geometry;
@@ -1916,6 +2040,9 @@
           Total TIC: $${fmt(cb.total_usd,2)}
         </div>
       `;
+
+      const inputsForDeck = state.inputs || collectInputs();
+      $("deckDesignSummary").innerHTML = deckSidebarSummaryHTML(inputsForDeck, layout);
 
       const trace = []
         .concat(sol.beam.notes || [])
