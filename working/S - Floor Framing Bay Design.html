@@ -665,6 +665,7 @@
                   <th>Strength Util</th>
                   <th>Pre-Comp Util</th>
                   <th>Deflection Util</th>
+                  <th>Deck</th>
                   <th>Control</th>
                 </tr>
               </thead>
@@ -1949,11 +1950,18 @@
       return state.results.find(r => r.solution_id === state.selectedSolutionId) || null;
     }
 
+    function deckStatus(inputs, layout) {
+      const d = deckChecks(inputs, layout);
+      if (!d.enabled) return { label: '<span class="badge">N/A (manual)</span>', fail: false, detail: d };
+      const passAll = !!(d.pass_unshored && d.pass_strength && d.pass_defl);
+      return { label: passAll ? '<span class="badge ok">PASS</span>' : '<span class="badge fail">FAIL</span>', fail: !passAll, detail: d };
+    }
+
     function renderResultsTable() {
       const tb = $("resultsTbody");
       tb.innerHTML = "";
       if (!state.results.length) {
-        tb.innerHTML = `<tr><td colspan="9" class="small">No results yet.</td></tr>`;
+        tb.innerHTML = `<tr><td colspan="10" class="small">No results yet.</td></tr>`;
       } else {
         state.results.forEach((r, i) => {
           const tr = document.createElement("tr");
@@ -1967,6 +1975,7 @@
             <td>${fmt(r.panel.governing.strength_util_max,3)}</td>
             <td>${r.panel.governing.precomp_strength_util_max != null ? fmt(r.panel.governing.precomp_strength_util_max,3) : "—"}</td>
             <td>${fmt(r.panel.governing.deflection_util_max,3)}</td>
+            <td>${deckStatus(state.inputs || collectInputs(), r.panel.layout || computeLayout((state.inputs || collectInputs()).geometry)).label}</td>
             <td>${safeStr(r.panel.governing.controlling_case_str)}</td>
           `;
           tr.addEventListener("click", () => {
@@ -2046,7 +2055,8 @@
       `;
 
       const inputsForDeck = state.inputs || collectInputs();
-      $("deckDesignSummary").innerHTML = deckSidebarSummaryHTML(inputsForDeck, layout);
+      const deckStat = deckStatus(inputsForDeck, layout);
+      $("deckDesignSummary").innerHTML = `${deckStat.fail ? '<div class="badge fail" style="margin-bottom:.25rem">Deck check FAIL (informational). Member sizing still shown.</div>' : ''}${deckSidebarSummaryHTML(inputsForDeck, layout)}${!deckStat.detail.enabled ? '<br/><span class="badge">Deck checks: N/A (manual deck)</span>' : ''}<br/>Unshored: ${deckStat.detail.pass_unshored == null ? '—' : (deckStat.detail.pass_unshored ? '<span class="badge ok">PASS</span>' : '<span class="badge fail">FAIL</span>')} | Strength: ${deckStat.detail.pass_strength == null ? '—' : (deckStat.detail.pass_strength ? '<span class="badge ok">PASS</span>' : '<span class="badge fail">FAIL</span>')} | Deflection: ${deckStat.detail.pass_defl == null ? '—' : (deckStat.detail.pass_defl ? '<span class="badge ok">PASS</span>' : '<span class="badge fail">FAIL</span>')}`;
 
       const trace = []
         .concat(sol.beam.notes || [])
@@ -2880,7 +2890,9 @@
     function runSanityCheck() {
       const inp = collectInputs();
       const lay = computeLayout(inp.geometry);
-      const selfW = inp.slab.deck.deck_weight_psf + inp.slab.concrete.topping_in / 12 * inp.slab.concrete.unit_weight_pcf;
+      const swComp = calcSlabDeckSelfWeight(inp);
+      const selfW = slabSelfWeightPsfUsed(inp);
+      const ov = Number.parseFloat(inp?.slab?.self_weight_override_psf);
       const w = (selfW + inp.loads.SWadd_psf + inp.loads.SDL_psf + inp.loads.LL_psf) * lay.spacing_ft / 1000;
       const L = inp.geometry.Lb_ft;
       const M = w * L * L / 8;
@@ -2890,7 +2902,8 @@
         `Lb=${fmt(inp.geometry.Lb_ft,2)} ft, Lg=${fmt(inp.geometry.Lg_ft,2)} ft, spacing_used=${fmt(lay.spacing_ft,3)} ft`,
         `Deck spans=${lay.nDeckSpans}`,
         `Interior beam lines=${lay.positions_interior_ft.length}`,
-        `Computed slab self-weight=${fmt(selfW,3)} psf`,
+        `Computed slab/deck SW=${fmt(swComp.total_psf,3)} psf (metal + topping + flutes avg)`,
+        ...(Number.isFinite(ov) && ov > 0 ? [`Used (override): ${fmt(selfW,3)} psf`] : []),
         `Approx beam service line load w≈${fmt(w,4)} k/ft`,
         `Approx Mmax=wL²/8≈${fmt(M,3)} k-ft`,
         `Approx Vmax=wL/2≈${fmt(V,3)} k`,
@@ -3522,7 +3535,7 @@
         const selfPsf = slabSelfWeightPsf(inputs, spacing);
 
         const wDL_area = (selfPsf + inputs.loads.SWadd_psf) * spacing / 1000;
-        const wDL_defl_area = ((inputs.slab.shored ? 0 : selfPsf) + inputs.loads.SWadd_psf) * spacing / 1000;
+        const wDL_defl_area = (selfPsf + inputs.loads.SWadd_psf) * spacing / 1000;
         const wSelf = shape.W / 1000;
         const wSDL = inputs.loads.SDL_psf * spacing / 1000;
         const wLL = llBeamInfo.LL_used_psf * spacing / 1000;
@@ -3720,7 +3733,7 @@
         const selfPsf = slabSelfWeightPsf(inputs, spacing);
 
         const wBeamDL_area = (selfPsf + inputs.loads.SWadd_psf) * spacing / 1000;
-        const wBeamDL_defl_area = ((inputs.slab.shored ? 0 : selfPsf) + inputs.loads.SWadd_psf) * spacing / 1000;
+        const wBeamDL_defl_area = (selfPsf + inputs.loads.SWadd_psf) * spacing / 1000;
         const wBeamSelf = beamShape.W / 1000;
 
         const R_DL = (wBeamDL_area + wBeamSelf) * Lb / 2;
