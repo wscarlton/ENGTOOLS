@@ -268,7 +268,7 @@
             <div class="field">
               <label title="Objective metric for ranking.">Optimize By</label>
               <select id="optimizeBy">
-                <option value="cost" selected>Relative TIC</option>
+                <option value="cost" selected>Cost</option>
                 <option value="weight">Weight</option>
               </select>
             </div>
@@ -617,10 +617,10 @@
           <details class="accordion">
             <summary>Cost</summary>
           <div class="grid3">
-            <div class="field"><label title="Total installed cost per pound of steel. Should reflect your typical fabricated + erected steel package (not mill price). If you only know $/ton: divide by 2000 to get $/lb.">Steel TIC ($/lb)</label><input id="costSteelTIC" type="number" step="0.001" /></div>
-            <div class="field"><label title="Total installed cost per stud (stud + welding labor + QA). If you only know material cost, installed TIC is typically higher.">Stud TIC ($/stud)</label><input id="costStudTIC" type="number" step="0.01" /></div>
+            <div class="field"><label title="Total installed cost per pound of steel. Should reflect your typical fabricated + erected steel package (not mill price). If you only know $/ton: divide by 2000 to get $/lb.">Steel Cost ($/lb)</label><input id="costSteelTIC" type="number" step="0.001" /></div>
+            <div class="field"><label title="Total installed cost per stud (stud + welding labor + QA). If you only know material cost, installed cost is typically higher.">Stud Cost ($/stud)</label><input id="costStudTIC" type="number" step="0.01" /></div>
             <div class="field">
-              <label title="Camber is modeled as an installed-cost adder. Equivalent steel lbs/ft is recommended because it scales with member length and Steel TIC.">Camber cost model</label>
+              <label title="Camber is modeled as an installed-cost adder. Equivalent steel lbs/ft is recommended because it scales with member length and Steel Cost.">Camber cost model</label>
               <select id="camberModel">
                 <option value="eq_lbs_per_ft">Equivalent Steel (lbs/ft)</option>
                 <option value="flat_per_member">Flat $ per cambered member</option>
@@ -634,7 +634,7 @@
               <div class="field"><label title="These represent additional ‘equivalent steel weight’ attributed to cambering. Increase girder value if cambering deeper/heavier girders costs more at your fabricator.">Beam camber add (lbs/ft)</label><input id="camberEqBeam" type="number" step="0.01" /></div>
               <div class="field"><label title="These represent additional ‘equivalent steel weight’ attributed to cambering. Increase girder value if cambering deeper/heavier girders costs more at your fabricator.">Girder camber add (lbs/ft)</label><input id="camberEqGirder" type="number" step="0.01" /></div>
             </div>
-            <div class="small muted-box">Camber cost modeled as added equivalent weight × Steel TIC. Defaults are conceptual and should be calibrated to local standards.</div>
+            <div class="small muted-box">Camber cost modeled as added equivalent weight × Steel Cost. Defaults are conceptual and should be calibrated to local standards.</div>
           </div>
 
           <div id="camberFlatBox">
@@ -645,7 +645,7 @@
             </div>
           </div>
 
-          <div class="small muted-box" style="margin-top:.45rem">Tip: Calibrate these values against a recent project. The optimizer ranks options by a relative TIC index.</div>
+          <div class="small muted-box" style="margin-top:.45rem">Tip: Calibrate these values against a recent project. The optimizer ranks options by Cost (estimated Total Installed Cost), which depends on your assumptions in Cost Inputs.</div>
           </details>
         </section>
 
@@ -653,6 +653,7 @@
           <h3>Adequate Beam/Girder Combinations</h3>
           <div class="small" id="resultsMeta">No analysis run yet.</div>
           <div class="small muted-box" id="diagnosticsInfo" style="margin-top:.35rem">Worker candidate errors: 0</div>
+          <div class="small muted-box" style="margin-top:.35rem">Cost shown is estimated Total Installed Cost and depends on your assumptions in Cost Inputs.</div>
           <div class="table-scroll" style="margin-top:.4rem">
             <table id="resultsTable">
               <thead>
@@ -660,7 +661,7 @@
                   <th>#</th>
                   <th>Beam</th>
                   <th>Girder</th>
-                  <th>TIC ($/sf)</th>
+                  <th>Cost ($/sf)</th>
                   <th>Weight (psf)</th>
                   <th>Strength Util</th>
                   <th>Pre-Comp Util</th>
@@ -1376,7 +1377,7 @@
         return `
           <div class="gfx-card">
             <div class="small" style="color:#111827">Enter valid spans to preview bay.</div>
-            <div class="small gfx-note" style="color:#6b7280">Graphic scaled to spans (proportional). White card is intentional for legibility in dark mode.</div>
+            <div class="small gfx-note" style="color:#6b7280">Typical Bay Configuration</div>
           </div>`;
       }
 
@@ -1420,7 +1421,7 @@
             <text x="${Math.min(W - 8, x0 + 8)}" y="${y0 + bayH/2}" fill="#111827" font-size="10">${safeStr(beamLabel)}</text>
             ${msg}
           </svg>
-          <div class="small gfx-note" style="color:#6b7280">Graphic scaled to spans (proportional). White card is intentional for legibility in dark mode.</div>
+          <div class="small gfx-note" style="color:#6b7280">Typical Bay Configuration</div>
         </div>`;
     }
 
@@ -2037,7 +2038,7 @@
       const cb = sol.panel.cost_breakdown || {};
       $("selectedSummary").innerHTML = `
         <div class="summary-grid">
-          <div class="kpi"><div class="small">TIC</div><div class="v">$${fmt(sol.panel.cost_per_sf,3)}/sf</div></div>
+          <div class="kpi"><div class="small">Cost</div><div class="v">$${fmt(sol.panel.cost_per_sf,3)}/sf</div></div>
           <div class="kpi"><div class="small">Weight</div><div class="v">${fmt(sol.panel.weight_psf,3)} psf</div></div>
           <div class="kpi"><div class="small">Strength Util</div><div class="v ${sol.panel.governing.strength_util_max>1?'bad':'ok'}">${fmt(sol.panel.governing.strength_util_max,3)}</div></div>
           <div class="kpi"><div class="small">Pre-Comp Util</div><div class="v ${(sol.panel.governing.precomp_strength_util_max||0)>1?'bad':'ok'}">${sol.panel.governing.precomp_strength_util_max!=null?fmt(sol.panel.governing.precomp_strength_util_max,3):"—"}</div></div>
@@ -2046,12 +2047,13 @@
         <div style="margin-top:.45rem"><strong>Control:</strong> ${safeStr(sol.panel.governing.controlling_case_str)}</div>
         <div class="small"><strong>Pre-composite control:</strong> ${safeStr(sol.panel.governing.precomp_controlling_case_str || "—")}</div>
         <div style="margin-top:.35rem" class="small">
-          <strong>TIC Breakdown (bay):</strong><br/>
-          Steel TIC: $${fmt(cb.steel_usd,2)} |
-          Stud TIC: $${fmt(cb.stud_usd,2)} |
-          Camber TIC: $${fmt(cb.camber_usd,2)} (Beam $${fmt(cb.camber_beam_usd,2)} + Girder $${fmt(cb.camber_girder_usd,2)}) |
-          Total TIC: $${fmt(cb.total_usd,2)}
+          <strong>Cost Breakdown (bay):</strong><br/>
+          Steel Cost: $${fmt(cb.steel_usd,2)} |
+          Stud Cost: $${fmt(cb.stud_usd,2)} |
+          Camber Cost: $${fmt(cb.camber_usd,2)} (Beam $${fmt(cb.camber_beam_usd,2)} + Girder $${fmt(cb.camber_girder_usd,2)}) |
+          Total Cost: $${fmt(cb.total_usd,2)}
         </div>
+        <div class="small" style="margin-top:.35rem"><strong>Note:</strong> Cost is estimated Total Installed Cost and depends on user assumptions in Cost Inputs.</div>
       `;
 
       const inputsForDeck = state.inputs || collectInputs();
@@ -2279,8 +2281,8 @@
       ];
 
       const cost = [
-        ["Steel TIC ($/lb)", fmt(costs.steel_tic_per_lb,3)],
-        ["Stud TIC ($/stud)", fmt(costs.stud_tic_per_each,2)],
+        ["Steel Cost ($/lb)", fmt(costs.steel_tic_per_lb,3)],
+        ["Stud Cost ($/stud)", fmt(costs.stud_tic_per_each,2)],
         ["Camber model", safeStr(costs.camber_model)],
         ["Beam camber eq (lbs/ft)", costs.camber_model==="eq_lbs_per_ft" ? fmt(costs.camber_eq?.beam_lbs_per_ft,3) : "—"],
         ["Girder camber eq (lbs/ft)", costs.camber_model==="eq_lbs_per_ft" ? fmt(costs.camber_eq?.girder_lbs_per_ft,3) : "—"],
@@ -2372,15 +2374,15 @@
           ["Beam studs total", fmtI(beamStud)],
           ["Girder studs total", fmtI(girderStud)],
           ["Total studs", fmtI(beamStud + girderStud)],
-          ["Steel TIC ($/lb)", fmt(inputs.cost.steel_tic_per_lb,3)],
-          ["Stud TIC ($/stud)", fmt(inputs.cost.stud_tic_per_each,2)],
-          ["Steel TIC (bay)", money(cb.steel_usd,2)],
-          ["Stud TIC (bay)", money(cb.stud_usd,2)],
-          ["Camber TIC beam (bay)", money(cb.camber_beam_usd,2)],
-          ["Camber TIC girder (bay)", money(cb.camber_girder_usd,2)],
-          ["Camber TIC (bay)", money(cb.camber_usd,2)],
-          ["Total TIC (bay)", money(cb.total_usd,2)],
-          ["Total TIC ($/sf)", money(sol.panel.cost_per_sf,3)]
+          ["Steel Cost ($/lb)", fmt(inputs.cost.steel_tic_per_lb,3)],
+          ["Stud Cost ($/stud)", fmt(inputs.cost.stud_tic_per_each,2)],
+          ["Steel Cost (bay)", money(cb.steel_usd,2)],
+          ["Stud Cost (bay)", money(cb.stud_usd,2)],
+          ["Camber Cost beam (bay)", money(cb.camber_beam_usd,2)],
+          ["Camber Cost girder (bay)", money(cb.camber_girder_usd,2)],
+          ["Camber Cost (bay)", money(cb.camber_usd,2)],
+          ["Total Cost (bay)", money(cb.total_usd,2)],
+          ["Total Cost ($/sf)", money(sol.panel.cost_per_sf,3)]
         ])}
       `;
     }
@@ -2607,7 +2609,7 @@
     function exportCSV() {
       if (!state.results.length) return;
       const rows = [
-        ["Rank","Beam","Girder","TIC_per_sf","Weight_psf","StrengthUtilMax","PreCompUtilMax","DeflectionUtilMax","PreCompControl","Control"]
+        ["Rank","Beam","Girder","Cost_per_sf","Weight_psf","StrengthUtilMax","PreCompUtilMax","DeflectionUtilMax","PreCompControl","Control"]
       ];
       state.results.forEach((r, i) => {
         rows.push([
@@ -2666,7 +2668,7 @@
         ${tableHTML(["Field","Value"], [
           ["Beam", safeStr(sol.panel.beam_shape)],
           ["Girder", safeStr(sol.panel.girder_shape)],
-          ["TIC ($/sf)", money(sol.panel.cost_per_sf,3)],
+          ["Cost ($/sf)", money(sol.panel.cost_per_sf,3)],
           ["Weight (psf)", fmt(sol.panel.weight_psf,3)],
           ["Strength Util Max", fmt(sol.panel.governing.strength_util_max,3)],
           ["Deflection Util Max", fmt(sol.panel.governing.deflection_util_max,3)],
